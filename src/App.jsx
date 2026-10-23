@@ -207,9 +207,9 @@ export default function App() {
   const [activeRightTab, setActiveRightTab] = useState('chat'); // 'chat' | 'obs' | 'info'
   const [themeMode, setThemeMode] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme_mode') || 'dark';
+      return localStorage.getItem('traiga_theme') || 'light';
     }
-    return 'dark';
+    return 'light';
   });
 
   useEffect(() => {
@@ -220,7 +220,7 @@ export default function App() {
         document.documentElement.classList.remove('light-mode');
       }
       try {
-        localStorage.setItem('theme_mode', themeMode);
+        localStorage.setItem('traiga_theme', themeMode);
       } catch (e) {}
     }
   }, [themeMode]);
@@ -517,13 +517,26 @@ export default function App() {
     setMyStreamKey('');
   };
 
-  // Mở modal liên hệ chủ trại
+  // Mở modal liên hệ chủ trại (Bắt buộc đăng nhập tài khoản trước khi liên hệ / mua / gửi lời nhắn)
   const openConnectWithFarm = (chickenTitle, farmName) => {
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+      return;
+    }
     setSelectedChickenForConnect({
       title: chickenTitle || 'Chiến kê đang lên sóng',
       farm: farmName || 'Chủ trại'
     });
     setIsConnectModalOpen(true);
+  };
+
+  // Mở modal đăng bán gà (Bắt buộc đăng nhập tài khoản)
+  const openPostChickenWithAuth = () => {
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    setIsPostChickenModalOpen(true);
   };
 
   // Danh sách kênh mặc định nếu MongoDB chưa có dữ liệu
@@ -859,15 +872,16 @@ export default function App() {
               </div>
             </a>
 
-            {/* Navigation (Desktop) - Single line, optimized typography */}
-            <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 text-[13px] font-medium shrink-0">
+            {/* Navigation (Desktop) - Chữ to, rõ ràng, dễ nhìn */}
+            <nav className="hidden lg:flex items-center gap-1 xl:gap-2 text-sm font-semibold shrink-0">
               <button
                 onClick={() => {
+                  setSelectedMarketChicken(null);
                   setActiveNavTab('home');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className={`px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 transition-colors cursor-pointer ${activeNavTab === 'home'
-                    ? 'text-rose-400 bg-rose-500/10 font-bold'
+                className={`px-3.5 py-2 rounded-lg whitespace-nowrap shrink-0 transition-colors cursor-pointer ${activeNavTab === 'home'
+                    ? 'text-red-500 bg-red-500/10 font-bold'
                     : 'text-gray-300 hover:text-white hover:bg-white/5'
                   }`}
               >
@@ -876,16 +890,17 @@ export default function App() {
 
               <button
                 onClick={() => {
+                  setSelectedMarketChicken(null);
                   setActiveNavTab('live');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className={`px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 transition-colors flex items-center gap-1.5 cursor-pointer ${activeNavTab === 'live'
-                    ? 'text-rose-400 bg-rose-500/10 font-bold'
+                className={`px-3.5 py-2 rounded-lg whitespace-nowrap shrink-0 transition-colors flex items-center gap-2 cursor-pointer ${activeNavTab === 'live'
+                    ? 'text-red-500 bg-red-500/10 font-bold'
                     : 'text-gray-300 hover:text-white hover:bg-white/5'
                   }`}
               >
-                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-                <span>Phòng Live</span>
+                <span className="w-2 h-2 rounded-full bg-red-600"></span>
+                <span>Xem Trực Tiếp</span>
               </button>
 
               <button
@@ -894,21 +909,19 @@ export default function App() {
                   setActiveNavTab('market');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className={`px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 transition-colors flex items-center gap-1.5 cursor-pointer ${activeNavTab === 'market'
-                    ? 'text-amber-400 bg-amber-500/10 font-bold border border-amber-500/20'
-                    : 'text-gray-300 hover:text-amber-300 hover:bg-white/5'
+                className={`px-3.5 py-2 rounded-lg whitespace-nowrap shrink-0 transition-colors flex items-center gap-1.5 cursor-pointer ${activeNavTab === 'market'
+                    ? 'text-red-500 bg-red-500/10 font-bold'
+                    : 'text-gray-300 hover:text-white hover:bg-white/5'
                   }`}
               >
-                <Tag className="w-3.5 h-3.5 text-amber-400" />
-                <span>Chợ Gà</span>
-                <span className="px-1.5 py-0.2 text-[10px] bg-amber-500 text-black font-extrabold rounded-md ml-0.5">MỚI</span>
+                <span>Chợ Gà Đang Bán ({chickensList.length})</span>
               </button>
 
               <button
                 onClick={() => setIsPolicyModalOpen(true)}
-                className="px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 text-gray-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                className="px-3.5 py-2 rounded-lg whitespace-nowrap shrink-0 text-gray-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
               >
-                Cẩm Nang
+                Lưu Ý Gửi Xe
               </button>
             </nav>
           </div>
@@ -918,7 +931,7 @@ export default function App() {
 
             {/* Prominent Đăng Bán Gà Button */}
             <button
-              onClick={() => setIsPostChickenModalOpen(true)}
+              onClick={openPostChickenWithAuth}
               className="bg-red-700 hover:bg-red-600 text-white font-bold text-xs px-3 sm:px-4 py-2 rounded-lg shadow transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
               title="Đăng bán chiến kê tuyển chọn"
             >
@@ -1261,336 +1274,130 @@ export default function App() {
 
             </div>
 
-            {/* ==================== CATEGORY FILTER TABS ==================== */}
-            {renderCategoryTabs()}
-
             {/* ==================== XEM LẠI PHIÊN LIVE ĐÃ PHÁT ==================== */}
             {renderReplaysSection()}
 
-            {/* ==================== SECTION 2: GÀ MỚI LÊN CHUỒNG ==================== */}
+            {/* ==================== DANH SÁCH GÀ ĐANG BÁN (CÓ ẢNH RÕ RÀNG, BẤM XEM CHI TIẾT) ==================== */}
             <section id="featured-chickens" className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-1.5 h-6 bg-amber-400 rounded-full"></div>
-                  <h2 className="text-xl font-extrabold tracking-tight text-white uppercase">
-                    Gà Mới Lên Chuồng &amp; Thông Số Cán Vảy
-                  </h2>
-                </div>
+                <h2 className="text-xl font-bold text-white">
+                  Gà Đang Bán Tại Trại &amp; Giao Lưu
+                </h2>
                 <button
-                  onClick={() => setIsPolicyModalOpen(true)}
-                  className="text-xs sm:text-sm font-bold text-amber-400 hover:underline flex items-center gap-1"
+                  onClick={() => {
+                    setSelectedMarketChicken(null);
+                    setActiveNavTab('market');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="text-sm font-bold text-amber-400 hover:underline cursor-pointer"
                 >
-                  Xem quy trình đóng lồng &gt;
+                  Xem tất cả ({chickensList.length}) &gt;
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-
-                {/* Card 1 */}
-                <div className="bg-[#16171d] rounded-2xl border border-white/10 p-4 space-y-3 flex flex-col justify-between hover:border-amber-400/50 transition-all shadow-xl">
-                  <div className="flex items-center justify-between text-xs text-gray-400">
-                    <span className="flex items-center gap-1.5 font-medium truncate">
-                      <span className="text-amber-400">★</span> Gà Đòn Bình Định
-                    </span>
-                    <span className="bg-emerald-600/20 text-emerald-400 font-bold px-2 py-0.5 rounded text-[10px]">Đã Dạt 2 Nước</span>
-                  </div>
-
-                  <div className="space-y-1 font-bold text-xs">
-                    <div className="text-white text-sm">MS 201: Chuối Lửa Chân Xanh</div>
-                    <div className="text-[11px] text-gray-400 font-normal">Trại Gà Đòn Ninh Thuận • Lông hình phủ kín</div>
-                  </div>
-
-                  <div className="bg-[#0e0f14] rounded-xl p-3 text-[11px] space-y-1.5 border border-white/10 font-mono">
-                    <div className="flex justify-between text-gray-300">
-                      <span className="text-gray-400 font-sans">Chạng:</span>
-                      <span className="font-bold text-white">2.90 kg</span>
-                    </div>
-                    <div className="flex justify-between text-gray-300">
-                      <span className="text-gray-400 font-sans">Cán vảy:</span>
-                      <span className="font-bold text-amber-300">Giáp thới, huyền trâm</span>
-                    </div>
-                    <div className="flex justify-between text-gray-300">
-                      <span className="text-gray-400 font-sans">Lối đá:</span>
-                      <span className="text-emerald-400 font-bold">Ôm đấm, kiềng hầu</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px]">
-                    <span className="text-gray-400">Đã xổ thử 2 hiệp</span>
-                    <button
-                      onClick={() => openConnectWithFarm('MS 201: Chuối Lửa Chân Xanh (Chạng 2.9kg)', 'Trại Gà Ninh Thuận')}
-                      className="bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-[10px] px-3 py-1.5 rounded-lg"
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {chickensList.slice(0, 6).map((item) => (
+                  <div
+                    key={item.id}
+                    className="bg-[#16171d] rounded-xl border border-white/10 hover:border-amber-500/50 transition overflow-hidden flex flex-col justify-between"
+                  >
+                    <div
+                      onClick={() => {
+                        setSelectedMarketChicken(item);
+                        setActiveNavTab('market');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="relative h-52 bg-black overflow-hidden cursor-pointer"
                     >
-                      Hỏi Thông Tin Gà
-                    </button>
-                  </div>
-                </div>
-
-                {/* Card 2 */}
-                <div className="bg-[#16171d] rounded-2xl border border-white/10 p-4 space-y-3 flex flex-col justify-between hover:border-amber-400/50 transition-all shadow-xl">
-                  <div className="flex items-center justify-between text-xs text-gray-400">
-                    <span className="flex items-center gap-1.5 font-medium truncate">
-                      <span className="text-amber-400">★</span> Gà Tre Cảnh Tân Châu
-                    </span>
-                    <span className="bg-blue-600/20 text-blue-400 font-bold px-2 py-0.5 rounded text-[10px]">Đuôi Phụng 68cm</span>
-                  </div>
-
-                  <div className="space-y-1 font-bold text-xs">
-                    <div className="text-white text-sm">MS 202: Tre Chuối Tuyết Bờm Trắng</div>
-                    <div className="text-[11px] text-gray-400 font-normal">Trại Gà Tre Miền Tây • Dạn người</div>
-                  </div>
-
-                  <div className="bg-[#0e0f14] rounded-xl p-3 text-[11px] space-y-1.5 border border-white/10 font-mono">
-                    <div className="flex justify-between text-gray-300">
-                      <span className="text-gray-400 font-sans">Chạng:</span>
-                      <span className="font-bold text-white">850 gram</span>
+                      <img
+                        src={item.image}
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute top-3 left-3 flex items-center gap-2">
+                        <span className="bg-black/80 text-amber-400 text-xs font-bold px-2.5 py-1 rounded">
+                          {item.ms}
+                        </span>
+                        <span className="bg-black/80 text-white text-xs font-bold px-2.5 py-1 rounded">
+                          Chạng: {item.chang}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between text-gray-300">
-                      <span className="text-gray-400 font-sans">Bộ đuôi:</span>
-                      <span className="font-bold text-amber-300">Xòe phụng 3 lớp chạm đất</span>
-                    </div>
-                    <div className="flex justify-between text-gray-300">
-                      <span className="text-gray-400 font-sans">Tuổi gà:</span>
-                      <span className="text-blue-400 font-bold">10 tháng tuổi</span>
-                    </div>
-                  </div>
 
-                  <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px]">
-                    <span className="text-gray-400">Gà cảnh tuyển chọn</span>
-                    <button
-                      onClick={() => openConnectWithFarm('MS 202: Tre Chuối Tuyết Bờm Trắng', 'Trại Gà Tre Miền Tây')}
-                      className="bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-[10px] px-3 py-1.5 rounded-lg"
-                    >
-                      Hỏi Thông Tin Gà
-                    </button>
-                  </div>
-                </div>
+                    <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                      <div className="space-y-1.5">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="text-lg font-bold text-amber-400">
+                            {item.priceText || (item.price ? `${item.price.toLocaleString('vi-VN')} đ` : 'Giá thỏa thuận')}
+                          </span>
+                          <span className="text-xs text-gray-400">{item.location}</span>
+                        </div>
+                        <h3
+                          onClick={() => {
+                            setSelectedMarketChicken(item);
+                            setActiveNavTab('market');
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className="font-bold text-base text-white line-clamp-2 hover:text-amber-400 cursor-pointer leading-snug"
+                        >
+                          {item.title}
+                        </h3>
+                        <p className="text-sm text-gray-400 truncate">
+                          {item.farm} • {item.canVay}
+                        </p>
+                      </div>
 
-                {/* Card 3 */}
-                <div className="bg-[#16171d] rounded-2xl border border-white/10 p-4 space-y-3 flex flex-col justify-between hover:border-amber-400/50 transition-all shadow-xl">
-                  <div className="flex items-center justify-between text-xs text-gray-400">
-                    <span className="flex items-center gap-1.5 font-medium truncate">
-                      <span className="text-amber-400">★</span> Gà Đòn Bình Định
-                    </span>
-                    <span className="bg-emerald-600/20 text-emerald-400 font-bold px-2 py-0.5 rounded text-[10px]">Đã Dạt 3 Nước</span>
-                  </div>
-
-                  <div className="space-y-1 font-bold text-xs">
-                    <div className="text-white text-sm">MS 203: Tía Chân Xanh Án Thiên</div>
-                    <div className="text-[11px] text-gray-400 font-normal">Trại Gà Đòn Ba Bình Định • Chân vuông</div>
-                  </div>
-
-                  <div className="bg-[#0e0f14] rounded-xl p-3 text-[11px] space-y-1.5 border border-white/10 font-mono">
-                    <div className="flex justify-between text-gray-300">
-                      <span className="text-gray-400 font-sans">Chạng:</span>
-                      <span className="font-bold text-white">3.15 kg</span>
-                    </div>
-                    <div className="flex justify-between text-gray-300">
-                      <span className="text-gray-400 font-sans">Cán vảy:</span>
-                      <span className="font-bold text-amber-300">Án Thiên 1 sát đầu gối</span>
-                    </div>
-                    <div className="flex justify-between text-gray-300">
-                      <span className="text-gray-400 font-sans">Lối đá:</span>
-                      <span className="text-emerald-400 font-bold">Đòn mé xỏ ngang, giáp lưng</span>
+                      <div className="pt-3 border-t border-white/10 grid grid-cols-2 gap-2.5">
+                        <button
+                          onClick={() => {
+                            setSelectedMarketChicken(item);
+                            setActiveNavTab('market');
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className="py-2 px-3 rounded-lg bg-[#0e0f14] hover:bg-white/10 text-white border border-white/10 text-sm font-semibold transition cursor-pointer"
+                        >
+                          Xem Chi Tiết
+                        </button>
+                        <a
+                          href={`tel:${item.phone?.replace(/\D/g, '') || '0988888888'}`}
+                          className="py-2 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-bold transition flex items-center justify-center gap-1.5"
+                        >
+                          <Phone className="w-4 h-4" />
+                          <span>Gọi Điện</span>
+                        </a>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px]">
-                    <span className="text-gray-400">Bao thử chân trực tiếp</span>
-                    <button
-                      onClick={() => openConnectWithFarm('MS 203: Tía Chân Xanh Án Thiên (Chạng 3.15kg)', 'Trại Gà Ba Bình Định')}
-                      className="bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-[10px] px-3 py-1.5 rounded-lg"
-                    >
-                      Hỏi Thông Tin Gà
-                    </button>
-                  </div>
-                </div>
-
-                {/* Card 4 */}
-                <div className="bg-[#16171d] rounded-2xl border border-white/10 p-4 space-y-3 flex flex-col justify-between hover:border-amber-400/50 transition-all shadow-xl">
-                  <div className="flex items-center justify-between text-xs text-gray-400">
-                    <span className="flex items-center gap-1.5 font-medium truncate">
-                      <span className="text-amber-400">★</span> Gà Đông Tảo Hưng Yên
-                    </span>
-                    <span className="bg-purple-600/20 text-purple-400 font-bold px-2 py-0.5 rounded text-[10px]">Giống Chuẩn F1</span>
-                  </div>
-
-                  <div className="space-y-1 font-bold text-xs">
-                    <div className="text-white text-sm">MS 204: Đông Tảo Tiến Vua Chân Khủng</div>
-                    <div className="text-[11px] text-gray-400 font-normal">Trại Gà Khoái Châu • Chân vảy thịt đỏ</div>
-                  </div>
-
-                  <div className="bg-[#0e0f14] rounded-xl p-3 text-[11px] space-y-1.5 border border-white/10 font-mono">
-                    <div className="flex justify-between text-gray-300">
-                      <span className="text-gray-400 font-sans">Chạng:</span>
-                      <span className="font-bold text-white">4.60 kg</span>
-                    </div>
-                    <div className="flex justify-between text-gray-300">
-                      <span className="text-gray-400 font-sans">Đặc điểm:</span>
-                      <span className="font-bold text-amber-300">Chân to xù vảy thịt đỏ au</span>
-                    </div>
-                    <div className="flex justify-between text-gray-300">
-                      <span className="text-gray-400 font-sans">Tiêm phòng:</span>
-                      <span className="text-purple-400 font-bold">Đầy đủ 100% vắc xin</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px]">
-                    <span className="text-gray-400">Chuẩn giống Khoái Châu</span>
-                    <button
-                      onClick={() => openConnectWithFarm('MS 204: Đông Tảo Tiến Vua Chân Khủng', 'Trại Gà Khoái Châu')}
-                      className="bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-[10px] px-3 py-1.5 rounded-lg"
-                    >
-                      Hỏi Thông Tin Gà
-                    </button>
-                  </div>
-                </div>
-
+                ))}
               </div>
             </section>
 
-            {/* ==================== SECTION 3: CÁC TRẠI GIAO LƯU THƯỜNG XUYÊN ==================== */}
-            <section id="farms" className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-1.5 h-6 bg-amber-500 rounded-full"></div>
-                  <h2 className="text-lg sm:text-xl font-bold tracking-tight text-white uppercase">
-                    Các Trại Giao Lưu Thường Xuyên
-                  </h2>
-                </div>
-                <span className="text-xs text-slate-400">Chọn trại để xem luồng phát sóng</span>
-              </div>
+            {/* ==================== CÁC TRẠI GIAO LƯU THƯỜNG XUYÊN (ĐƠN GIẢN) ==================== */}
+            <section id="farms" className="space-y-3">
+              <h2 className="text-lg font-bold text-white">
+                Các Trại Giao Lưu Thường Xuyên
+              </h2>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 py-2">
-                <div onClick={() => changeChannel('thanh-trung', true)} className="flex flex-col items-center gap-2 p-3 rounded-xl bg-slate-900 border border-amber-500/30 cursor-pointer hover:border-amber-400 transition-all">
-                  <div className="w-14 h-14 rounded-full bg-amber-600/20 border-2 border-amber-500 flex items-center justify-center text-amber-400 font-black text-sm">
-                    TT
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                {[
+                  { key: 'thanh-trung', name: 'Trại Thành Trung', loc: 'Long Biên - Hà Nội' },
+                  { key: 'tiendev', name: 'Ba Bình Định', loc: 'Gà đòn Tây Sơn' },
+                  { key: 'test', name: 'Sáu Khải', loc: 'Tân Châu An Giang' },
+                  { key: 'supersecret', name: 'Anh Ba', loc: 'Chợ Lách Bến Tre' },
+                  { key: 'dongtao', name: 'Bác Tiến', loc: 'Khoái Châu Hưng Yên' },
+                  { key: 'caolanh', name: 'Út Lớn', loc: 'Cao Lãnh Đồng Tháp' }
+                ].map((f) => (
+                  <div
+                    key={f.key}
+                    onClick={() => changeChannel(f.key, true)}
+                    className="p-3.5 rounded-xl bg-[#14151c] border border-white/10 hover:border-amber-500/50 cursor-pointer transition text-center space-y-1"
+                  >
+                    <div className="text-sm font-bold text-white truncate">{f.name}</div>
+                    <div className="text-xs text-gray-400 truncate">{f.loc}</div>
                   </div>
-                  <span className="text-xs font-bold text-white text-center truncate max-w-[110px]">
-                    Trại Thành Trung
-                  </span>
-                  <span className="text-[10px] text-amber-400">Long Biên - Hà Nội</span>
-                </div>
-
-                <div onClick={() => changeChannel('tiendev', true)} className="flex flex-col items-center gap-2 p-3 rounded-xl bg-slate-900 border border-slate-800 cursor-pointer hover:border-amber-400 transition-all">
-                  <div className="w-14 h-14 rounded-full bg-red-950 border-2 border-red-700 flex items-center justify-center text-red-300 font-black text-sm">
-                    BĐ
-                  </div>
-                  <span className="text-xs font-bold text-slate-200 text-center truncate max-w-[110px]">
-                    Ba Bình Định
-                  </span>
-                  <span className="text-[10px] text-slate-400">Gà đòn Tây Sơn</span>
-                </div>
-
-                <div onClick={() => changeChannel('test', true)} className="flex flex-col items-center gap-2 p-3 rounded-xl bg-slate-900 border border-slate-800 cursor-pointer hover:border-amber-400 transition-all">
-                  <div className="w-14 h-14 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-slate-300 font-black text-sm">
-                    SK
-                  </div>
-                  <span className="text-xs font-bold text-slate-200 text-center truncate max-w-[110px]">
-                    Sáu Khải
-                  </span>
-                  <span className="text-[10px] text-slate-400">Tân Châu An Giang</span>
-                </div>
-
-                <div onClick={() => changeChannel('supersecret', true)} className="flex flex-col items-center gap-2 p-3 rounded-xl bg-slate-900 border border-slate-800 cursor-pointer hover:border-amber-400 transition-all">
-                  <div className="w-14 h-14 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-slate-300 font-black text-sm">
-                    AB
-                  </div>
-                  <span className="text-xs font-bold text-slate-200 text-center truncate max-w-[110px]">
-                    Anh Ba
-                  </span>
-                  <span className="text-[10px] text-slate-400">Chợ Lách Bến Tre</span>
-                </div>
-
-                <div onClick={() => changeChannel('dongtao', true)} className="flex flex-col items-center gap-2 p-3 rounded-xl bg-slate-900 border border-slate-800 cursor-pointer hover:border-amber-400 transition-all">
-                  <div className="w-14 h-14 rounded-full bg-amber-950 border-2 border-amber-700 flex items-center justify-center text-amber-300 font-black text-sm">
-                    TK
-                  </div>
-                  <span className="text-xs font-bold text-slate-200 text-center truncate max-w-[110px]">
-                    Bác Tiến
-                  </span>
-                  <span className="text-[10px] text-slate-400">Khoái Châu Hưng Yên</span>
-                </div>
-
-                <div onClick={() => changeChannel('caolanh', true)} className="flex flex-col items-center gap-2 p-3 rounded-xl bg-slate-900 border border-slate-800 cursor-pointer hover:border-amber-400 transition-all">
-                  <div className="w-14 h-14 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-slate-300 font-black text-sm">
-                    ÚT
-                  </div>
-                  <span className="text-xs font-bold text-slate-200 text-center truncate max-w-[110px]">
-                    Út Lớn
-                  </span>
-                  <span className="text-[10px] text-slate-400">Cao Lãnh Đồng Tháp</span>
-                </div>
+                ))}
               </div>
             </section>
-
-            {/* ==================== SECTION 4: DÒNG KÊ BA MIỀN ==================== */}
-            <section id="breeds" className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-1.5 h-6 bg-rose-500 rounded-full"></div>
-                  <h2 className="text-xl font-extrabold tracking-tight text-white uppercase">
-                    Các Dòng Kê Nổi Danh Ba Miền
-                  </h2>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-                <div className="bg-[#14161f] border border-slate-800 rounded-xl h-24 flex items-center justify-center p-3 transition-colors hover:border-amber-500/50">
-                  <div className="flex flex-col items-center text-center">
-                    <span className="text-white font-bold text-sm">Gà Đòn Bình Định</span>
-                    <span className="text-[11px] text-slate-400 mt-0.5">Lối ôm đấm, kiềng mé</span>
-                  </div>
-                </div>
-
-                <div className="bg-[#14161f] border border-slate-800 rounded-xl h-24 flex items-center justify-center p-3 transition-colors hover:border-amber-500/50">
-                  <div className="flex flex-col items-center text-center">
-                    <span className="text-white font-bold text-sm">Gà Nòi Chợ Lách</span>
-                    <span className="text-[11px] text-slate-400 mt-0.5">Bến Tre • Cựa sắc nhọn</span>
-                  </div>
-                </div>
-
-                <div className="bg-[#14161f] border border-slate-800 rounded-xl h-24 flex items-center justify-center p-3 transition-colors hover:border-amber-500/50">
-                  <div className="flex flex-col items-center text-center">
-                    <span className="text-white font-bold text-sm">Gà Đông Tảo</span>
-                    <span className="text-[11px] text-amber-400 font-medium mt-0.5">Khoái Châu Hưng Yên</span>
-                  </div>
-                </div>
-
-                <div className="bg-[#14161f] border border-slate-800 rounded-xl h-24 flex items-center justify-center p-3 transition-colors hover:border-amber-500/50">
-                  <div className="flex flex-col items-center text-center">
-                    <span className="text-white font-bold text-sm">Gà Tre Tân Châu</span>
-                    <span className="text-[11px] text-slate-400 mt-0.5">An Giang • Đuôi phụng dài</span>
-                  </div>
-                </div>
-
-                <div className="bg-[#14161f] border border-slate-800 rounded-xl h-24 flex items-center justify-center p-3 transition-colors hover:border-amber-500/50">
-                  <div className="flex flex-col items-center text-center">
-                    <span className="text-white font-bold text-sm">Gà Nòi Cao Lãnh</span>
-                    <span className="text-[11px] text-slate-400 mt-0.5">Đồng Tháp • Lối đánh hiểm</span>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* ==================== BANNER LƯU Ý GIAO NHẬN XE KHÁCH ==================== */}
-            <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-red-950 via-slate-900 to-amber-950 border border-rose-500/30 p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-2xl">
-              <div className="space-y-2 z-10 text-center sm:text-left">
-                <span className="text-amber-400 font-bold uppercase text-xs tracking-wider">Kinh Nghiệm Giao Nhận</span>
-                <h3 className="text-xl sm:text-2xl font-black text-white">
-                  LƯU Ý KHI GIAO NHẬN GÀ QUA XE KHÁCH ĐI CÁC TỈNH
-                </h3>
-                <p className="text-xs sm:text-sm text-gray-300 max-w-2xl">
-                  Khi ra điểm đón xe nhận lồng gà, anh em nhớ quay video từ lúc nhận thùng từ tay phụ xe tới lúc khui lồng, kiểm tra thể trạng và cho gà uống nước chè ấm hồi sức sau chặng đường dài.
-                </p>
-              </div>
-              <button
-                onClick={() => setIsPolicyModalOpen(true)}
-                className="z-10 flex-shrink-0 bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-500 hover:to-orange-500 text-white font-extrabold text-xs sm:text-sm py-3 px-6 rounded-xl shadow-lg transition-transform hover:scale-105 uppercase tracking-wider cursor-pointer"
-              >
-                Xem Hướng Dẫn Chi Tiết
-              </button>
-            </div>
 
           </div>
         )}
@@ -1870,14 +1677,16 @@ export default function App() {
               onOpenConnect={openConnectWithFarm}
               relatedChickens={chickensList}
               onSelectChicken={(chicken) => setSelectedMarketChicken(chicken)}
+              currentUser={currentUser}
             />
           ) : (
             <ChickenMarketplace
               chickens={chickensList}
-              onOpenPostModal={() => setIsPostChickenModalOpen(true)}
+              onOpenPostModal={openPostChickenWithAuth}
               onSelectChicken={(chicken) => setSelectedMarketChicken(chicken)}
               onOpenConnect={openConnectWithFarm}
               onOpenPolicy={() => setIsPolicyModalOpen(true)}
+              currentUser={currentUser}
             />
           )
         )}

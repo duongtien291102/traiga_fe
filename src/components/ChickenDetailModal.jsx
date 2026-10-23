@@ -15,7 +15,8 @@ export default function ChickenDetailModal({
   onClose, 
   onOpenConnect,
   relatedChickens = [],
-  onSelectChicken
+  onSelectChicken,
+  currentUser = null
 }) {
   if (!isOpen || !chicken) return null;
 
@@ -115,7 +116,17 @@ export default function ChickenDetailModal({
               </div>
               <div className="py-2.5 flex justify-between gap-4">
                 <span className="text-gray-400">Số điện thoại / Zalo:</span>
-                <span className="font-bold text-amber-400 text-right">{chicken.phone}</span>
+                {currentUser ? (
+                  <span className="font-bold text-amber-400 text-right">{chicken.phone}</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onOpenConnect && onOpenConnect(chicken.title, chicken.farm || chicken.sellerName)}
+                    className="font-bold text-amber-400 hover:underline text-right cursor-pointer"
+                  >
+                    🔒 Đăng nhập để xem SĐT
+                  </button>
+                )}
               </div>
               <div className="py-2.5 flex justify-between gap-4">
                 <span className="text-gray-400">Khu vực:</span>
@@ -147,28 +158,37 @@ export default function ChickenDetailModal({
               </div>
             </div>
 
-            {/* Nút liên hệ to, rõ, dễ bấm trên điện thoại */}
+            {/* Nút liên hệ to, rõ, dễ bấm trên điện thoại (Yêu cầu đăng nhập nếu chưa có tài khoản) */}
             <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <a
-                href={`tel:${chicken.phone?.replace(/\D/g, '') || '0988888888'}`}
-                className="py-3.5 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-base flex items-center justify-center gap-2 transition text-center"
-              >
-                <Phone className="w-5 h-5" />
-                <span>Gọi: {chicken.phone}</span>
-              </a>
+              {currentUser ? (
+                <a
+                  href={`tel:${chicken.phone?.replace(/\D/g, '') || '0988888888'}`}
+                  className="py-3.5 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-base flex items-center justify-center gap-2 transition text-center"
+                >
+                  <Phone className="w-5 h-5" />
+                  <span>Gọi: {chicken.phone}</span>
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onOpenConnect && onOpenConnect(chicken.title, chicken.farm || chicken.sellerName)}
+                  className="py-3.5 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-base flex items-center justify-center gap-2 transition text-center cursor-pointer"
+                >
+                  <Phone className="w-5 h-5" />
+                  <span>Đăng nhập để Gọi</span>
+                </button>
+              )}
 
               <button
                 onClick={() => {
                   if (onOpenConnect) {
                     onOpenConnect(chicken.title, chicken.farm || chicken.sellerName);
-                  } else {
-                    alert(`Zalo chủ trại: ${chicken.zalo || chicken.phone}`);
                   }
                 }}
                 className="py-3.5 px-4 rounded-lg bg-red-700 hover:bg-red-600 text-white font-bold text-base flex items-center justify-center gap-2 transition cursor-pointer"
               >
                 <MessageSquare className="w-5 h-5" />
-                <span>Nhắn Zalo Chủ Trại</span>
+                <span>{currentUser ? 'Nhắn Zalo / Liên Hệ' : 'Đăng nhập để Liên Hệ'}</span>
               </button>
             </div>
           </div>

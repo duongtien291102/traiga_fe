@@ -13,7 +13,8 @@ export default function ChickenMarketplace({
   onOpenPostModal, 
   onSelectChicken, 
   onOpenConnect,
-  onOpenPolicy
+  onOpenPolicy,
+  currentUser = null
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBreed, setSelectedBreed] = useState('all');
@@ -259,13 +260,24 @@ export default function ChickenMarketplace({
                     Xem Chi Tiết
                   </button>
 
-                  <a
-                    href={`tel:${item.phone?.replace(/\D/g, '') || '0988888888'}`}
-                    className="py-2.5 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <Phone className="w-4 h-4" />
-                    <span>Gọi Điện</span>
-                  </a>
+                  {currentUser ? (
+                    <a
+                      href={`tel:${item.phone?.replace(/\D/g, '') || '0988888888'}`}
+                      className="py-2.5 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Phone className="w-4 h-4" />
+                      <span>Gọi Điện</span>
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onOpenConnect && onOpenConnect(item.title, item.farm || item.sellerName)}
+                      className="py-2.5 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Phone className="w-4 h-4" />
+                      <span>Liên Hệ Mua</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
