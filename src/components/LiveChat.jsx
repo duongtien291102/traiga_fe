@@ -15,6 +15,8 @@ import {
   LogIn
 } from 'lucide-react';
 
+import { getWsUrl } from '../config';
+
 const QUICK_EMOJIS = ['❤️', '🔥', '👏', '🎉', '💯', '😂', '⭐', '🚀'];
 
 export default function LiveChat({ streamKey = 'tiendev', user = null, onOpenAuth = null }) {
@@ -76,9 +78,7 @@ export default function LiveChat({ streamKey = 'tiendev', user = null, onOpenAut
     setIsConnected(false);
 
     const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsHost = window.location.host;
-    const wsUrl = `${wsProtocol}//${wsHost}/ws/chat?streamKey=${encodeURIComponent(streamKey)}`;
+    const wsUrl = getWsUrl(streamKey);
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
