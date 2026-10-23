@@ -293,15 +293,48 @@ export default function App() {
     }
   }, []);
 
-  // Tải danh sách Stream Keys và Sessions từ MongoDB Atlas
+  // Xử lý tự động đăng xuất khi tài khoản được đăng nhập ở thiết bị khác (token bị thu hồi -> 401)
+  const forceKickSession = () => {
+    const activeToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : '';
+    if (!activeToken) return;
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
+    localStorage.removeItem('my_stream_key');
+    setCurrentUser(null);
+    setAuthToken('');
+    setMyStreamKey('');
+    setIsAdminPanelOpen(false);
+    setIsSystemAdminOpen(false);
+    setIsLiveStudioOpen(false);
+    setIsPostChickenModalOpen(false);
+    alert('Tài khoản của bạn vừa được đăng nhập trên một thiết bị khác. Phiên hiện tại đã tự động đăng xuất.');
+  };
+
+  // Tải danh sách Stream Keys, Sessions và kiểm tra hiệu lực phiên đăng nhập
   const fetchKeysAndSessions = () => {
-    const token = authToken || (typeof window !== 'undefined' ? localStorage.getItem('auth_token') : '');
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : authToken;
     if (!token) return;
+
+    fetch(`${getApiBaseUrl()}/api/auth/me`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then((res) => {
+        if (res.status === 401) {
+          forceKickSession();
+        }
+      })
+      .catch(() => {});
 
     fetch(`${getApiBaseUrl()}/api/keys`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (res.status === 401) {
+          forceKickSession();
+          return null;
+        }
+        return res.json();
+      })
       .then((data) => {
         if (Array.isArray(data)) {
           setDbKeys(data);
