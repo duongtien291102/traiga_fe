@@ -53,16 +53,22 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
     if (Hls.isSupported()) {
       let mediaRecoveryCount = 0;
 
+      // Cấu hình mức độ trễ dựa trên thiết lập kênh (Siêu nhanh / Cân bằng / Ổn định cao)
+      const delayMode = (typeof window !== 'undefined' && localStorage.getItem('traiga_stream_delay_mode')) || 'normal';
+      const syncCount = delayMode === 'low' ? 2 : delayMode === 'safe' ? 5 : 3;
+      const maxLatency = delayMode === 'low' ? 4 : delayMode === 'safe' ? 10 : 6;
+      const bufferLen = delayMode === 'low' ? 10 : delayMode === 'safe' ? 30 : 20;
+
       const hls = new Hls({
         enableWorker: true,
         // QUAN TRỌNG: Tắt lowLatencyMode vì WebRTC-to-HLS có độ lệch PTS/DTS nhỏ,
         // lowLatencyMode sẽ gây ra bufferAppendError và giật/đứng hình trên Chrome
         lowLatencyMode: false,
         backBufferLength: 10,
-        maxBufferLength: 20,
+        maxBufferLength: bufferLen,
         maxMaxBufferLength: 40,
-        liveSyncDurationCount: 3,
-        liveMaxLatencyDurationCount: 6,
+        liveSyncDurationCount: syncCount,
+        liveMaxLatencyDurationCount: maxLatency,
         manifestLoadingMaxRetry: 6,
         manifestLoadingRetryDelay: 1000,
         manifestLoadingTimeOut: 15000,
