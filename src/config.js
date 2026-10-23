@@ -23,16 +23,22 @@ export const isVercel = () => {
   return false;
 };
 
-// API Base URL: Trên Vercel dùng proxy `/api` (qua vercel.json) hoặc gọi thẳng Azure
+// API Base URL: Ưu tiên VITE_API_URL nếu chạy local
 export const getApiBaseUrl = () => {
+  if (import.meta.env?.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
   if (typeof window !== 'undefined' && window.location.host) {
     return `${window.location.protocol}//${window.location.host}`;
   }
   return `http://${getHost()}:8000`;
 };
 
-// WebSocket Base URL: Vercel không hỗ trợ WebSocket serverless, nên kết nối thẳng tới Azure
+// WebSocket Base URL: Ưu tiên VITE_WS_URL nếu chạy local
 export const getWsUrl = (streamKey) => {
+  if (import.meta.env?.VITE_WS_URL) {
+    return `${import.meta.env.VITE_WS_URL}/ws/chat?streamKey=${encodeURIComponent(streamKey)}`;
+  }
   if (isVercel()) {
     return `${AZURE_WS_URL}/ws/chat?streamKey=${encodeURIComponent(streamKey)}`;
   }
