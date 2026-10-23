@@ -17,6 +17,10 @@
       "destination": "http://103.82.26.60:8080/api/$1"
     },
     {
+      "source": "/record/(.*)",
+      "destination": "http://103.82.26.60:8080/record/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

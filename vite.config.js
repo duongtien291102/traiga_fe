@@ -53,6 +53,10 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/srs-api/, '/api'),
         changeOrigin: true,
       },
+      '/record': {
+        target: 'http://103.82.26.60:8080',
+        changeOrigin: true,
+      },
     },
   },
 })

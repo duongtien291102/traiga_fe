@@ -8,6 +8,12 @@ body {
   margin: 0;
   background-color: #030712;
   color: #f3f4f6;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+html.light-mode body {
+  background-color: #f1f5f9;
+  color: #0f172a;
 }
 
 /* Custom scrollbars */
@@ -24,6 +30,17 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #374151;
+}
+
+html.light-mode ::-webkit-scrollbar-track {
+  background: #e2e8f0;
+}
+html.light-mode ::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+html.light-mode ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }
 
 @keyframes floatUp {
@@ -43,4 +60,173 @@ body {
 
 .animate-float-up {
   animation: floatUp 1.8s ease-out forwards;
+}
+
+/* =====================================================================
+   LIGHT MODE THEME OVERRIDES
+   ===================================================================== */
+
+/* 1. Main Page & Section Backgrounds */
+html.light-mode .bg-\[\#0c0d11\] {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+html.light-mode .bg-\[\#0e1017\],
+html.light-mode .bg-\[\#0a0b0e\] {
+  background-color: #ffffff !important;
+}
+
+html.light-mode .bg-\[\#12141c\]\/95,
+html.light-mode .bg-\[\#12141c\] {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+}
+
+/* 2. Cards, Modals & Containers */
+html.light-mode .bg-\[\#14151c\],
+html.light-mode .bg-\[\#16171d\],
+html.light-mode .bg-\[\#16171f\],
+html.light-mode .bg-\[\#14161f\],
+html.light-mode .bg-\[\#151720\],
+html.light-mode .bg-\[\#13141b\],
+html.light-mode .bg-\[\#13141a\],
+html.light-mode .bg-\[\#12131a\],
+html.light-mode .bg-slate-900,
+html.light-mode .bg-slate-900\/90,
+html.light-mode .bg-slate-900\/80 {
+  background-color: #ffffff !important;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* 3. Inner Spec Boxes, Inputs & Secondary Surfaces */
+html.light-mode .bg-\[\#0e0f14\],
+html.light-mode .bg-\[\#0f1016\],
+html.light-mode .bg-\[\#111217\],
+html.light-mode .bg-\[\#1b1c25\],
+html.light-mode .bg-slate-950,
+html.light-mode .bg-slate-950\/80,
+html.light-mode .bg-slate-950\/90,
+html.light-mode .bg-slate-900\/40,
+html.light-mode .bg-slate-800 {
+  background-color: #f8fafc !important;
+}
+
+html.light-mode .bg-white\/5,
+html.light-mode .bg-white\/10,
+html.light-mode .bg-white\/15,
+html.light-mode .bg-black\/60 {
+  background-color: #f8fafc !important;
+}
+
+html.light-mode .hover\:bg-white\/5:hover,
+html.light-mode .hover\:bg-white\/10:hover,
+html.light-mode .hover\:bg-white\/20:hover,
+html.light-mode .hover\:bg-slate-800:hover,
+html.light-mode .hover\:bg-slate-700:hover {
+  background-color: #e2e8f0 !important;
+}
+
+/* 4. Hero & CTA Gradient Banners in Light Mode */
+html.light-mode .from-red-950.via-\[\#181923\].to-amber-950,
+html.light-mode .from-red-950.via-slate-900.to-amber-950 {
+  background-image: linear-gradient(to right, #fff1f2, #fffbeb, #fef3c7) !important;
+  border-color: #fde68a !important;
+}
+
+html.light-mode .from-\[\#0e1017\].via-\[\#0e1017\]\/80 {
+  --tw-gradient-from: #ffffff !important;
+  --tw-gradient-via: rgba(255, 255, 255, 0.88) !important;
+}
+
+html.light-mode .bg-rose-950\/40 {
+  background-color: #ffe4e6 !important;
+}
+
+html.light-mode .from-amber-500\/10.via-\[\#0e0f14\].to-rose-500\/10 {
+  background-image: linear-gradient(to right, #fef3c7, #fffbeb, #ffe4e6) !important;
+}
+
+/* 5. Borders */
+html.light-mode .border-white\/10,
+html.light-mode .border-white\/15,
+html.light-mode .border-white\/20,
+html.light-mode .border-slate-800,
+html.light-mode .border-slate-800\/60,
+html.light-mode .border-slate-800\/40,
+html.light-mode .border-slate-700 {
+  border-color: #cbd5e1 !important;
+}
+
+html.light-mode .border-white\/5 {
+  border-color: #e2e8f0 !important;
+}
+
+/* 6. Typography & Text Contrast */
+html.light-mode .text-white:not(
+  .bg-red-700, .bg-red-600, .bg-rose-600, .bg-rose-500,
+  .bg-amber-600, .bg-emerald-600, .bg-emerald-600\/90, .bg-purple-600, .bg-cyan-600, .bg-blue-600,
+  .from-emerald-600, .from-rose-600, .from-amber-500,
+  .bg-black, .bg-black\/75, .bg-black\/80, .bg-black\/60,
+  .bg-black .text-white, .keep-dark .text-white
+) {
+  color: #0f172a !important;
+}
+
+html.light-mode .text-gray-100,
+html.light-mode .text-gray-200,
+html.light-mode .text-slate-200 {
+  color: #1e293b !important;
+}
+
+html.light-mode .text-gray-300:not(.bg-black *),
+html.light-mode .text-slate-300:not(.bg-black *) {
+  color: #334155 !important;
+}
+
+html.light-mode .text-gray-400,
+html.light-mode .text-slate-400,
+html.light-mode .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Keep text inside dark media/photo overlays crisp white */
+html.light-mode .bg-black .text-white,
+html.light-mode .bg-black\/75.text-white,
+html.light-mode .bg-black\/80.text-white,
+html.light-mode .keep-dark .text-white {
+  color: #ffffff !important;
+}
+
+html.light-mode .bg-black .text-amber-300,
+html.light-mode .bg-black .text-amber-400,
+html.light-mode .keep-dark .text-amber-300,
+html.light-mode .keep-dark .text-amber-400 {
+  color: #fbbf24 !important;
+}
+
+/* High-contrast accent colors on light surfaces */
+html.light-mode .text-amber-300:not(.bg-black *),
+html.light-mode .text-amber-400:not(.bg-black *) {
+  color: #b45309 !important;
+}
+
+html.light-mode .text-emerald-400:not(.bg-black *) {
+  color: #047857 !important;
+}
+
+html.light-mode .text-rose-400:not(.bg-black *) {
+  color: #be123c !important;
+}
+
+html.light-mode .text-blue-400:not(.bg-black *) {
+  color: #1d4ed8 !important;
+}
+
+html.light-mode .text-purple-300:not(.bg-black *),
+html.light-mode .text-purple-400:not(.bg-black *) {
+  color: #6d28d9 !important;
+}
+
+html.light-mode .text-cyan-400:not(.bg-black *) {
+  color: #0e7490 !important;
 }

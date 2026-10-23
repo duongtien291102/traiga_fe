@@ -48,6 +48,13 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
   const [roomBotsErr, setRoomBotsErr] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Quản lý Video Xem Lại (Google Drive / DVR Replay)
+  const [replayTitle, setReplayTitle] = useState('');
+  const [replayUrl, setReplayUrl] = useState('');
+  const [replayStreamKey, setReplayStreamKey] = useState('');
+  const [replayLoading, setReplayLoading] = useState(false);
+  const [replayMsg, setReplayMsg] = useState('');
+
   const loadData = async () => {
     try {
       // 1. Tải danh sách Keys
@@ -494,13 +501,81 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
                 </div>
               </div>
 
-              {/* Bảng danh sách Phiên Livestream */}
-              <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-5">
-                <div className="flex items-center justify-between mb-4">
+              {/* Bảng danh sách Phiên Livestream & Quản lý Video Xem Lại (Google Drive) */}
+              <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-emerald-400" /> Lịch sử Phiên Livestream ({sessions.length})
+                    <Activity className="w-4 h-4 text-emerald-400" /> Lịch sử Phiên Livestream &amp; Video Xem Lại ({sessions.length})
                   </h3>
+                  <span className="text-[11px] text-amber-400 font-medium">
+                    ☁️ Tự động ghi DVR &amp; đồng bộ Google Drive sau khi kết thúc live
+                  </span>
                 </div>
+
+                {/* Form gắn thêm Video Xem Lại từ Google Drive */}
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!replayUrl.trim()) return;
+                    setReplayLoading(true);
+                    setReplayMsg('');
+                    try {
+                      const res = await fetch(`${getApiBaseUrl()}/api/sessions/replay`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                        },
+                        body: JSON.stringify({
+                          stream_key: replayStreamKey || currentStreamKey || 'tiendev',
+                          title: replayTitle.trim(),
+                          replay_url: replayUrl.trim()
+                        })
+                      });
+                      const data = await res.json();
+                      if (res.ok) {
+                        setReplayTitle('');
+                        setReplayUrl('');
+                        setReplayMsg('✅ Đã gắn video Google Drive vào danh sách Xem Lại!');
+                        loadData();
+                      } else {
+                        setReplayMsg(`❌ ${data.error || 'Lỗi lưu video'}`);
+                      }
+                    } catch (err) {
+                      setReplayMsg('❌ Không thể kết nối máy chủ');
+                    } finally {
+                      setReplayLoading(false);
+                    }
+                  }}
+                  className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center"
+                >
+                  <input
+                    type="text"
+                    value={replayTitle}
+                    onChange={(e) => setReplayTitle(e.target.value)}
+                    placeholder="Tiêu đề video xem lại (VD: Xổ gà Ô Chân Trắng 2.9kg)"
+                    className="sm:col-span-4 px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500"
+                  />
+                  <input
+                    type="text"
+                    value={replayUrl}
+                    onChange={(e) => setReplayUrl(e.target.value)}
+                    placeholder="Dán link Google Drive (https://drive.google.com/file/d/...) hoặc File ID"
+                    className="sm:col-span-5 px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={replayLoading || !replayUrl.trim()}
+                    className="sm:col-span-3 px-3 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white font-bold text-xs transition cursor-pointer"
+                  >
+                    {replayLoading ? 'Đang lưu...' : '+ Thêm Video Google Drive'}
+                  </button>
+                  {replayMsg && (
+                    <div className="sm:col-span-12 text-[11px] font-semibold text-amber-300">
+                      {replayMsg}
+                    </div>
+                  )}
+                </form>
 
                 {sessions.length === 0 ? (
                   <div className="text-center py-6 text-slate-500 text-xs">
@@ -512,8 +587,9 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
                       <thead>
                         <tr className="border-b border-slate-800 text-slate-400">
                           <th className="pb-3 font-semibold">Mã Phiên</th>
-                          <th className="pb-3 font-semibold">Chủ Trại</th>
+                          <th className="pb-3 font-semibold">Chủ Trại / Tiêu đề</th>
                           <th className="pb-3 font-semibold">Thời gian phát</th>
+                          <th className="pb-3 font-semibold">Video Xem Lại</th>
                           <th className="pb-3 font-semibold text-right">Trạng thái</th>
                         </tr>
                       </thead>
@@ -528,9 +604,62 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
                                   {maskedId}
                                 </span>
                               </td>
-                              <td className="py-3 text-slate-200 font-sans font-semibold">{s.streamer || 'Chủ Trại'}</td>
+                              <td className="py-3 text-slate-200 font-sans">
+                                <div className="font-semibold">{s.streamer || 'Chủ Trại'}</div>
+                                {s.title && <div className="text-[11px] text-slate-400 truncate max-w-[200px]">{s.title}</div>}
+                              </td>
                               <td className="py-3 text-slate-400 text-[11px] font-sans">
                                 {s.started_at ? new Date(s.started_at).toLocaleString('vi-VN') : 'Mới đây'}
+                              </td>
+                              <td className="py-3 font-sans">
+                                {s.replay_url ? (
+                                  <div className="flex items-center gap-2">
+                                    <a
+                                      href={s.replay_url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="px-2 py-1 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[11px] font-bold hover:bg-amber-500/25"
+                                    >
+                                      {s.record_status === 'uploaded_drive' ? '☁️ Google Drive' : '🎬 Phát lại'}
+                                    </a>
+                                    <button
+                                      onClick={async () => {
+                                        if (!window.confirm('Xóa video xem lại của phiên này?')) return;
+                                        await fetch(`${getApiBaseUrl()}/api/sessions/replay?id=${encodeURIComponent(sId)}`, {
+                                          method: 'DELETE',
+                                          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                                        });
+                                        loadData();
+                                      }}
+                                      className="text-rose-400 hover:text-rose-300 text-[11px] font-bold cursor-pointer"
+                                      title="Xóa bản ghi phát lại"
+                                    >
+                                      Xóa
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={async () => {
+                                      const link = window.prompt('Dán link Google Drive cho phiên live này:');
+                                      if (!link || !link.trim()) return;
+                                      await fetch(`${getApiBaseUrl()}/api/sessions/replay`, {
+                                        method: 'POST',
+                                        headers: {
+                                          'Content-Type': 'application/json',
+                                          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                                        },
+                                        body: JSON.stringify({
+                                          session_id: sId,
+                                          replay_url: link.trim()
+                                        })
+                                      });
+                                      loadData();
+                                    }}
+                                    className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] border border-slate-700 cursor-pointer"
+                                  >
+                                    + Gắn link Drive
+                                  </button>
+                                )}
                               </td>
                               <td className="py-3 text-right">
                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
