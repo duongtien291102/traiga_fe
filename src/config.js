@@ -47,26 +47,25 @@ export const getWsUrl = (streamKey) => {
   return `${wsProtocol}//${wsHost}/ws/chat?streamKey=${encodeURIComponent(streamKey)}`;
 };
 
-// HLS Stream: Nếu có cấu hình VITE_HLS_URL hoặc dùng link Ngrok công khai (có HTTPS)
-export const NGROK_HLS_URL = 'https://subpentagonal-kenyetta-experientially.ngrok-free.dev';
+// Địa chỉ VPS chạy SRS Media Server (ngix)
+export const SRS_VPS_HOST = '103.82.26.60';
+
+// HLS & WebRTC Signaling: Đi qua proxy cùng domain (/live, /rtc trên Vercel hoặc Vite) để tương thích HTTPS
+export const NGROK_HLS_URL = '';
 
 export const getHlsBaseUrl = () => {
   if (import.meta.env?.VITE_HLS_URL) {
     return import.meta.env.VITE_HLS_URL;
   }
-  // Khi chạy trên Vercel, ưu tiên lấy luồng từ đường hầm Ngrok HTTPS để không bị lỗi Mixed Content
-  if (isVercel()) {
-    return NGROK_HLS_URL;
-  }
   if (typeof window !== 'undefined' && window.location.host) {
     return `${window.location.protocol}//${window.location.host}`;
   }
-  return `http://${getHost()}:8080`;
+  return `http://${SRS_VPS_HOST}:8080`;
 };
 
 export const getRtmpBaseUrl = () => {
   if (import.meta.env?.VITE_RTMP_URL) {
     return import.meta.env.VITE_RTMP_URL;
   }
-  return `rtmp://${getHost()}:1935/live`;
+  return `rtmp://${SRS_VPS_HOST}:1935/live`;
 };

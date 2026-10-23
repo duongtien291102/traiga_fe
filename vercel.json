@@ -5,6 +5,18 @@
       "destination": "https://demo-webtraiga.proudsky-59d95604.southeastasia.azurecontainerapps.io/api/$1"
     },
     {
+      "source": "/live/(.*)",
+      "destination": "http://103.82.26.60:8080/live/$1"
+    },
+    {
+      "source": "/rtc/(.*)",
+      "destination": "http://103.82.26.60:8080/rtc/$1"
+    },
+    {
+      "source": "/srs-api/(.*)",
+      "destination": "http://103.82.26.60:8080/api/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

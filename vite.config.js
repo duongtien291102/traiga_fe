@@ -41,15 +41,15 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/live': {
-        target: 'http://localhost:8080',
+        target: 'http://103.82.26.60:8080',
         changeOrigin: true,
       },
       '/rtc': {
-        target: 'http://localhost:8080',
+        target: 'http://103.82.26.60:8080',
         changeOrigin: true,
       },
       '/srs-api': {
-        target: 'http://localhost:8080',
+        target: 'http://103.82.26.60:8080',
         rewrite: (path) => path.replace(/^\/srs-api/, '/api'),
         changeOrigin: true,
       },
