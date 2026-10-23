@@ -269,26 +269,26 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4 animate-fade-in font-sans">
-      <div className="relative w-full max-w-5xl max-h-[92vh] bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-100 shadow-amber-950/20">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-0 sm:p-4 animate-fade-in font-sans">
+      <div className="relative w-full max-w-5xl h-[100dvh] sm:h-auto sm:max-h-[92vh] bg-slate-900 border-0 sm:border border-slate-800 rounded-none sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-100 shadow-amber-950/20">
         
         {/* Header Modal */}
-        <div className="p-4 sm:p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-md">
-              <Shield className="w-6 h-6" />
+        <div className="p-3.5 sm:p-6 border-b border-slate-800 flex items-center justify-between gap-2 bg-slate-950/80">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-md shrink-0">
+              <Shield className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-bold text-white">
-                  Bảng Quản Trị Streamer (Admin Portal)
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <h2 className="text-sm sm:text-lg font-bold text-white truncate">
+                  Bảng Quản Trị Streamer
                 </h2>
                 <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
                   {currentUser?.full_name || 'Quản Trị Viên'}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Quản lý Stream Key phát sóng và chọn Bot Seeding tự động (tối đa 5 con) vào phòng live
+              <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 line-clamp-1">
+                Quản lý Stream Key phát sóng, Video Xem Lại và Bot Seeding phòng live
               </p>
             </div>
           </div>
@@ -415,7 +415,7 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
+                  <table className="w-full min-w-[540px] text-left text-xs">
                     <thead>
                       <tr className="border-b border-slate-800 text-slate-400">
                         <th className="pb-3 font-semibold">Stream Key</th>
@@ -583,7 +583,7 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs font-sans">
+                    <table className="w-full min-w-[560px] text-left text-xs font-sans">
                       <thead>
                         <tr className="border-b border-slate-800 text-slate-400">
                           <th className="pb-3 font-semibold">Mã Phiên</th>

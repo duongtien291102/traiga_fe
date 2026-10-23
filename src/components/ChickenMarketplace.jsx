@@ -65,21 +65,21 @@ export default function ChickenMarketplace({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 shrink-0">
+        <div className="grid grid-cols-2 sm:flex items-center gap-2.5 sm:gap-3 w-full md:w-auto shrink-0">
           <button
             onClick={onOpenPostModal}
-            className="bg-red-700 hover:bg-red-600 text-white font-bold text-sm py-2.5 px-5 rounded-lg flex items-center gap-2 transition cursor-pointer"
+            className="bg-red-700 hover:bg-red-600 text-white font-bold text-xs sm:text-sm py-2.5 px-3 sm:px-5 rounded-lg flex items-center justify-center gap-1.5 sm:gap-2 transition cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 shrink-0" />
             <span>Đăng Bán Gà</span>
           </button>
 
           <button
             onClick={onOpenPolicy}
-            className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-sm font-medium py-2.5 px-4 rounded-lg transition flex items-center gap-2 cursor-pointer"
+            className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs sm:text-sm font-medium py-2.5 px-3 sm:px-4 rounded-lg transition flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer"
           >
-            <Truck className="w-4 h-4 text-amber-400" />
-            <span>Lưu ý gửi xe khách</span>
+            <Truck className="w-4 h-4 text-amber-400 shrink-0" />
+            <span className="truncate">Lưu ý gửi xe</span>
           </button>
         </div>
       </div>

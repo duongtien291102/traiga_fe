@@ -27,22 +27,23 @@ export default function ChickenDetailModal({
   return (
     <div className="space-y-6">
       {/* Thanh quay lại đơn giản */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <button
           onClick={onClose}
-          className="px-4 py-2 rounded-lg bg-[#14151c] hover:bg-white/10 text-white text-sm font-semibold transition flex items-center gap-2 border border-white/10 cursor-pointer"
+          className="px-3.5 py-2 rounded-lg bg-[#14151c] hover:bg-white/10 text-white text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 border border-white/10 cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Quay lại danh sách gà</span>
+          <span>Quay lại danh sách</span>
         </button>
 
-        <span className="text-sm text-gray-400">
-          Mã số: <strong className="text-white">{chicken.ms || 'MS KÊ'}</strong> • Khu vực: <strong className="text-white">{chicken.location || 'Toàn quốc'}</strong>
+        <span className="text-xs sm:text-sm text-gray-400">
+          Mã số: <strong className="text-white">{chicken.ms || 'MS KÊ'}</strong>
+          <span className="hidden sm:inline"> • Khu vực: <strong className="text-white">{chicken.location || 'Toàn quốc'}</strong></span>
         </span>
       </div>
 
       {/* Khung thông tin chính (2 cột gọn gàng) */}
-      <div className="bg-[#14151c] border border-white/10 rounded-xl p-5 sm:p-7">
+      <div className="bg-[#14151c] border border-white/10 rounded-xl p-4 sm:p-7">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
           
           {/* Cột trái: Ảnh gà & Ghi chú (6 cột) */}
@@ -109,13 +110,13 @@ export default function ChickenDetailModal({
             </div>
 
             {/* Bảng thông số chữ to, rõ ràng, không dùng font code */}
-            <div className="divide-y divide-white/10 text-sm sm:text-base">
-              <div className="py-2.5 flex justify-between gap-4">
-                <span className="text-gray-400">Chủ trại / Người đăng:</span>
+            <div className="divide-y divide-white/10 text-xs sm:text-base">
+              <div className="py-2.5 flex justify-between gap-3">
+                <span className="text-gray-400 shrink-0">Chủ trại / Người đăng:</span>
                 <span className="font-bold text-white text-right">{chicken.farm || chicken.sellerName}</span>
               </div>
-              <div className="py-2.5 flex justify-between gap-4">
-                <span className="text-gray-400">Số điện thoại / Zalo:</span>
+              <div className="py-2.5 flex justify-between gap-3">
+                <span className="text-gray-400 shrink-0">Số điện thoại / Zalo:</span>
                 {currentUser ? (
                   <span className="font-bold text-amber-400 text-right">{chicken.phone}</span>
                 ) : (
@@ -128,32 +129,32 @@ export default function ChickenDetailModal({
                   </button>
                 )}
               </div>
-              <div className="py-2.5 flex justify-between gap-4">
-                <span className="text-gray-400">Khu vực:</span>
+              <div className="py-2.5 flex justify-between gap-3">
+                <span className="text-gray-400 shrink-0">Khu vực:</span>
                 <span className="font-medium text-white text-right">{chicken.location || 'Toàn quốc'}</span>
               </div>
-              <div className="py-2.5 flex justify-between gap-4">
-                <span className="text-gray-400">Chạng cân hiện tại:</span>
+              <div className="py-2.5 flex justify-between gap-3">
+                <span className="text-gray-400 shrink-0">Chạng cân hiện tại:</span>
                 <span className="font-bold text-white text-right">{chicken.chang}</span>
               </div>
-              <div className="py-2.5 flex justify-between gap-4">
-                <span className="text-gray-400">Tuổi gà:</span>
+              <div className="py-2.5 flex justify-between gap-3">
+                <span className="text-gray-400 shrink-0">Tuổi gà:</span>
                 <span className="font-medium text-white text-right">{chicken.age || '10 tháng'}</span>
               </div>
-              <div className="py-2.5 flex justify-between gap-4">
-                <span className="text-gray-400">Đặc điểm cán vảy:</span>
+              <div className="py-2.5 flex justify-between gap-3">
+                <span className="text-gray-400 shrink-0">Đặc điểm cán vảy:</span>
                 <span className="font-medium text-white text-right">{chicken.canVay || 'Giáp thới, huyền trâm'}</span>
               </div>
-              <div className="py-2.5 flex justify-between gap-4">
-                <span className="text-gray-400">Đòn lối sở trường:</span>
+              <div className="py-2.5 flex justify-between gap-3">
+                <span className="text-gray-400 shrink-0">Đòn lối sở trường:</span>
                 <span className="font-medium text-white text-right">{chicken.loi || 'Ôm đấm, kiềng hầu'}</span>
               </div>
-              <div className="py-2.5 flex justify-between gap-4">
-                <span className="text-gray-400">Tình trạng xổ đòn:</span>
+              <div className="py-2.5 flex justify-between gap-3">
+                <span className="text-gray-400 shrink-0">Tình trạng xổ đòn:</span>
                 <span className="font-medium text-emerald-400 text-right">{chicken.datNuoc || 'Đã dạt 2 nước'}</span>
               </div>
-              <div className="py-2.5 flex justify-between gap-4">
-                <span className="text-gray-400">Vận chuyển:</span>
+              <div className="py-2.5 flex justify-between gap-3">
+                <span className="text-gray-400 shrink-0">Vận chuyển:</span>
                 <span className="font-medium text-gray-200 text-right">Đóng thùng gửi xe khách các bến</span>
               </div>
             </div>

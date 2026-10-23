@@ -585,31 +585,31 @@ export default function SystemAdminDashboard({ isOpen, onClose, token, currentUs
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4 animate-fade-in font-sans">
-      <div className="relative w-full max-w-6xl max-h-[92vh] bg-slate-950 border border-purple-500/30 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-100 shadow-purple-950/40">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-0 sm:p-4 animate-fade-in font-sans">
+      <div className="relative w-full max-w-6xl h-[100dvh] sm:h-auto sm:max-h-[92vh] bg-slate-950 border-0 sm:border border-purple-500/30 rounded-none sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-100 shadow-purple-950/40">
         
         {/* HEADER */}
-        <div className="p-4 sm:p-6 border-b border-slate-800/90 bg-gradient-to-r from-purple-950/80 via-slate-900/90 to-slate-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-purple-900/50">
-              <Shield className="w-6 h-6 animate-pulse" />
+        <div className="p-3.5 sm:p-6 border-b border-slate-800/90 bg-gradient-to-r from-purple-950/80 via-slate-900/90 to-slate-950 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-purple-900/50 shrink-0">
+              <Shield className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg sm:text-xl font-bold tracking-tight text-white">
-                  Tổng Quản Trị Hệ Thống (System Admin)
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <h2 className="text-sm sm:text-xl font-bold tracking-tight text-white truncate">
+                  Tổng Quản Trị Hệ Thống
                 </h2>
-                <span className="text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold">
+                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold">
                   Root Admin
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Quản lý & tạo Admin, tạo khóa luồng, theo dõi giờ live, tần suất và lịch sử vào/ra toàn hệ thống
+              <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 line-clamp-1">
+                Quản lý & tạo Admin, tạo khóa luồng, theo dõi giờ live và lịch sử toàn hệ thống
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 self-end sm:self-auto">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={refreshAll}
               disabled={loading}
@@ -631,15 +631,15 @@ export default function SystemAdminDashboard({ isOpen, onClose, token, currentUs
         </div>
 
         {/* BANNER RÀNG BUỘC PHÂN QUYỀN VÀ NÚT TẠO NHANH */}
-        <div className="px-4 sm:px-6 py-2.5 bg-purple-950/40 border-b border-purple-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-purple-200">
-          <div className="flex items-center gap-2">
+        <div className="px-3.5 sm:px-6 py-2.5 bg-purple-950/40 border-b border-purple-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-purple-200">
+          <div className="flex items-center gap-2 hidden sm:flex">
             <Ban className="w-4 h-4 text-purple-400 shrink-0" />
             <span>
               <strong>Bảo mật:</strong> Tài khoản Tổng Quản Trị (<code>sysadmin</code>) <strong>KHÔNG ĐƯỢC LIVESTREAM</strong>. Bạn dùng quyền này để tạo Admin, tạo luồng khóa và giám sát toàn diện.
             </span>
           </div>
 
-          <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
             <button
               onClick={() => setIsCreateKeyModalOpen(true)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold text-xs shrink-0 shadow-md transition"

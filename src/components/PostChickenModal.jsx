@@ -123,11 +123,11 @@ export default function PostChickenModal({ isOpen, onClose, onAddChicken, curren
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-[#14151c] border border-white/15 rounded-3xl shadow-2xl overflow-hidden my-auto animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-5 bg-black/85 backdrop-blur-md overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-[#14151c] border-t sm:border border-white/15 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden mt-auto sm:my-auto animate-fadeIn max-h-[94dvh] flex flex-col">
         
         {/* Header Modal */}
-        <div className="bg-[#12141c] px-5 sm:px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+        <div className="bg-[#12141c] px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-800 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
               <ShieldCheck className="w-5 h-5" />
@@ -443,7 +443,7 @@ export default function PostChickenModal({ isOpen, onClose, onAddChicken, curren
           </div>
 
           {/* Action Buttons */}
-          <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-3">
+          <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-2.5 pb-safe">
             <button
               type="button"
               onClick={onClose}
@@ -454,7 +454,7 @@ export default function PostChickenModal({ isOpen, onClose, onAddChicken, curren
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-2.5 rounded-lg bg-red-700 hover:bg-red-600 text-white font-bold text-xs uppercase tracking-wide transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              className="flex-1 sm:flex-initial justify-center px-6 py-2.5 rounded-xl bg-red-700 hover:bg-red-600 text-white font-bold text-xs uppercase tracking-wide transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
             >
               <ShieldCheck className="w-4 h-4" />
               <span>XÁC NHẬN ĐĂNG BÁN</span>

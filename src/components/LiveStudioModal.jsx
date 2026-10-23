@@ -573,8 +573,8 @@ export default function LiveStudioModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-md">
-      <div className={`relative w-full ${isCamMaximized ? 'max-w-6xl' : 'max-w-4xl'} bg-[#111218] border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[96vh] transition-all duration-300`}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/90 backdrop-blur-md">
+      <div className={`relative w-full ${isCamMaximized ? 'max-w-6xl' : 'max-w-4xl'} bg-[#111218] border-0 sm:border border-white/10 rounded-none sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col h-[100dvh] sm:h-auto sm:max-h-[96vh] transition-all duration-300`}>
         
         {/* ================= HEADER MODAL ================= */}
         <div className="flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3 border-b border-white/10 bg-[#161720]">
@@ -787,8 +787,30 @@ export default function LiveStudioModal({
 
             </div>
 
-            {/* CHỌN NGUỒN THU (WEBCAM / MÀN HÌNH) */}
-            <div className="grid grid-cols-2 gap-2">
+            {/* NÚT BẮT ĐẦU / DỪNG PHÁT SÓNG NGAY DƯỚI CAMERA TRÊN ĐIỆN THOẠI (KHÔNG CẦN CUỘN XUỐNG DƯỚI) */}
+            <div className="lg:hidden">
+              {!isLive ? (
+                <button
+                  onClick={startLivestream}
+                  disabled={isPublishing}
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-[0.98] transition-all text-white font-black text-xs sm:text-sm shadow-xl shadow-rose-950/60 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                >
+                  <Play className="w-4 h-4 fill-white" />
+                  <span>{isPublishing ? "ĐANG KẾT NỐI MÁY CHỦ..." : "BẮT ĐẦU PHÁT SÓNG NGAY"}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={stopLivestream}
+                  className="w-full py-3 px-4 rounded-xl bg-rose-700 hover:bg-rose-600 active:scale-[0.98] transition-all text-white font-black text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 cursor-pointer border border-rose-400/50"
+                >
+                  <Square className="w-4 h-4 fill-white" />
+                  <span>DỪNG PHÁT SÓNG (ĐANG LIVE)</span>
+                </button>
+              )}
+            </div>
+
+            {/* CHỌN NGUỒN THU (WEBCAM / MÀN HÌNH - Ẩn Chia sẻ màn hình trên điện thoại) */}
+            <div className="hidden sm:grid grid-cols-2 gap-2">
               <button
                 onClick={() => handleSwitchSource('camera')}
                 disabled={isLive}
@@ -1111,8 +1133,8 @@ export default function LiveStudioModal({
               </div>
             )}
 
-            {/* NÚT BẮT ĐẦU / DỪNG PHÁT SÓNG TO & RÕ RÀNG */}
-            <div className="pt-3 border-t border-white/10 mt-3">
+            {/* NÚT BẮT ĐẦU / DỪNG PHÁT SÓNG TO & RÕ RÀNG (TRÊN MÁY TÍNH) */}
+            <div className="hidden lg:block pt-3 border-t border-white/10 mt-3">
               {!isLive ? (
                 <button
                   onClick={startLivestream}
