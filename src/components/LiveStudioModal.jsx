@@ -27,6 +27,7 @@ import {
   Maximize2,
   Minimize2
 } from 'lucide-react';
+import { getWsUrl, NGROK_HLS_URL, isVercel } from '../config';
 
 export default function LiveStudioModal({ 
   isOpen, 
@@ -95,10 +96,8 @@ export default function LiveStudioModal({
 
     setStudioMessages([]);
     const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsHost = window.location.host;
     const streamerName = user?.full_name || user?.username || 'Chủ Trại (Live)';
-    const wsUrl = `${wsProtocol}//${wsHost}/ws/chat?streamKey=${encodeURIComponent(selectedKey)}&token=${encodeURIComponent(token)}&guestName=${encodeURIComponent(streamerName)}`;
+    const wsUrl = `${getWsUrl(selectedKey)}&token=${encodeURIComponent(token)}&guestName=${encodeURIComponent(streamerName)}`;
 
     let ws = null;
     try {
@@ -382,7 +381,10 @@ export default function LiveStudioModal({
 
       const hostname = window.location.hostname || 'localhost';
       const streamUrl = `webrtc://${hostname}/live/${encodeURIComponent(selectedKey.trim())}`;
-      const apiUrl = `/rtc/v1/publish/`;
+      
+      // Khi chạy trên Vercel, trỏ tín hiệu WebRTC thẳng vào đường hầm Ngrok HTTPS
+      const rtcBase = isVercel() ? NGROK_HLS_URL : '';
+      const apiUrl = `${rtcBase}/rtc/v1/publish/`;
 
       const response = await fetch(apiUrl, {
         method: 'POST',
