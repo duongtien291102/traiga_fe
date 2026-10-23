@@ -35,12 +35,37 @@ import {
   Truck,
   Plus,
   Tag,
-  ShoppingBag
+  ShoppingBag,
+  ShieldCheck
 } from 'lucide-react';
 import { getApiBaseUrl, getHlsBaseUrl, getRtmpBaseUrl, getHost } from './config';
 
-// Dữ liệu mẫu ban đầu cho Sàn Giao Lưu & Đăng Bán Chiến Kê Ba Miền
+// Dữ liệu chiến kê thực tế tại Trại Gà Thành Trung & các trại giao lưu
 const INITIAL_CHICKENS = [
+  {
+    id: 'ck_0',
+    ms: 'MS 101',
+    title: 'Ô Chân Trắng Điểm Mực 2K95 Bo Đá Cực Chắc, Ôm Đấm Đòn Lưng',
+    breed: 'don',
+    breedName: 'Gà Đòn Long Biên',
+    chang: '2.95 kg',
+    age: '11 tháng tơ',
+    canVay: 'Huyền trâm đóng đúng chậu, chân vuông sừng',
+    loi: 'Lối ôm đấm kiềng hầu, đá mé giáp lưng',
+    datNuoc: 'Đã dạt 2 nước chuẩn',
+    price: 3500000,
+    priceText: '3.500.000 đ',
+    farm: 'Trại Gà Thành Trung',
+    sellerName: 'Thành Trung Long Biên',
+    phone: '0988.888.xxx',
+    zalo: '0988.888.xxx',
+    location: 'Long Biên, Hà Nội',
+    image: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=800&auto=format&fit=crop',
+    videoUrl: '',
+    note: 'Chiến kê đúc trực tiếp tại trại Long Biên. Khách qua xem trực tiếp tại chuồng hoặc gọi Zalo xem video.',
+    status: 'available',
+    createdAt: '2026-10-23T08:00:00Z'
+  },
   {
     id: 'ck_1',
     ms: 'MS 201',
@@ -568,58 +593,53 @@ export default function App() {
     <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 text-xs sm:text-sm font-medium">
       <button 
         onClick={() => setActiveCategory('all')}
-        className={`flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl transition-all duration-200 border cursor-pointer whitespace-nowrap shrink-0 ${
+        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all duration-150 border cursor-pointer whitespace-nowrap shrink-0 ${
           activeCategory === 'all'
-            ? 'bg-rose-600 text-white font-bold border-rose-500 shadow-md shadow-rose-950/40'
-            : 'bg-[#16171d] hover:bg-white/5 text-gray-300 border-white/10'
+            ? 'bg-amber-600 text-white border-amber-500 shadow-sm'
+            : 'bg-[#151720] hover:bg-slate-800 text-slate-300 border-slate-800'
         }`}
       >
-        <span>🔥</span>
-        <span>Tất Cả Chạng Gà</span>
+        Tất Cả Chạng Gà
       </button>
       <button 
         onClick={() => setActiveCategory('don')}
-        className={`flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl transition-all duration-200 border cursor-pointer whitespace-nowrap shrink-0 ${
+        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all duration-150 border cursor-pointer whitespace-nowrap shrink-0 ${
           activeCategory === 'don'
-            ? 'bg-rose-600 text-white font-bold border-rose-500 shadow-md shadow-rose-950/40'
-            : 'bg-[#16171d] hover:bg-white/5 text-gray-300 border-white/10'
+            ? 'bg-red-700 text-white border-red-600 shadow-sm'
+            : 'bg-[#151720] hover:bg-slate-800 text-slate-300 border-slate-800'
         }`}
       >
-        <span>🐓</span>
-        <span>Gà Đòn (2.8kg - 3.2kg)</span>
+        Gà Đòn Chiến (2.8kg - 3.2kg)
       </button>
       <button 
         onClick={() => setActiveCategory('noi')}
-        className={`flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl transition-all duration-200 border cursor-pointer whitespace-nowrap shrink-0 ${
+        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all duration-150 border cursor-pointer whitespace-nowrap shrink-0 ${
           activeCategory === 'noi'
-            ? 'bg-rose-600 text-white font-bold border-rose-500 shadow-md shadow-rose-950/40'
-            : 'bg-[#16171d] hover:bg-white/5 text-gray-300 border-white/10'
+            ? 'bg-red-700 text-white border-red-600 shadow-sm'
+            : 'bg-[#151720] hover:bg-slate-800 text-slate-300 border-slate-800'
         }`}
       >
-        <span>⚡</span>
-        <span>Gà Nòi Cựa (2.4kg - 2.7kg)</span>
+        Gà Nòi Cựa Tuyển
       </button>
       <button 
         onClick={() => setActiveCategory('tre')}
-        className={`flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl transition-all duration-200 border cursor-pointer whitespace-nowrap shrink-0 ${
+        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all duration-150 border cursor-pointer whitespace-nowrap shrink-0 ${
           activeCategory === 'tre'
-            ? 'bg-rose-600 text-white font-bold border-rose-500 shadow-md shadow-rose-950/40'
-            : 'bg-[#16171d] hover:bg-white/5 text-gray-300 border-white/10'
+            ? 'bg-red-700 text-white border-red-600 shadow-sm'
+            : 'bg-[#151720] hover:bg-slate-800 text-slate-300 border-slate-800'
         }`}
       >
-        <span>🦃</span>
-        <span>Gà Tre Tân Châu Cảnh</span>
+        Gà Tre Tân Châu Cảnh
       </button>
       <button 
         onClick={() => setActiveCategory('dongtao')}
-        className={`flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl transition-all duration-200 border cursor-pointer whitespace-nowrap shrink-0 ${
+        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all duration-150 border cursor-pointer whitespace-nowrap shrink-0 ${
           activeCategory === 'dongtao'
-            ? 'bg-rose-600 text-white font-bold border-rose-500 shadow-md shadow-rose-950/40'
-            : 'bg-[#16171d] hover:bg-white/5 text-gray-300 border-white/10'
+            ? 'bg-red-700 text-white border-red-600 shadow-sm'
+            : 'bg-[#151720] hover:bg-slate-800 text-slate-300 border-slate-800'
         }`}
       >
-        <span>🐥</span>
-        <span>Gà Đông Tảo Chuẩn F1</span>
+        Gà Đông Tảo Chuẩn F1
       </button>
     </div>
   );
@@ -628,43 +648,47 @@ export default function App() {
     <div className="min-h-screen bg-[#0c0d11] text-gray-100 font-sans antialiased flex flex-col selection:bg-rose-600 selection:text-white">
       
       {/* ==================== TOP BAR ==================== */}
-      <div className="border-b border-white/5 bg-[#08090c] text-xs text-gray-400 py-1.5 px-4 sm:px-8">
+      <div className="border-b border-slate-800 bg-[#0e1017] text-xs text-slate-300 py-2 px-4 sm:px-8">
         <div className="w-full max-w-[1440px] mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="inline-flex items-center gap-1.5 text-rose-500 font-bold shrink-0">
-              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-              Kê Trường Live
+            <span className="inline-flex items-center gap-1.5 text-amber-400 font-bold shrink-0">
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+              Trại Gà Thành Trung
             </span>
-            <span className="hidden sm:inline text-gray-600">•</span>
-            <span className="hidden sm:inline text-gray-300 truncate">
-              Phát sóng trực tiếp xổ đòn thử chân, soi cán vảy &amp; giao lưu ba miền
+            <span className="hidden sm:inline text-slate-600">•</span>
+            <span className="hidden sm:inline text-slate-300 truncate">
+              Tổ 14, P. Phúc Lợi, Q. Long Biên, Hà Nội • Giờ tiếp khách: 07h30 - 20h00
             </span>
           </div>
-          <div className="flex items-center gap-4 sm:gap-6 text-[11px] font-medium tracking-normal shrink-0">
+          <div className="flex items-center gap-4 sm:gap-6 text-xs font-medium shrink-0">
             <button
               onClick={() => setIsPolicyModalOpen(true)}
-              className="hover:text-amber-300 transition-colors hidden md:flex items-center gap-1.5 text-gray-300 cursor-pointer whitespace-nowrap"
+              className="hover:text-amber-300 transition-colors hidden md:flex items-center gap-1.5 text-slate-300 cursor-pointer whitespace-nowrap"
             >
               <Truck className="w-3.5 h-3.5 text-amber-400" />
-              <span>Quy chuẩn gửi xe khách</span>
+              <span>Gửi xe khách toàn quốc</span>
             </button>
-            <span className="text-gray-300 hidden lg:inline flex items-center gap-1 whitespace-nowrap">
-              <span className="text-gray-500">Hotline/Zalo:</span> 0988.888.xxx
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold text-[11px] whitespace-nowrap">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              {displayKeys.length > 0 ? `${displayKeys.length} Kênh Trực Tuyến` : 'Hệ Thống Sẵn Sàng'}
+            <a 
+              href="tel:0988888888" 
+              className="text-slate-200 hover:text-amber-400 hidden lg:flex items-center gap-1.5 whitespace-nowrap transition-colors"
+            >
+              <Phone className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-slate-400">Hotline/Zalo:</span> <span className="font-bold text-white">0988.888.xxx</span>
+            </a>
+            <span className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold text-xs whitespace-nowrap">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              {displayKeys.length > 0 ? `${displayKeys.length} Kênh Trực Tuyến` : 'Trại Mở Cửa 24/7'}
             </span>
           </div>
         </div>
       </div>
 
       {/* ==================== MAIN HEADER ==================== */}
-      <header className="sticky top-0 z-40 bg-[#101117]/95 backdrop-blur-md border-b border-white/10">
+      <header className="sticky top-0 z-40 bg-[#12141c]/95 backdrop-blur-md border-b border-slate-800">
         <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
           
           {/* Left: Logo & Desktop Navigation */}
-          <div className="flex items-center gap-2 xl:gap-5 shrink-0">
+          <div className="flex items-center gap-2 xl:gap-6 shrink-0">
             <a 
               href="#" 
               onClick={(e) => {
@@ -672,16 +696,23 @@ export default function App() {
                 setActiveNavTab('home');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className="flex items-center gap-2 group shrink-0 cursor-pointer"
+              className="flex items-center gap-2.5 group shrink-0 cursor-pointer"
             >
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-600 via-orange-600 to-amber-500 flex items-center justify-center shadow-lg shadow-rose-950/60 group-hover:scale-105 transition-transform shrink-0">
-                <span className="text-xl select-none">🐓</span>
+              {/* Prestigious crest emblem */}
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-b from-amber-500 to-amber-700 p-[1.5px] shadow-md group-hover:shadow-amber-500/20 transition-all">
+                <div className="w-full h-full bg-[#14151b] rounded-[7px] flex items-center justify-center border border-amber-400/30">
+                  <span className="text-amber-400 font-black text-sm tracking-tight">TT</span>
+                </div>
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-black italic tracking-tighter text-white leading-none whitespace-nowrap">
-                  kê<span className="text-rose-500">TRƯỜNG</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base sm:text-lg font-black tracking-tight text-white leading-none whitespace-nowrap">
+                    TRẠI GÀ <span className="text-amber-400">THÀNH TRUNG</span>
+                  </span>
+                </div>
+                <span className="text-[10px] font-semibold text-gray-400 tracking-wider uppercase whitespace-nowrap mt-0.5">
+                  Cơ Sở Long Biên • Hà Nội
                 </span>
-                <span className="text-[8px] uppercase tracking-wider text-amber-400 font-bold whitespace-nowrap">Kênh Gà Nòi Live</span>
               </div>
             </a>
 
@@ -777,7 +808,7 @@ export default function App() {
             {/* Prominent Đăng Bán Gà Button */}
             <button
               onClick={() => setIsPostChickenModalOpen(true)}
-              className="bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white font-bold text-xs px-2.5 sm:px-3 py-1.5 rounded-lg shadow-md shadow-rose-950/50 transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+              className="bg-red-700 hover:bg-red-600 text-white font-bold text-xs px-3 sm:px-4 py-2 rounded-lg shadow transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
               title="Đăng bán chiến kê tuyển chọn"
             >
               <Plus className="w-3.5 h-3.5 stroke-[3]" />
@@ -944,78 +975,51 @@ export default function App() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               
               {/* Left: Big Spotlight Banner (8 cols) */}
-              <div className="lg:col-span-8 relative rounded-2xl overflow-hidden bg-gradient-to-r from-red-950 via-[#181922] to-[#12131a] border border-white/10 min-h-[300px] sm:min-h-[360px] shadow-2xl flex flex-col justify-end group">
-                
-                {/* Nút xem thử trạng thái Live (Tự động / Thử có live / Thử không có ai live) */}
-                <div className="absolute top-3 right-3 z-30 flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      if (forceLivePreview === null) setForceLivePreview(!isRealLive);
-                      else if (forceLivePreview === true) setForceLivePreview(false);
-                      else setForceLivePreview(null);
-                    }}
-                    title="Bấm để thử nghiệm cả 2 trạng thái: Có người live vs Không ai live"
-                    className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-black/75 hover:bg-black text-gray-300 hover:text-white border border-white/15 backdrop-blur-md transition flex items-center gap-1.5 shadow-md cursor-pointer"
-                  >
-                    <span>{effectiveIsLive ? '🔴 Đang có live' : '⚪ Không có ai live'}</span>
-                    <span className="text-gray-500 font-normal">
-                      {forceLivePreview === null ? '(Tự động)' : '(Đang thử)'}
-                    </span>
-                  </button>
-                </div>
+              <div className="lg:col-span-8 relative rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 min-h-[300px] sm:min-h-[360px] shadow-xl flex flex-col justify-end group">
 
                 {effectiveIsLive ? (
-                  /* ======================================================== */
-                  /* TRƯỜNG HỢP CÓ NGƯỜI LIVE: CHIẾU PHÒNG NHIỀU NGƯỜI XEM NHẤT (ẢNH 2) */
-                  /* ======================================================== */
+                  /* TRƯỜNG HỢP CÓ NGƯỜI LIVE: CHIẾU PHÒNG NHIỀU NGƯỜI XEM NHẤT */
                   <div className="relative w-full h-full min-h-[340px] sm:min-h-[380px] flex flex-col justify-between bg-black">
-                    {/* Live Player Container */}
                     <div className="relative w-full aspect-video bg-black overflow-hidden">
                       <LivePlayer streamKey={topLiveRoom.id} />
                       
-                      {/* Floating overlay badges on video */}
-                      <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-2 pointer-events-none pr-36">
-                        <span className="bg-rose-600/95 backdrop-blur-md text-white text-[11px] font-black uppercase px-2.5 py-1 rounded-lg tracking-wider flex items-center gap-1.5 shadow-lg border border-rose-400/30">
-                          <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                      <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-2 pointer-events-none">
+                        <span className="bg-red-700 text-white text-[11px] font-bold uppercase px-2.5 py-1 rounded-md tracking-wider flex items-center gap-1.5 shadow">
+                          <span className="w-2 h-2 rounded-full bg-white"></span>
                           ĐANG PHÁT TRỰC TIẾP
                         </span>
-                        <span className="bg-amber-500/95 backdrop-blur-md text-black text-[11px] font-black uppercase px-2 py-1 rounded-lg shadow-lg flex items-center gap-1">
-                          <Flame className="w-3.5 h-3.5 text-rose-700 fill-rose-700" />
-                          TOP 1 NHIỀU NGƯỜI XEM NHẤT
-                        </span>
-                        <span className="text-xs text-amber-300 font-bold bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-lg border border-amber-500/40 shadow-md">
-                          🔥 {topLiveRoom.viewers} người xem
+                        <span className="text-xs text-amber-300 font-bold bg-black/80 px-2.5 py-1 rounded-md border border-amber-500/40">
+                          {topLiveRoom.viewers} người đang xem
                         </span>
                       </div>
                     </div>
 
-                    {/* Info & CTA bar below live video */}
-                    <div className="p-4 sm:p-5 bg-[#14151c] border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="p-4 sm:p-5 bg-[#14151c] border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="space-y-1">
                         <div className="text-xs text-amber-400 font-bold flex items-center gap-2">
-                          <span>★ {topLiveRoom.farm}</span>
+                          <span>{topLiveRoom.farm}</span>
                           <span>•</span>
-                          <span>Chủ trại: {topLiveRoom.streamer}</span>
+                          <span>Chủ kê: {topLiveRoom.streamer}</span>
                         </div>
-                        <h3 className="text-lg sm:text-xl font-black text-white leading-tight">
-                          {topLiveRoom.title} <span className="text-amber-400 font-bold">({topLiveRoom.chang})</span>
+                        <h3 className="text-lg sm:text-xl font-bold text-white leading-tight">
+                          {topLiveRoom.title} <span className="text-amber-400">({topLiveRoom.chang})</span>
                         </h3>
-                        <p className="text-xs text-gray-400 line-clamp-1">
-                          {topLiveRoom.loi} • Đang phát sóng trực tiếp từ chuồng xổ!
+                        <p className="text-xs text-slate-400 line-clamp-1">
+                          {topLiveRoom.loi} • Trực tiếp từ chuồng xổ
                         </p>
                       </div>
 
                       <div className="flex items-center gap-2.5 shrink-0">
                         <button
                           onClick={() => changeChannel(topLiveRoom.id, true)}
-                          className="bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-500 hover:to-orange-500 text-white text-xs sm:text-sm font-extrabold py-2.5 px-4 sm:px-5 rounded-xl shadow-lg shadow-rose-950/60 flex items-center gap-2 transition-transform hover:scale-105 shrink-0 cursor-pointer"
+                          className="bg-red-700 hover:bg-red-600 text-white text-xs sm:text-sm font-bold py-2.5 px-4 sm:px-5 rounded-lg flex items-center gap-2 transition cursor-pointer"
                         >
                           <Tv className="w-4 h-4" />
-                          <span>VÀO PHÒNG LIVE NÀY</span>
+                          <span>VÀO PHÒNG LIVE</span>
                         </button>
                         <button
                           onClick={() => openConnectWithFarm(topLiveRoom.title, topLiveRoom.farm)}
-                          className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs sm:text-sm font-bold py-2.5 px-3.5 rounded-xl transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
+                          className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs sm:text-sm font-bold py-2.5 px-3.5 rounded-lg transition flex items-center gap-1.5 shrink-0 cursor-pointer"
                         >
                           <Phone className="w-3.5 h-3.5 text-amber-400" />
                           <span>LIÊN HỆ</span>
@@ -1024,49 +1028,49 @@ export default function App() {
                     </div>
                   </div>
                 ) : (
-                  /* ======================================================== */
-                  /* TRƯỜNG HỢP KHÔNG CÓ AI LIVE: HIỆN ẢNH HIỆN TẠI (ẢNH 2)    */
-                  /* ======================================================== */
+                  /* TRƯỜNG HỢP HIỆN TẠI CHƯA CÓ LIVE: BANNER LỊCH XỔ GÀ TRẠI THÀNH TRUNG */
                   <div className="relative w-full h-full min-h-[280px] sm:min-h-[340px] flex flex-col justify-end p-5 sm:p-8">
                     <div 
-                      className="absolute inset-0 bg-cover bg-center opacity-40 group-hover:scale-105 transition-transform duration-700 pointer-events-none" 
+                      className="absolute inset-0 bg-cover bg-center opacity-30 pointer-events-none" 
                       style={{ backgroundImage: `url('https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1200&auto=format&fit=crop')` }}
                     ></div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0e1017] via-[#0e1017]/80 to-transparent"></div>
 
                     <div className="relative z-10 space-y-3">
                       <div className="flex items-center gap-2">
-                        <span className="bg-rose-600 text-white text-[11px] font-black uppercase px-2.5 py-0.5 rounded tracking-wider flex items-center gap-1 shadow-md">
-                          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-                          TRỰC TIẾP HÔM NAY
+                        <span className="bg-red-700 text-white text-[11px] font-bold uppercase px-2.5 py-0.5 rounded tracking-wide">
+                          LỊCH XỔ GÀ HÔM NAY
                         </span>
-                        <span className="text-xs text-amber-400 font-bold">
-                          Trại Gà Ba Bình Định • Lên Sóng Dàn Tơ Mới Dạt
+                        <span className="text-xs text-amber-400 font-semibold">
+                          Trại Gà Thành Trung • Long Biên, Hà Nội
                         </span>
                       </div>
 
-                      <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight leading-tight">
-                        XỔ THỬ ĐÒN DÀN TƠ CHẠNG 2K8 - 3K1 &amp; <span className="text-amber-400">SOI CÁN VẢY TRỰC TIẾP</span>
+                      <h2 className="text-xl sm:text-3xl font-black text-white tracking-tight leading-snug">
+                        SỔ THỬ ĐÒN DÀN GÀ TƠ CHẠNG 2K8 - 3K2 &amp; <span className="text-amber-400">SOI CÁN VẢY TRỰC TIẾP</span>
                       </h2>
                       
-                      <p className="text-xs sm:text-sm text-gray-300 max-w-xl line-clamp-2">
-                        Hôm nay trại lên sóng dàn gà đòn tơ vừa dạt nước đầu, lông hình dày dặn, bo đá chắc chắn. Anh em vào phòng live xem thả chân thử đòn, giao lưu kinh nghiệm đòn lối cùng chủ trại!
+                      <p className="text-xs sm:text-sm text-slate-300 max-w-xl line-clamp-2">
+                        Trại Gà Thành Trung chuyên gà đòn, gà nòi tuyển chọn. Lịch xổ đòn vào 14h00 &amp; 19h30 hàng ngày. Anh em có thể xem video thực tế hoặc qua trực tiếp chuồng trại tại Long Biên giao lưu.
                       </p>
 
                       <div className="flex flex-wrap items-center gap-3 pt-2">
                         <button 
-                          onClick={() => changeChannel('tiendev', true)}
-                          className="bg-rose-600 hover:bg-rose-500 text-white text-xs sm:text-sm font-bold py-2.5 px-5 rounded-xl shadow-lg shadow-rose-950/60 flex items-center gap-2 transition-transform hover:scale-105 cursor-pointer"
+                          onClick={() => {
+                            if (activeNavTab !== 'market') setActiveNavTab('market');
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className="bg-red-700 hover:bg-red-600 text-white text-xs sm:text-sm font-bold py-2.5 px-5 rounded-lg flex items-center gap-2 transition cursor-pointer"
                         >
-                          <Tv className="w-4 h-4" />
-                          XEM LUỒNG NÀY TRÊN PLAYER
+                          <ShoppingBag className="w-4 h-4" />
+                          XEM DÀN GÀ ĐANG CÓ SẴN
                         </button>
                         <button 
-                          onClick={() => openConnectWithFarm('MS 09: Xám Cần Đỏ (Chạng 2.95kg)', 'Trại Gà Ba Bình Định')}
-                          className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs sm:text-sm font-bold py-2.5 px-4 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+                          onClick={() => openConnectWithFarm('Dàn Gà Tơ Trại Thành Trung', 'Trại Gà Thành Trung Long Biên')}
+                          className="bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 text-xs sm:text-sm font-bold py-2.5 px-4 rounded-lg transition flex items-center gap-1.5 cursor-pointer"
                         >
                           <Phone className="w-3.5 h-3.5 text-amber-400" />
-                          LIÊN HỆ CHỦ TRẠI
+                          LIÊN HỆ XEM CLIP ZALO
                         </button>
                       </div>
                     </div>
@@ -1321,66 +1325,73 @@ export default function App() {
         <section id="farms" className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-1.5 h-6 bg-rose-500 rounded-full"></div>
-              <h2 className="text-xl font-extrabold tracking-tight text-white uppercase">
-                Các Trại Giao Lưu Thường Xuyên Lên Live
+              <div className="w-1.5 h-6 bg-amber-500 rounded-full"></div>
+              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-white uppercase">
+                Các Trại Giao Lưu Thường Xuyên
               </h2>
             </div>
-            <span className="text-xs text-gray-400">Bấm vào avatar để chuyển sang kênh trại đó</span>
+            <span className="text-xs text-slate-400">Chọn trại để xem luồng phát sóng</span>
           </div>
 
-          <div className="flex gap-6 overflow-x-auto no-scrollbar py-2 px-1">
-            <div onClick={() => changeChannel('tiendev', true)} className="flex flex-col items-center gap-2 cursor-pointer group min-w-[120px]">
-              <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 bg-gradient-to-tr from-rose-600 to-orange-500 group-hover:scale-105 transition-transform shadow-lg">
-                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=300&auto=format&fit=crop" className="w-full h-full object-cover rounded-full" alt="Ba Bình Định" />
-                <span className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#16171d]"></span>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 py-2">
+            <div onClick={() => changeChannel('thanh-trung', true)} className="flex flex-col items-center gap-2 p-3 rounded-xl bg-slate-900 border border-amber-500/30 cursor-pointer hover:border-amber-400 transition-all">
+              <div className="w-14 h-14 rounded-full bg-amber-600/20 border-2 border-amber-500 flex items-center justify-center text-amber-400 font-black text-sm">
+                TT
               </div>
-              <span className="text-xs sm:text-sm font-bold text-gray-200 group-hover:text-rose-400 transition-colors text-center truncate max-w-[110px]">
+              <span className="text-xs font-bold text-white text-center truncate max-w-[110px]">
+                Trại Thành Trung
+              </span>
+              <span className="text-[10px] text-amber-400">Long Biên - Hà Nội</span>
+            </div>
+
+            <div onClick={() => changeChannel('tiendev', true)} className="flex flex-col items-center gap-2 p-3 rounded-xl bg-slate-900 border border-slate-800 cursor-pointer hover:border-amber-400 transition-all">
+              <div className="w-14 h-14 rounded-full bg-red-950 border-2 border-red-700 flex items-center justify-center text-red-300 font-black text-sm">
+                BĐ
+              </div>
+              <span className="text-xs font-bold text-slate-200 text-center truncate max-w-[110px]">
                 Ba Bình Định
               </span>
-              <span className="text-[10px] text-amber-400">Chuyên dòng gà đòn</span>
+              <span className="text-[10px] text-slate-400">Gà đòn Tây Sơn</span>
             </div>
 
-            <div onClick={() => changeChannel('test', true)} className="flex flex-col items-center gap-2 cursor-pointer group min-w-[120px]">
-              <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 bg-[#282a36] group-hover:bg-rose-600 group-hover:scale-105 transition-all">
-                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=300&auto=format&fit=crop" className="w-full h-full object-cover rounded-full" alt="Sáu Khải" />
-                <span className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#16171d]"></span>
+            <div onClick={() => changeChannel('test', true)} className="flex flex-col items-center gap-2 p-3 rounded-xl bg-slate-900 border border-slate-800 cursor-pointer hover:border-amber-400 transition-all">
+              <div className="w-14 h-14 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-slate-300 font-black text-sm">
+                SK
               </div>
-              <span className="text-xs sm:text-sm font-bold text-gray-200 group-hover:text-rose-400 transition-colors text-center truncate max-w-[110px]">
-                Sáu Khải Tân Châu
+              <span className="text-xs font-bold text-slate-200 text-center truncate max-w-[110px]">
+                Sáu Khải
               </span>
-              <span className="text-[10px] text-gray-400">Gà tre cảnh An Giang</span>
+              <span className="text-[10px] text-slate-400">Tân Châu An Giang</span>
             </div>
 
-            <div onClick={() => changeChannel('supersecret', true)} className="flex flex-col items-center gap-2 cursor-pointer group min-w-[120px]">
-              <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 bg-[#282a36] group-hover:bg-rose-600 group-hover:scale-105 transition-all">
-                <img src="https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?q=80&w=300&auto=format&fit=crop" className="w-full h-full object-cover rounded-full" alt="Anh Ba" />
-                <span className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#16171d]"></span>
+            <div onClick={() => changeChannel('supersecret', true)} className="flex flex-col items-center gap-2 p-3 rounded-xl bg-slate-900 border border-slate-800 cursor-pointer hover:border-amber-400 transition-all">
+              <div className="w-14 h-14 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-slate-300 font-black text-sm">
+                AB
               </div>
-              <span className="text-xs sm:text-sm font-bold text-gray-200 group-hover:text-rose-400 transition-colors text-center truncate max-w-[110px]">
-                Anh Ba Chợ Lách
+              <span className="text-xs font-bold text-slate-200 text-center truncate max-w-[110px]">
+                Anh Ba
               </span>
-              <span className="text-[10px] text-gray-400">Gà nòi cựa Bến Tre</span>
+              <span className="text-[10px] text-slate-400">Chợ Lách Bến Tre</span>
             </div>
 
-            <div onClick={() => changeChannel('dongtao', true)} className="flex flex-col items-center gap-2 cursor-pointer group min-w-[120px]">
-              <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 bg-gradient-to-tr from-rose-600 to-orange-500 group-hover:scale-105 transition-transform shadow-lg">
-                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop" className="w-full h-full object-cover rounded-full" alt="Bác Tiến" />
+            <div onClick={() => changeChannel('dongtao', true)} className="flex flex-col items-center gap-2 p-3 rounded-xl bg-slate-900 border border-slate-800 cursor-pointer hover:border-amber-400 transition-all">
+              <div className="w-14 h-14 rounded-full bg-amber-950 border-2 border-amber-700 flex items-center justify-center text-amber-300 font-black text-sm">
+                TK
               </div>
-              <span className="text-xs sm:text-sm font-bold text-gray-200 group-hover:text-rose-400 transition-colors text-center truncate max-w-[110px]">
-                Bác Tiến Khoái Châu
+              <span className="text-xs font-bold text-slate-200 text-center truncate max-w-[110px]">
+                Bác Tiến
               </span>
-              <span className="text-[10px] text-amber-400">Đông Tảo thuần chủng</span>
+              <span className="text-[10px] text-slate-400">Khoái Châu Hưng Yên</span>
             </div>
 
-            <div onClick={() => changeChannel('caolanh', true)} className="flex flex-col items-center gap-2 cursor-pointer group min-w-[120px]">
-              <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 bg-[#282a36] group-hover:bg-rose-600 group-hover:scale-105 transition-all">
-                <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=300&auto=format&fit=crop" className="w-full h-full object-cover rounded-full" alt="Út Lớn" />
+            <div onClick={() => changeChannel('caolanh', true)} className="flex flex-col items-center gap-2 p-3 rounded-xl bg-slate-900 border border-slate-800 cursor-pointer hover:border-amber-400 transition-all">
+              <div className="w-14 h-14 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-slate-300 font-black text-sm">
+                ÚT
               </div>
-              <span className="text-xs sm:text-sm font-bold text-gray-200 group-hover:text-rose-400 transition-colors text-center truncate max-w-[110px]">
-                Út Lớn Cao Lãnh
+              <span className="text-xs font-bold text-slate-200 text-center truncate max-w-[110px]">
+                Út Lớn
               </span>
-              <span className="text-[10px] text-gray-400">Gà nòi đòn Đồng Tháp</span>
+              <span className="text-[10px] text-slate-400">Cao Lãnh Đồng Tháp</span>
             </div>
           </div>
         </section>
@@ -1397,43 +1408,38 @@ export default function App() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-            <div className="bg-[#16171d] hover:bg-[#1c1d25] border border-white/10 hover:border-amber-400/50 rounded-2xl h-28 flex items-center justify-center p-3 cursor-pointer transition-all hover:-translate-y-1 shadow-md group">
-              <div className="flex flex-col items-center text-center font-extrabold text-sm sm:text-base">
-                <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">🐓</span>
-                <span className="text-white group-hover:text-amber-400 transition-colors">Gà Đòn Bình Định</span>
-                <span className="text-[10px] text-gray-400 font-medium">Lối ôm đấm, kiềng mé</span>
+            <div className="bg-[#14161f] border border-slate-800 rounded-xl h-24 flex items-center justify-center p-3 transition-colors hover:border-amber-500/50">
+              <div className="flex flex-col items-center text-center">
+                <span className="text-white font-bold text-sm">Gà Đòn Bình Định</span>
+                <span className="text-[11px] text-slate-400 mt-0.5">Lối ôm đấm, kiềng mé</span>
               </div>
             </div>
 
-            <div className="bg-[#16171d] hover:bg-[#1c1d25] border border-white/10 hover:border-amber-400/50 rounded-2xl h-28 flex items-center justify-center p-3 cursor-pointer transition-all hover:-translate-y-1 shadow-md group">
-              <div className="flex flex-col items-center text-center font-extrabold text-sm sm:text-base">
-                <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">🌴</span>
-                <span className="text-white group-hover:text-amber-400 transition-colors">Gà Nòi Chợ Lách</span>
-                <span className="text-[10px] text-gray-400 font-medium">Bến Tre • Cựa sắc nhọn</span>
+            <div className="bg-[#14161f] border border-slate-800 rounded-xl h-24 flex items-center justify-center p-3 transition-colors hover:border-amber-500/50">
+              <div className="flex flex-col items-center text-center">
+                <span className="text-white font-bold text-sm">Gà Nòi Chợ Lách</span>
+                <span className="text-[11px] text-slate-400 mt-0.5">Bến Tre • Cựa sắc nhọn</span>
               </div>
             </div>
 
-            <div className="bg-[#16171d] hover:bg-[#1c1d25] border border-white/10 hover:border-amber-400/50 rounded-2xl h-28 flex items-center justify-center p-3 cursor-pointer transition-all hover:-translate-y-1 shadow-md group">
-              <div className="flex flex-col items-center text-center font-extrabold text-sm sm:text-base">
-                <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">👑</span>
-                <span className="text-white group-hover:text-amber-400 transition-colors">Gà Đông Tảo</span>
-                <span className="text-[10px] text-rose-400 font-bold uppercase">Khoái Châu Hưng Yên</span>
+            <div className="bg-[#14161f] border border-slate-800 rounded-xl h-24 flex items-center justify-center p-3 transition-colors hover:border-amber-500/50">
+              <div className="flex flex-col items-center text-center">
+                <span className="text-white font-bold text-sm">Gà Đông Tảo</span>
+                <span className="text-[11px] text-amber-400 font-medium mt-0.5">Khoái Châu Hưng Yên</span>
               </div>
             </div>
 
-            <div className="bg-[#16171d] hover:bg-[#1c1d25] border border-white/10 hover:border-amber-400/50 rounded-2xl h-28 flex items-center justify-center p-3 cursor-pointer transition-all hover:-translate-y-1 shadow-md group">
-              <div className="flex flex-col items-center text-center font-extrabold text-sm sm:text-base">
-                <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">🪶</span>
-                <span className="text-white group-hover:text-amber-400 transition-colors">Gà Tre Tân Châu</span>
-                <span className="text-[10px] text-gray-400 font-medium">Đuôi phụng, bờm xòe</span>
+            <div className="bg-[#14161f] border border-slate-800 rounded-xl h-24 flex items-center justify-center p-3 transition-colors hover:border-amber-500/50">
+              <div className="flex flex-col items-center text-center">
+                <span className="text-white font-bold text-sm">Gà Tre Tân Châu</span>
+                <span className="text-[11px] text-slate-400 mt-0.5">An Giang • Đuôi phụng dài</span>
               </div>
             </div>
 
-            <div className="bg-[#16171d] hover:bg-[#1c1d25] border border-white/10 hover:border-amber-400/50 rounded-2xl h-28 flex items-center justify-center p-3 cursor-pointer transition-all hover:-translate-y-1 shadow-md col-span-2 sm:col-span-1 group">
-              <div className="flex flex-col items-center text-center font-extrabold text-sm sm:text-base">
-                <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">⚡</span>
-                <span className="text-white group-hover:text-amber-400 transition-colors">Gà Nòi Cao Lãnh</span>
-                <span className="text-[10px] text-gray-400 font-medium">Đồng Tháp • Cốt gà lì</span>
+            <div className="bg-[#14161f] border border-slate-800 rounded-xl h-24 flex items-center justify-center p-3 transition-colors hover:border-amber-500/50">
+              <div className="flex flex-col items-center text-center">
+                <span className="text-white font-bold text-sm">Gà Nòi Cao Lãnh</span>
+                <span className="text-[11px] text-slate-400 mt-0.5">Đồng Tháp • Lối đánh hiểm</span>
               </div>
             </div>
           </div>
@@ -1861,12 +1867,12 @@ export default function App() {
                 className="flex items-center gap-2"
               >
                 <span className="text-xl">🐓</span>
-                <span className="text-2xl font-black italic tracking-tighter text-white">
-                  kê<span className="text-rose-500">TRƯỜNG</span> <span className="text-xs font-bold text-gray-400">LIVE</span>
+                <span className="text-xl font-black tracking-tight text-white">
+                  TRẠI GÀ <span className="text-rose-500">THÀNH TRUNG</span> <span className="text-xs font-bold text-amber-400">LONG BIÊN</span>
                 </span>
               </a>
               <p className="leading-relaxed">
-                Kênh phát sóng trực tiếp giao lưu gà nòi, gà đòn, gà tre cảnh. Nơi chia sẻ đam mê, học hỏi kinh nghiệm vần đòn và kết nối anh em kê thủ khắp ba miền.
+                Trại Gà Thành Trung Long Biên - Kênh phát sóng trực tiếp giao lưu gà nòi, gà đòn, gà tre cảnh. Nơi chia sẻ đam mê, học hỏi kinh nghiệm vần đòn và kết nối anh em kê thủ.
               </p>
             </div>
 
@@ -1966,10 +1972,12 @@ export default function App() {
             </div>
           </div>
 
-          <div className="pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p>© 2026 Kê Trường Live. Nền tảng Livestream Giao Lưu &amp; Kết Nối Đam Mê Gà Nòi Ba Miền.</p>
-            <div className="flex items-center gap-4">
-              <span className="font-mono text-gray-500">SRS 5 Hybrid • HLS/WebRTC • MongoDB Atlas</span>
+          <div className="pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+            <p>© 2026 Trại Gà Thành Trung - Cơ Sở Long Biên, Hà Nội. Giữ bản quyền nội dung.</p>
+            <div className="flex items-center gap-4 text-slate-400">
+              <span>Tổ 14, P. Phúc Lợi, Q. Long Biên, Hà Nội</span>
+              <span>•</span>
+              <span>Hotline / Zalo: 0988.888.xxx</span>
             </div>
           </div>
         </div>

@@ -127,17 +127,17 @@ export default function PostChickenModal({ isOpen, onClose, onAddChicken, curren
       <div className="relative w-full max-w-2xl bg-[#14151c] border border-white/15 rounded-3xl shadow-2xl overflow-hidden my-auto animate-fadeIn">
         
         {/* Header Modal */}
-        <div className="bg-gradient-to-r from-rose-900/60 via-slate-900 to-amber-900/60 px-5 sm:px-6 py-4 border-b border-white/10 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-600 flex items-center justify-center shadow-lg shadow-rose-950/60 text-lg">
-              🐓
+        <div className="bg-[#12141c] px-5 sm:px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-black uppercase text-white tracking-wide flex items-center gap-2">
+              <h3 className="text-base sm:text-lg font-bold text-white tracking-wide">
                 Đăng Bán Chiến Kê Tuyển Chọn
               </h3>
-              <p className="text-[11px] text-gray-300">
-                Đăng tin giao lưu trực tiếp • Kết nối anh em kê thủ toàn quốc
+              <p className="text-[11px] text-slate-400">
+                Giao lưu trực tiếp với anh em đam mê • Không qua trung gian
               </p>
             </div>
           </div>
@@ -178,14 +178,14 @@ export default function PostChickenModal({ isOpen, onClose, onAddChicken, curren
                 <select
                   value={breed}
                   onChange={(e) => setBreed(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#0e0f14] border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400 cursor-pointer"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-[#151722] border border-slate-700 text-white text-xs focus:outline-none focus:border-amber-400 cursor-pointer"
                 >
-                  <option value="don">🐓 Gà Đòn Bình Định</option>
-                  <option value="noi">⚡ Gà Nòi Cựa Bến Tre / Chợ Lách</option>
-                  <option value="tre">🦃 Gà Tre Tân Châu Cảnh</option>
-                  <option value="dongtao">👑 Gà Đông Tảo Hưng Yên</option>
-                  <option value="caolanh">🎯 Gà Nòi Cao Lãnh Đồng Tháp</option>
-                  <option value="asil">🌴 Asil / Gà Mỹ Lai Cựa</option>
+                  <option value="don">Gà Đòn (Bình Định / Miền Bắc)</option>
+                  <option value="noi">Gà Nòi Cựa (Bến Tre / Chợ Lách)</option>
+                  <option value="tre">Gà Tre Tân Châu Cảnh</option>
+                  <option value="dongtao">Gà Đông Tảo Chuẩn F1 (Khoái Châu)</option>
+                  <option value="caolanh">Gà Nòi Cao Lãnh Đồng Tháp</option>
+                  <option value="asil">Gà Asil / Mỹ Lai Cựa</option>
                 </select>
               </div>
 
@@ -317,7 +317,7 @@ export default function PostChickenModal({ isOpen, onClose, onAddChicken, curren
                   setFarm(e.target.value);
                   setSellerName(e.target.value);
                 }}
-                placeholder="Ví dụ: Trại Gà Ba Bình Định"
+                placeholder="Ví dụ: Trại Gà Thành Trung Long Biên"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-[#0e0f14] border border-white/10 text-white text-xs placeholder-gray-500 focus:outline-none focus:border-amber-400"
               />
             </div>
@@ -454,10 +454,10 @@ export default function PostChickenModal({ isOpen, onClose, onAddChicken, curren
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white font-black text-xs uppercase tracking-wide shadow-lg shadow-rose-950/60 transition-transform hover:scale-105 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              className="px-6 py-2.5 rounded-lg bg-red-700 hover:bg-red-600 text-white font-bold text-xs uppercase tracking-wide transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              <Sparkles className="w-4 h-4" />
-              <span>ĐĂNG TIN BÁN GÀ NGAY</span>
+              <ShieldCheck className="w-4 h-4" />
+              <span>XÁC NHẬN ĐĂNG BÁN</span>
             </button>
           </div>
 

@@ -82,15 +82,15 @@ export default function ChickenMarketplace({
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-2">
             <button
               onClick={onOpenPostModal}
-              className="bg-gradient-to-r from-rose-600 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white font-bold text-xs sm:text-sm py-3 px-6 rounded-2xl shadow-xl shadow-rose-950/60 flex items-center gap-2 transition-transform hover:scale-105 uppercase tracking-wide cursor-pointer"
+              className="bg-red-700 hover:bg-red-600 text-white font-bold text-xs sm:text-sm py-2.5 px-5 rounded-lg flex items-center gap-2 transition cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
-              <span>Đăng Bán Chiến Kê</span>
+              <span>ĐĂNG BÁN CHIẾN KÊ</span>
             </button>
 
             <button
               onClick={onOpenPolicy}
-              className="bg-white/10 hover:bg-white/15 text-gray-200 border border-white/15 text-xs sm:text-sm font-semibold py-3 px-5 rounded-2xl transition-colors flex items-center gap-2 cursor-pointer"
+              className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs sm:text-sm font-semibold py-2.5 px-4 rounded-lg transition flex items-center gap-2 cursor-pointer"
             >
               <Truck className="w-4 h-4 text-amber-400" />
               <span>Quy Chuẩn Gửi Xe Khách</span>
@@ -137,7 +137,7 @@ export default function ChickenMarketplace({
 
           <button
             onClick={onOpenPostModal}
-            className="w-full sm:w-auto bg-gradient-to-r from-rose-600 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white font-bold text-xs py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 shadow-md shrink-0 cursor-pointer"
+            className="w-full sm:w-auto bg-red-700 hover:bg-red-600 text-white font-bold text-xs py-2 px-4 rounded-lg flex items-center justify-center gap-1.5 transition shrink-0 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Đăng Bán Gà Mới</span>
@@ -151,19 +151,19 @@ export default function ChickenMarketplace({
           </span>
           {[
             { id: 'all', label: 'Tất Cả Giống' },
-            { id: 'don', label: '🐓 Gà Đòn Bình Định' },
-            { id: 'noi', label: '⚡ Gà Nòi Bến Tre' },
-            { id: 'tre', label: '🦃 Gà Tre Tân Châu' },
-            { id: 'dongtao', label: '👑 Gà Đông Tảo' },
-            { id: 'asil', label: '🌴 Asil / Gà Mỹ' }
+            { id: 'don', label: 'Gà Đòn (Bắc / Trung)' },
+            { id: 'noi', label: 'Gà Nòi Cựa' },
+            { id: 'tre', label: 'Gà Tre Tân Châu' },
+            { id: 'dongtao', label: 'Gà Đông Tảo' },
+            { id: 'asil', label: 'Gà Asil / Mỹ Lai' }
           ].map((item) => (
             <button
               key={item.id}
               onClick={() => setSelectedBreed(item.id)}
-              className={`px-3.5 py-1.5 rounded-xl whitespace-nowrap transition-all cursor-pointer border ${
+              className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-all cursor-pointer border ${
                 selectedBreed === item.id
-                  ? 'bg-amber-400 text-black border-amber-400 shadow-md font-extrabold'
-                  : 'bg-[#0e0f14] text-gray-300 border-white/10 hover:border-white/30'
+                  ? 'bg-amber-500 text-slate-950 border-amber-400 font-bold'
+                  : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700'
               }`}
             >
               {item.label}

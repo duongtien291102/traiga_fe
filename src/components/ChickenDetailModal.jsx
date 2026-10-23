@@ -21,19 +21,21 @@ export default function ChickenDetailModal({ chicken, isOpen, onClose, onOpenCon
       <div className="relative w-full max-w-2xl bg-[#14151c] border border-white/15 rounded-3xl shadow-2xl overflow-hidden my-auto animate-fadeIn">
         
         {/* Header Modal */}
-        <div className="bg-gradient-to-r from-rose-900/60 via-slate-900 to-amber-900/60 px-5 sm:px-6 py-4 border-b border-white/10 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="text-xl">🐓</span>
+        <div className="bg-[#12141c] px-5 sm:px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-black uppercase tracking-wider text-rose-400 font-mono">
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-400 font-mono">
                   {chicken.ms || 'MS KÊ'}
                 </span>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded border border-emerald-500/30">
                   {chicken.datNuoc || 'Đang mở bán'}
                 </span>
               </div>
-              <h3 className="text-base sm:text-lg font-black text-white leading-tight">
+              <h3 className="text-base sm:text-lg font-bold text-white leading-tight">
                 {chicken.title}
               </h3>
             </div>
