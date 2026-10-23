@@ -388,7 +388,10 @@ export default function LiveStudioModal({
 
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true'
+        },
         body: JSON.stringify({
           streamurl: streamUrl,
           sdp: offer.sdp

@@ -70,6 +70,9 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
         fragLoadingRetryDelay: 1000,
         fragLoadingTimeOut: 20000,
         xhrSetup: (xhr, url) => {
+          // Bỏ qua trang cảnh báo ngrok-free để tránh lỗi CORS ERR_NGROK_6024
+          xhr.setRequestHeader('ngrok-skip-browser-warning', 'true');
+
           // Ngăn ngừa trình duyệt cache file playlist m3u8
           if (url.includes('.m3u8')) {
             xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
