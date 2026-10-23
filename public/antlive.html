@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kê Trường Live - Trực Tiếp Xổ Gà, Soi Cán Vảy & Giao Lưu Gà Nòi Ba Miền</title>
+  <meta name="description" content="Xem livestream xổ gà, soi chân vảy gà chọi, gà đòn Bình Định, gà nòi Chợ Lách, gà tre Tân Châu trực tiếp từ các trại gà uy tín khắp ba miền." />
+  <link rel="icon" href="https://img.icons8.com/color/96/rooster.png" type="image/png" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- HLS.js CDN for live video playback -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              red: '#e50914',
+              redHover: '#ff1e27',
+              gold: '#f59e0b',
+              goldHover: '#fbbf24',
+              amberDark: '#b45309'
+            },
+            ant: {
+              bg: '#0c0d11',
+              card: '#16171d',
+              cardHover: '#1f2029',
+              border: 'rgba(255, 255, 255, 0.08)',
+              subtext: '#9ba1b0',
+              accent: '#f59e0b',
+              live: '#ef4444',
+            }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          boxShadow: {
+            'glow-red': '0 0 20px rgba(229, 9, 20, 0.45)',
+            'glow-gold': '0 0 20px rgba(245, 158, 11, 0.35)',
+            'glow-card': '0 4px 20px rgba(0, 0, 0, 0.6)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0c0d11;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #282a36;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #e50914;
+    }
+
+    /* Pulse animation for Live dot */
+    @keyframes liveGlow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.15); }
+    }
+    .live-pulse {
+      animation: liveGlow 1.6s infinite ease-in-out;
+    }
+
+    /* Hide scrollbars for carousels */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Smooth scroll */
+    html {
+      scroll-behavior: smooth;
+    }
+  </style>
+</head>
+<body class="bg-ant-bg text-gray-100 font-sans antialiased min-h-screen selection:bg-brand-red selection:text-white">
+
+  <!-- ==================== TOP BAR ==================== -->
+  <div class="border-b border-ant-border bg-[#090a0d] text-xs text-ant-subtext py-1.5 px-4 sm:px-8">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center gap-1.5 text-brand-red font-bold">
+          <span class="w-2 h-2 rounded-full bg-brand-red live-pulse"></span>
+          Kê Trường Live
+        </span>
+        <span class="hidden sm:inline text-gray-600">•</span>
+        <span class="hidden sm:inline">Trực tiếp xổ gà, soi vảy &amp; giao lưu cùng anh em ba miền</span>
+      </div>
+      <div class="flex items-center gap-4 sm:gap-6 uppercase font-medium tracking-wide">
+        <a href="#register-farm" onclick="openFarmModal()" class="hover:text-brand-red transition-colors flex items-center gap-1 text-brand-gold font-bold">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Chủ Trại Đăng Ký Lên Live
+        </a>
+        <a href="#policy" onclick="openPolicyModal()" class="hover:text-brand-red transition-colors hidden md:flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          Lưu Ý Giao Nhận Xe Khách
+        </a>
+        <a href="#hotline" onclick="openSupportModal()" class="hover:text-brand-red transition-colors flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+          Zalo / Hotline: 0988.888.xxx
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MAIN HEADER ==================== -->
+  <header class="sticky top-0 z-40 bg-[#101117]/95 backdrop-blur-md border-b border-ant-border">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      
+      <!-- Left: Logo & Navigation -->
+      <div class="flex items-center gap-8">
+        <!-- Logo -->
+        <a href="#" class="flex items-center gap-2.5 group flex-shrink-0">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-red via-orange-600 to-amber-500 flex items-center justify-center shadow-glow-red group-hover:scale-105 transition-transform">
+            <span class="text-2xl select-none">🐓</span>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-2xl font-black italic tracking-tighter text-white leading-none">
+              kê<span class="text-brand-red">TRƯỜNG</span>
+            </span>
+            <span class="text-[9px] uppercase tracking-widest text-brand-gold font-bold">Kênh Gà Nòi Live</span>
+          </div>
+        </a>
+
+        <!-- Main Nav (Desktop) -->
+        <nav class="hidden lg:flex items-center gap-1 text-sm font-bold uppercase tracking-wider">
+          <a href="#" class="px-3 py-2 text-brand-red hover:text-brand-red transition-colors relative after:content-[''] after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:bg-brand-red">
+            Trang Chủ
+          </a>
+          <a href="#live-session" class="px-3 py-2 text-gray-300 hover:text-brand-red transition-colors flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-brand-red live-pulse"></span>
+            Phòng Live Xổ Gà
+          </a>
+          <a href="#featured-chickens" class="px-3 py-2 text-gray-300 hover:text-brand-red transition-colors">
+            Gà Mới Lên Chuồng
+          </a>
+          <a href="#breeds" class="px-3 py-2 text-gray-300 hover:text-brand-red transition-colors">
+            Dòng Kê Ba Miền
+          </a>
+          <a href="#farms" class="px-3 py-2 text-gray-300 hover:text-brand-red transition-colors">
+            Các Trại Giao Lưu
+          </a>
+          <a href="#guide" class="px-3 py-2 text-gray-300 hover:text-brand-red transition-colors">
+            Kinh Nghiệm Chăm Gà
+          </a>
+        </nav>
+      </div>
+
+      <!-- Right: Search, Bell, Auth -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Live status indicator -->
+        <div class="hidden md:flex items-center gap-1.5 bg-[#1e2029] text-xs font-semibold py-1.5 px-3 rounded-md border border-ant-border">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 live-pulse"></span>
+          <span class="text-gray-300"><strong class="text-white">14</strong> Phòng Đang Live</span>
+        </div>
+
+        <!-- Search button -->
+        <button onclick="openSearchModal()" title="Tìm kiếm chạng gà, mã số MS, chủ trại (Ctrl+K)" class="p-2 text-gray-400 hover:text-white hover:bg-[#1e2029] rounded-md transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </button>
+
+        <!-- Notification bell -->
+        <button class="p-2 text-gray-400 hover:text-white hover:bg-[#1e2029] rounded-md transition-colors relative" title="Thông báo phòng live mới">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-brand-red"></span>
+        </button>
+
+        <!-- Auth button -->
+        <button onclick="openAuthModal()" class="bg-brand-red hover:bg-brand-redHover text-white text-xs sm:text-sm font-bold py-2 px-3 sm:px-4 rounded-md shadow-glow-red transition-all flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+          <span class="hidden xs:inline">Đăng Nhập</span>
+          <span class="xs:hidden">Vào</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ==================== MAIN CONTENT WRAPPER ==================== -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-8">
+
+    <!-- ==================== HERO SECTION (Banner Spotlight + Live Rooms) ==================== -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      
+      <!-- Left: Big Spotlight Banner (8 cols) -->
+      <div class="lg:col-span-8 relative rounded-xl overflow-hidden bg-gradient-to-r from-red-950 via-[#181922] to-[#12131a] border border-ant-border min-h-[280px] sm:min-h-[350px] flex flex-col justify-end p-5 sm:p-8 shadow-glow-card group">
+        <!-- Background Overlay Image & Glow -->
+        <div class="absolute inset-0 bg-cover bg-center opacity-45 group-hover:scale-105 transition-transform duration-700 pointer-events-none" style="background-image: url('https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1200&auto=format&fit=crop');"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent"></div>
+
+        <!-- Banner Content -->
+        <div class="relative z-10 space-y-3">
+          <div class="flex items-center gap-2">
+            <span class="bg-brand-red text-white text-[11px] font-black uppercase px-2.5 py-0.5 rounded tracking-wider flex items-center gap-1 shadow-glow-red">
+              <span class="w-1.5 h-1.5 rounded-full bg-white live-pulse"></span>
+              TRỰC TIẾP HÔM NAY
+            </span>
+            <span class="text-xs text-brand-gold font-bold">Trại Gà Đòn Ba Bình Định • Lên Sóng Dàn Tơ Mới Dạt</span>
+          </div>
+
+          <h2 class="text-2xl sm:text-4xl font-black text-white tracking-tight leading-tight">
+            XỔ THỬ ĐÒN DÀN TƠ CHẠNG 2K8 - 3K1 &amp; <span class="text-brand-gold">SOI CÁN VẢY TRỰC TIẾP</span>
+          </h2>
+          
+          <p class="text-xs sm:text-sm text-gray-300 max-w-xl line-clamp-2">
+            Hôm nay trại lên sóng dàn gà đòn tơ vừa dạt nước đầu, lông hình dày dặn, bo đá chắc chắn. Anh em vào phòng live xem thả chân thử đòn, giao lưu kinh nghiệm đòn lối cùng chủ trại!
+          </p>
+
+          <div class="flex flex-wrap items-center gap-3 pt-2">
+            <button onclick="playLiveRoom('MS 09: Xám Cần Đỏ (Chạng 2.95kg)', 'Trại Gà Ba Bình Định', 'Chạng 2.95kg • Lối ôm đấm, kiềng mé giáp lưng', 'Ba Bình Định', 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=500&auto=format&fit=crop')" class="bg-brand-red hover:bg-brand-redHover text-white text-xs sm:text-sm font-bold py-2.5 px-5 rounded-lg shadow-glow-red flex items-center gap-2 transition-transform hover:scale-105">
+              <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              VÀO XEM PHÒNG LIVE
+            </button>
+            <button onclick="openConnectModal('MS 09: Xám Cần Đỏ (Chạng 2.95kg)', 'Trại Gà Ba Bình Định')" class="bg-amber-500/20 hover:bg-amber-500/30 text-brand-gold border border-brand-gold/40 text-xs sm:text-sm font-bold py-2.5 px-4 rounded-lg transition-colors flex items-center gap-1.5">
+              <span>🤝</span> LIÊN HỆ CHỦ TRẠI
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Live Match Widget (4 cols) -->
+      <div class="lg:col-span-4 bg-ant-card rounded-xl border border-ant-border p-4 flex flex-col justify-between shadow-glow-card">
+        <div class="flex items-center justify-between pb-3 border-b border-ant-border">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-brand-red live-pulse"></span>
+            <h3 class="text-sm font-black uppercase text-white tracking-wider">Đang Xổ &amp; Lên Sóng</h3>
+          </div>
+          <span class="text-xs text-brand-red font-semibold cursor-pointer hover:underline" onclick="scrollToSection('live-session')">Xem tất cả</span>
+        </div>
+
+        <!-- Mini Live Rooms List -->
+        <div class="space-y-2.5 my-3 overflow-y-auto max-h-[270px] pr-1">
+          
+          <!-- Item 1 -->
+          <div onclick="playLiveRoom('MS 01: Tía Chân Trắng Điểm Mực (Chạng 3.1kg)', 'Trại Gà Anh Ba Chợ Lách', 'Chạng 3.1kg • Cựa nhọn, vảy huyền trâm', 'Anh Ba Chợ Lách', 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8')" class="p-2.5 rounded-lg bg-[#111217] hover:bg-ant-cardHover border border-ant-border cursor-pointer transition-all hover:border-brand-red/50">
+            <div class="flex items-center justify-between text-[11px] text-gray-400 mb-1.5">
+              <span class="flex items-center gap-1 text-gray-300 truncate max-w-[170px]">
+                🐓 Trại Anh Ba Chợ Lách
+              </span>
+              <span class="text-brand-red font-bold flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-brand-red live-pulse"></span> LIVE (640 xem)
+              </span>
+            </div>
+            <div class="flex items-center justify-between text-xs font-bold">
+              <div class="space-y-0.5">
+                <div class="text-white font-extrabold truncate">MS 01: Tía Mật (Chạng 3.1kg)</div>
+                <div class="text-[11px] text-gray-400">Đang quay cận cảnh cặp cán &amp; vảy</div>
+              </div>
+              <div class="text-right">
+                <span class="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-1.5 py-0.5 rounded">Đang xổ</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Item 2 -->
+          <div onclick="playLiveRoom('MS 02: Tre Tân Châu Nhạn Đuôi Phụng', 'Trại Gà Cảnh Sáu Khải', 'Lông bờm dài phủ gáy • Đuôi xòe 3 lớp', 'Sáu Khải Tân Châu', 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8')" class="p-2.5 rounded-lg bg-[#111217] hover:bg-ant-cardHover border border-ant-border cursor-pointer transition-all hover:border-brand-red/50">
+            <div class="flex items-center justify-between text-[11px] text-gray-400 mb-1.5">
+              <span class="flex items-center gap-1 text-gray-300 truncate max-w-[170px]">
+                🦃 Trại Gà Cảnh Sáu Khải
+              </span>
+              <span class="text-brand-red font-bold flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-brand-red live-pulse"></span> LIVE (820 xem)
+              </span>
+            </div>
+            <div class="flex items-center justify-between text-xs font-bold">
+              <div class="space-y-0.5">
+                <div class="text-white font-extrabold truncate">MS 02: Tre Tân Châu Nhạn</div>
+                <div class="text-[11px] text-gray-400">Trống tơ 9 tháng • Lông bờm phủ kín</div>
+              </div>
+              <div class="text-right">
+                <span class="bg-blue-500/20 text-blue-400 text-[10px] font-bold px-1.5 py-0.5 rounded">Giao lưu</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Item 3 -->
+          <div onclick="playLiveRoom('MS 03: Đông Tảo Tiến Vua Chân Rồng', 'Trại Gà Tiến Khoái Châu', 'Chạng 4.2kg • Chân xù vảy thịt đỏ au', 'Bác Tiến Khoái Châu', 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8')" class="p-2.5 rounded-lg bg-[#111217] hover:bg-ant-cardHover border border-ant-border cursor-pointer transition-all hover:border-brand-red/50">
+            <div class="flex items-center justify-between text-[11px] text-gray-400 mb-1.5">
+              <span class="flex items-center gap-1 text-gray-300 truncate max-w-[170px]">
+                🐥 Trại Đông Tảo Hưng Yên
+              </span>
+              <span class="text-brand-red font-bold flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-brand-red live-pulse"></span> LIVE (410 xem)
+              </span>
+            </div>
+            <div class="flex items-center justify-between text-xs font-bold">
+              <div class="space-y-0.5">
+                <div class="text-white font-extrabold truncate">MS 03: Đông Tảo Chân Xù</div>
+                <div class="text-[11px] text-gray-400">Cặp chân đỏ au • Gà tơ 10 tháng</div>
+              </div>
+              <div class="text-right">
+                <span class="bg-amber-500/20 text-brand-gold text-[10px] font-bold px-1.5 py-0.5 rounded">Tuyển chọn</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="pt-2 text-center text-[11px] text-gray-400 border-t border-ant-border">
+          💬 Anh em có thể chat trực tiếp với chủ trại để yêu cầu quay lại chân vảy hoặc xem thả nhấp vài chân!
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== CATEGORY FILTER TABS ==================== -->
+    <div class="flex flex-wrap items-center gap-2.5 sm:gap-3">
+      <button onclick="filterCategory('all', this)" class="category-btn flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg font-bold text-xs sm:text-sm transition-all duration-300 bg-brand-red text-white shadow-glow-red">
+        <span>🔥</span>
+        <span>Tất Cả Các Chạng</span>
+      </button>
+      <button onclick="filterCategory('don', this)" class="category-btn flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg font-bold text-xs sm:text-sm transition-all duration-300 bg-ant-card hover:bg-ant-cardHover text-gray-300 border border-ant-border">
+        <span>🐓</span>
+        <span>Gà Đòn (Chạng 2k8 - 3k2)</span>
+      </button>
+      <button onclick="filterCategory('noi', this)" class="category-btn flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg font-bold text-xs sm:text-sm transition-all duration-300 bg-ant-card hover:bg-ant-cardHover text-gray-300 border border-ant-border">
+        <span>⚡</span>
+        <span>Gà Nòi Cựa (Chạng 2k4 - 2k7)</span>
+      </button>
+      <button onclick="filterCategory('tre', this)" class="category-btn flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg font-bold text-xs sm:text-sm transition-all duration-300 bg-ant-card hover:bg-ant-cardHover text-gray-300 border border-ant-border">
+        <span>🦃</span>
+        <span>Gà Tre Tân Châu Cảnh</span>
+      </button>
+      <button onclick="filterCategory('dongtao', this)" class="category-btn flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg font-bold text-xs sm:text-sm transition-all duration-300 bg-ant-card hover:bg-ant-cardHover text-gray-300 border border-ant-border">
+        <span>🐥</span>
+        <span>Gà Đông Tảo Hưng Yên</span>
+      </button>
+    </div>
+
+    <!-- ==================== SECTION 1: PHÒNG LIVESTREAM XEM GÀ TRỰC TIẾP ==================== -->
+    <section id="live-session" class="space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-1.5 h-6 bg-brand-red rounded-full"></div>
+          <h2 class="text-xl font-extrabold tracking-tight text-white uppercase">
+            Phòng Live Xổ Gà Trực Tiếp
+          </h2>
+        </div>
+        <a href="#all" class="text-xs sm:text-sm font-bold text-ant-subtext hover:text-brand-red flex items-center gap-1 transition-colors">
+          Xem tất cả phòng live <span>&gt;</span>
+        </a>
+      </div>
+
+      <!-- Live Cards Grid (5 cards across on desktop) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
+        
+        <!-- Live Card 1 -->
+        <div onclick="playLiveRoom('MS 101: Gà Ô Chân Trắng Điểm Mực', 'Trại Gà Ba Bình Định', 'Chạng: 2.85 kg • Lối kiềng hầu, đá mé xỏ ngang', 'Ba Bình Định', 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=500&auto=format&fit=crop')" class="bg-ant-card rounded-xl border border-ant-border hover:border-brand-red/60 transition-all duration-300 overflow-hidden cursor-pointer group shadow-glow-card flex flex-col justify-between">
+          <div class="relative h-32 bg-gradient-to-tr from-gray-900 to-gray-800 overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=500&auto=format&fit=crop" class="w-full h-full object-cover opacity-75 group-hover:scale-105 transition-transform duration-500" alt="Gà Ô Chân Trắng" />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30"></div>
+            <!-- Live Badge -->
+            <span class="absolute top-2 right-2 bg-brand-red text-white text-[10px] font-black px-2 py-0.5 rounded flex items-center gap-1 shadow-glow-red">
+              <span class="w-1.5 h-1.5 rounded-full bg-white live-pulse"></span> LIVE (1.4K xem)
+            </span>
+            <!-- Live Host avatar -->
+            <div class="absolute top-2 left-2 flex items-center gap-1.5">
+              <div class="w-6 h-6 rounded-full border border-white/50 bg-black/60 overflow-hidden flex items-center justify-center text-[10px] font-bold text-white">
+                B
+              </div>
+            </div>
+            <!-- Specs pill overlay -->
+            <div class="absolute bottom-2 left-2 bg-black/80 backdrop-blur-sm px-2 py-0.5 rounded text-[11px] font-bold text-brand-gold border border-brand-gold/30">
+              Chạng: 2.85 kg
+            </div>
+          </div>
+
+          <div class="p-3 space-y-2.5">
+            <div class="flex items-center gap-1.5 text-[11px] text-gray-400 truncate">
+              <span class="text-amber-400">★</span>
+              <span class="truncate">Trại Gà Ba Bình Định</span>
+            </div>
+
+            <div class="space-y-1">
+              <h4 class="font-bold text-xs text-white truncate">MS 101: Gà Ô Chân Trắng Điểm</h4>
+              <p class="text-[11px] text-gray-400">Lối kiềng hầu, đá mé xỏ ngang</p>
+            </div>
+
+            <div class="pt-2 border-t border-ant-border flex items-center justify-between text-[11px]">
+              <div class="flex items-center gap-1.5 text-gray-300 font-semibold truncate">
+                <span class="text-brand-red">🎙️</span>
+                <span class="truncate">Ba Bình Định</span>
+              </div>
+              <button class="bg-brand-red hover:bg-brand-redHover text-white text-[10px] font-bold px-2.5 py-1 rounded">
+                Vào Xem
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Card 2 -->
+        <div onclick="playLiveRoom('MS 102: Tre Tân Châu Khét Đỏ Bờm Dài', 'Trại Gà Cảnh Sáu Khải', 'Trống tơ 9 tháng • Lông bờm phủ gáy, đuôi phụng', 'Sáu Khải Tân Châu', 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', 'https://images.unsplash.com/photo-1598439210625-5067c578f3f6?q=80&w=500&auto=format&fit=crop')" class="bg-ant-card rounded-xl border border-ant-border hover:border-brand-red/60 transition-all duration-300 overflow-hidden cursor-pointer group shadow-glow-card flex flex-col justify-between">
+          <div class="relative h-32 bg-gradient-to-tr from-gray-900 to-gray-800 overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1598439210625-5067c578f3f6?q=80&w=500&auto=format&fit=crop" class="w-full h-full object-cover opacity-75 group-hover:scale-105 transition-transform duration-500" alt="Gà Tre Tân Châu" />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30"></div>
+            <span class="absolute top-2 right-2 bg-brand-red text-white text-[10px] font-black px-2 py-0.5 rounded flex items-center gap-1 shadow-glow-red">
+              <span class="w-1.5 h-1.5 rounded-full bg-white live-pulse"></span> LIVE (950 xem)
+            </span>
+            <div class="absolute top-2 left-2 flex items-center gap-1.5">
+              <div class="w-6 h-6 rounded-full border border-white/50 bg-black/60 overflow-hidden flex items-center justify-center text-[10px] font-bold text-white">
+                S
+              </div>
+            </div>
+            <div class="absolute bottom-2 left-2 bg-black/80 backdrop-blur-sm px-2 py-0.5 rounded text-[11px] font-bold text-brand-gold border border-brand-gold/30">
+              Trống tơ 9 tháng
+            </div>
+          </div>
+
+          <div class="p-3 space-y-2.5">
+            <div class="flex items-center gap-1.5 text-[11px] text-gray-400 truncate">
+              <span class="text-amber-400">★</span>
+              <span class="truncate">Trại Gà Tre Sáu Khải</span>
+            </div>
+
+            <div class="space-y-1">
+              <h4 class="font-bold text-xs text-white truncate">MS 102: Tre Tân Châu Khét Đỏ</h4>
+              <p class="text-[11px] text-gray-400">Đuôi phụng dài • Cực kỳ dạn người</p>
+            </div>
+
+            <div class="pt-2 border-t border-ant-border flex items-center justify-between text-[11px]">
+              <div class="flex items-center gap-1.5 text-gray-300 font-semibold truncate">
+                <span class="text-brand-red">🎙️</span>
+                <span class="truncate">Sáu Khải Tân Châu</span>
+              </div>
+              <button class="bg-brand-red hover:bg-brand-redHover text-white text-[10px] font-bold px-2.5 py-1 rounded">
+                Vào Xem
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Card 3 -->
+        <div onclick="playLiveRoom('MS 103: Asil Lai Mỹ Xám Chuối', 'Trại Gà Ba Tri Bến Tre', 'Chạng 2.6kg • Nhanh nhẹn, nạp chân sâu', 'Tuấn Ba Tri', 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=500&auto=format&fit=crop')" class="bg-ant-card rounded-xl border border-ant-border hover:border-brand-red/60 transition-all duration-300 overflow-hidden cursor-pointer group shadow-glow-card flex flex-col justify-between">
+          <div class="relative h-32 bg-gradient-to-tr from-gray-900 to-gray-800 overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=500&auto=format&fit=crop" class="w-full h-full object-cover opacity-75 group-hover:scale-105 transition-transform duration-500" alt="Asil Lai Mỹ" />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30"></div>
+            <span class="absolute top-2 right-2 bg-brand-red text-white text-[10px] font-black px-2 py-0.5 rounded flex items-center gap-1 shadow-glow-red">
+              <span class="w-1.5 h-1.5 rounded-full bg-white live-pulse"></span> LIVE (2.1K xem)
+            </span>
+            <div class="absolute top-2 left-2 flex items-center gap-1.5">
+              <div class="w-6 h-6 rounded-full border border-white/50 bg-black/60 overflow-hidden flex items-center justify-center text-[10px] font-bold text-white">
+                T
+              </div>
+            </div>
+            <div class="absolute bottom-2 left-2 bg-black/80 backdrop-blur-sm px-2 py-0.5 rounded text-[11px] font-bold text-brand-gold border border-brand-gold/30">
+              Chạng: 2.60 kg
+            </div>
+          </div>
+
+          <div class="p-3 space-y-2.5">
+            <div class="flex items-center gap-1.5 text-[11px] text-gray-400 truncate">
+              <span class="text-amber-400">★</span>
+              <span class="truncate">Trại Gà Ba Tri Bến Tre</span>
+            </div>
+
+            <div class="space-y-1">
+              <h4 class="font-bold text-xs text-white truncate">MS 103: Asil Lai Mỹ Xám Chuối</h4>
+              <p class="text-[11px] text-gray-400">Nạp chân sâu • Tốc độ đòn nhanh</p>
+            </div>
+
+            <div class="pt-2 border-t border-ant-border flex items-center justify-between text-[11px]">
+              <div class="flex items-center gap-1.5 text-gray-300 font-semibold truncate">
+                <span class="text-brand-red">🎙️</span>
+                <span class="truncate">Tuấn Ba Tri</span>
+              </div>
+              <button class="bg-brand-red hover:bg-brand-redHover text-white text-[10px] font-bold px-2.5 py-1 rounded">
+                Vào Xem
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Card 4 -->
+        <div onclick="playLiveRoom('MS 104: Đông Tảo Tiến Vua Chân Khủng', 'Trại Gà Khoái Châu Hưng Yên', 'Chạng 4.5kg • Cặp chân xù vảy thịt đỏ, giống thuần', 'Bác Tiến Khoái Châu', 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', 'https://images.unsplash.com/photo-1582457601555-46797a9f7336?q=80&w=500&auto=format&fit=crop')" class="bg-ant-card rounded-xl border border-ant-border hover:border-brand-red/60 transition-all duration-300 overflow-hidden cursor-pointer group shadow-glow-card flex flex-col justify-between">
+          <div class="relative h-32 bg-gradient-to-tr from-gray-900 to-gray-800 overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1582457601555-46797a9f7336?q=80&w=500&auto=format&fit=crop" class="w-full h-full object-cover opacity-75 group-hover:scale-105 transition-transform duration-500" alt="Gà Đông Tảo" />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30"></div>
+            <span class="absolute top-2 right-2 bg-brand-red text-white text-[10px] font-black px-2 py-0.5 rounded flex items-center gap-1 shadow-glow-red">
+              <span class="w-1.5 h-1.5 rounded-full bg-white live-pulse"></span> LIVE (1.1K xem)
+            </span>
+            <div class="absolute top-2 left-2 flex items-center gap-1.5">
+              <div class="w-6 h-6 rounded-full border border-white/50 bg-black/60 overflow-hidden flex items-center justify-center text-[10px] font-bold text-white">
+                K
+              </div>
+            </div>
+            <div class="absolute bottom-2 left-2 bg-black/80 backdrop-blur-sm px-2 py-0.5 rounded text-[11px] font-bold text-brand-gold border border-brand-gold/30">
+              Chạng: 4.50 kg
+            </div>
+          </div>
+
+          <div class="p-3 space-y-2.5">
+            <div class="flex items-center gap-1.5 text-[11px] text-gray-400 truncate">
+              <span class="text-amber-400">★</span>
+              <span class="truncate">Trại Gà Tiến Khoái Châu</span>
+            </div>
+
+            <div class="space-y-1">
+              <h4 class="font-bold text-xs text-white truncate">MS 104: Đông Tảo Chân Xù Khủng</h4>
+              <p class="text-[11px] text-gray-400">Chuẩn giống thuần • Chân vảy thịt đỏ</p>
+            </div>
+
+            <div class="pt-2 border-t border-ant-border flex items-center justify-between text-[11px]">
+              <div class="flex items-center gap-1.5 text-gray-300 font-semibold truncate">
+                <span class="text-brand-red">🎙️</span>
+                <span class="truncate">Bác Tiến Khoái Châu</span>
+              </div>
+              <button class="bg-brand-red hover:bg-brand-redHover text-white text-[10px] font-bold px-2.5 py-1 rounded">
+                Vào Xem
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Card 5 -->
+        <div onclick="playLiveRoom('MS 105: Gà Nòi Tía Chân Vàng 8 Móng', 'Trại Kê Cao Lãnh Đồng Tháp', 'Chạng 3.0kg • Vảy đại giáp, lối đá đấm lưng', 'Út Lớn Cao Lãnh', 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=500&auto=format&fit=crop')" class="bg-ant-card rounded-xl border border-ant-border hover:border-brand-red/60 transition-all duration-300 overflow-hidden cursor-pointer group shadow-glow-card flex flex-col justify-between">
+          <div class="relative h-32 bg-gradient-to-tr from-gray-900 to-gray-800 overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=500&auto=format&fit=crop" class="w-full h-full object-cover opacity-75 group-hover:scale-105 transition-transform duration-500" alt="Gà Nòi Cao Lãnh" />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30"></div>
+            <span class="absolute top-2 right-2 bg-brand-red text-white text-[10px] font-black px-2 py-0.5 rounded flex items-center gap-1 shadow-glow-red">
+              <span class="w-1.5 h-1.5 rounded-full bg-white live-pulse"></span> LIVE (1.8K xem)
+            </span>
+            <div class="absolute top-2 left-2 flex items-center gap-1.5">
+              <div class="w-6 h-6 rounded-full border border-white/50 bg-black/60 overflow-hidden flex items-center justify-center text-[10px] font-bold text-white">
+                U
+              </div>
+            </div>
+            <div class="absolute bottom-2 left-2 bg-black/80 backdrop-blur-sm px-2 py-0.5 rounded text-[11px] font-bold text-brand-gold border border-brand-gold/30">
+              Chạng: 3.00 kg
+            </div>
+          </div>
+
+          <div class="p-3 space-y-2.5">
+            <div class="flex items-center gap-1.5 text-[11px] text-gray-400 truncate">
+              <span class="text-amber-400">★</span>
+              <span class="truncate">Trại Kê Cao Lãnh</span>
+            </div>
+
+            <div class="space-y-1">
+              <h4 class="font-bold text-xs text-white truncate">MS 105: Gà Nòi Tía Vàng 8 Móng</h4>
+              <p class="text-[11px] text-gray-400">Vảy đại giáp • Lối đá ôm đấm lưng</p>
+            </div>
+
+            <div class="pt-2 border-t border-ant-border flex items-center justify-between text-[11px]">
+              <div class="flex items-center gap-1.5 text-gray-300 font-semibold truncate">
+                <span class="text-brand-red">🎙️</span>
+                <span class="truncate">Út Lớn Cao Lãnh</span>
+              </div>
+              <button class="bg-brand-red hover:bg-brand-redHover text-white text-[10px] font-bold px-2.5 py-1 rounded">
+                Vào Xem
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== SECTION 2: GÀ MỚI LÊN CHUỒNG ==================== -->
+    <section id="featured-chickens" class="space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-1.5 h-6 bg-brand-gold rounded-full"></div>
+          <h2 class="text-xl font-extrabold tracking-tight text-white uppercase">
+            Gà Mới Lên Chuồng &amp; Thông Số Cán Vảy
+          </h2>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="scrollSection('featuredContainer', -300)" class="w-8 h-8 rounded-full bg-ant-card hover:bg-ant-cardHover border border-ant-border flex items-center justify-center text-gray-400 hover:text-white transition-colors">
+            &lt;
+          </button>
+          <button onclick="scrollSection('featuredContainer', 300)" class="w-8 h-8 rounded-full bg-ant-card hover:bg-ant-cardHover border border-ant-border flex items-center justify-center text-gray-400 hover:text-white transition-colors">
+            &gt;
+          </button>
+          <a href="#all" class="text-xs sm:text-sm font-bold text-ant-subtext hover:text-brand-gold ml-2 transition-colors">
+            Xem tất cả <span>&gt;</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Horizontal scrolling featured chickens cards -->
+      <div id="featuredContainer" class="flex gap-3.5 overflow-x-auto no-scrollbar scroll-smooth pb-2">
+        
+        <!-- Card 1 -->
+        <div class="min-w-[270px] sm:min-w-[290px] bg-ant-card rounded-xl border border-ant-border p-3.5 space-y-3 flex flex-col justify-between hover:border-brand-gold/50 transition-all">
+          <div class="flex items-center justify-between text-xs text-gray-400">
+            <span class="flex items-center gap-1.5 font-medium truncate">
+              <span class="text-amber-400">★</span> Gà Đòn Bình Định
+            </span>
+            <span class="bg-emerald-600/20 text-emerald-400 font-bold px-2 py-0.5 rounded text-[10px]">Đã Dạt 2 Nước</span>
+          </div>
+
+          <div class="space-y-1 font-bold text-xs">
+            <div class="text-white text-sm">MS 201: Chuối Lửa Chân Xanh</div>
+            <div class="text-[11px] text-gray-400 font-normal">Trại Gà Đòn Ninh Thuận • Lông hình phủ kín</div>
+          </div>
+
+          <!-- Specs Box -->
+          <div class="bg-[#101116] rounded-lg p-2.5 text-[11px] space-y-1.5 border border-ant-border font-mono">
+            <div class="flex justify-between text-gray-300">
+              <span class="text-gray-400 font-sans">Chạng:</span>
+              <span class="font-bold text-white">2.90 kg</span>
+            </div>
+            <div class="flex justify-between text-gray-300">
+              <span class="text-gray-400 font-sans">Cán vảy:</span>
+              <span class="font-bold text-brand-gold">Vảy giáp thới, huyền trâm</span>
+            </div>
+            <div class="flex justify-between text-gray-300">
+              <span class="text-gray-400 font-sans">Lối đá:</span>
+              <span class="text-emerald-400 font-bold">Ôm đấm, kiềng hầu</span>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-ant-border flex items-center justify-between text-[11px]">
+            <span class="text-gray-400">Đã xổ thử 2 hiệp</span>
+            <button onclick="openConnectModal('MS 201: Chuối Lửa Chân Xanh (Chạng 2.9kg)', 'Trại Gà Ninh Thuận')" class="bg-brand-gold hover:bg-brand-goldHover text-black font-extrabold text-[10px] px-3 py-1.5 rounded">
+              Hỏi Thông Tin Gà
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="min-w-[270px] sm:min-w-[290px] bg-ant-card rounded-xl border border-ant-border p-3.5 space-y-3 flex flex-col justify-between hover:border-brand-gold/50 transition-all">
+          <div class="flex items-center justify-between text-xs text-gray-400">
+            <span class="flex items-center gap-1.5 font-medium truncate">
+              <span class="text-amber-400">★</span> Gà Tre Cảnh Tân Châu
+            </span>
+            <span class="bg-blue-600/20 text-blue-400 font-bold px-2 py-0.5 rounded text-[10px]">Đuôi Phụng 68cm</span>
+          </div>
+
+          <div class="space-y-1 font-bold text-xs">
+            <div class="text-white text-sm">MS 202: Tre Chuối Tuyết Bờm Trắng</div>
+            <div class="text-[11px] text-gray-400 font-normal">Trại Gà Tre Miền Tây • Dạn người</div>
+          </div>
+
+          <div class="bg-[#101116] rounded-lg p-2.5 text-[11px] space-y-1.5 border border-ant-border font-mono">
+            <div class="flex justify-between text-gray-300">
+              <span class="text-gray-400 font-sans">Chạng:</span>
+              <span class="font-bold text-white">850 gram</span>
+            </div>
+            <div class="flex justify-between text-gray-300">
+              <span class="text-gray-400 font-sans">Bộ đuôi:</span>
+              <span class="font-bold text-brand-gold">Xòe phụng 3 lớp chạm đất</span>
+            </div>
+            <div class="flex justify-between text-gray-300">
+              <span class="text-gray-400 font-sans">Tuổi gà:</span>
+              <span class="text-blue-400 font-bold">10 tháng tuổi</span>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-ant-border flex items-center justify-between text-[11px]">
+            <span class="text-gray-400">Gà cảnh tuyển chọn</span>
+            <button onclick="openConnectModal('MS 202: Tre Chuối Tuyết Bờm Trắng', 'Trại Gà Tre Miền Tây')" class="bg-brand-gold hover:bg-brand-goldHover text-black font-extrabold text-[10px] px-3 py-1.5 rounded">
+              Hỏi Thông Tin Gà
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="min-w-[270px] sm:min-w-[290px] bg-ant-card rounded-xl border border-ant-border p-3.5 space-y-3 flex flex-col justify-between hover:border-brand-gold/50 transition-all">
+          <div class="flex items-center justify-between text-xs text-gray-400">
+            <span class="flex items-center gap-1.5 font-medium truncate">
+              <span class="text-amber-400">★</span> Gà Đòn Bình Định
+            </span>
+            <span class="bg-emerald-600/20 text-emerald-400 font-bold px-2 py-0.5 rounded text-[10px]">Đã Dạt 3 Nước</span>
+          </div>
+
+          <div class="space-y-1 font-bold text-xs">
+            <div class="text-white text-sm">MS 203: Tía Chân Xanh Án Thiên</div>
+            <div class="text-[11px] text-gray-400 font-normal">Trại Gà Đòn Ba Bình Định • Chân vuông</div>
+          </div>
+
+          <div class="bg-[#101116] rounded-lg p-2.5 text-[11px] space-y-1.5 border border-ant-border font-mono">
+            <div class="flex justify-between text-gray-300">
+              <span class="text-gray-400 font-sans">Chạng:</span>
+              <span class="font-bold text-white">3.15 kg</span>
+            </div>
+            <div class="flex justify-between text-gray-300">
+              <span class="text-gray-400 font-sans">Cán vảy:</span>
+              <span class="font-bold text-brand-gold">Án Thiên 1 sát đầu gối</span>
+            </div>
+            <div class="flex justify-between text-gray-300">
+              <span class="text-gray-400 font-sans">Lối đá:</span>
+              <span class="text-emerald-400 font-bold">Đòn mé xỏ ngang, giáp lưng</span>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-ant-border flex items-center justify-between text-[11px]">
+            <span class="text-gray-400">Bao thử chân trực tiếp</span>
+            <button onclick="openConnectModal('MS 203: Tía Chân Xanh Án Thiên (Chạng 3.15kg)', 'Trại Gà Ba Bình Định')" class="bg-brand-gold hover:bg-brand-goldHover text-black font-extrabold text-[10px] px-3 py-1.5 rounded">
+              Hỏi Thông Tin Gà
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="min-w-[270px] sm:min-w-[290px] bg-ant-card rounded-xl border border-ant-border p-3.5 space-y-3 flex flex-col justify-between hover:border-brand-gold/50 transition-all">
+          <div class="flex items-center justify-between text-xs text-gray-400">
+            <span class="flex items-center gap-1.5 font-medium truncate">
+              <span class="text-amber-400">★</span> Gà Đông Tảo Hưng Yên
+            </span>
+            <span class="bg-purple-600/20 text-purple-400 font-bold px-2 py-0.5 rounded text-[10px]">Giống Chuẩn F1</span>
+          </div>
+
+          <div class="space-y-1 font-bold text-xs">
+            <div class="text-white text-sm">MS 204: Đông Tảo Tiến Vua Chân Khủng</div>
+            <div class="text-[11px] text-gray-400 font-normal">Trại Gà Khoái Châu • Chân vảy thịt đỏ</div>
+          </div>
+
+          <div class="bg-[#101116] rounded-lg p-2.5 text-[11px] space-y-1.5 border border-ant-border font-mono">
+            <div class="flex justify-between text-gray-300">
+              <span class="text-gray-400 font-sans">Chạng:</span>
+              <span class="font-bold text-white">4.60 kg</span>
+            </div>
+            <div class="flex justify-between text-gray-300">
+              <span class="text-gray-400 font-sans">Đặc điểm:</span>
+              <span class="font-bold text-brand-gold">Chân to xù vảy thịt đỏ au</span>
+            </div>
+            <div class="flex justify-between text-gray-300">
+              <span class="text-gray-400 font-sans">Tiêm phòng:</span>
+              <span class="text-purple-400 font-bold">Đầy đủ 100% vắc xin</span>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-ant-border flex items-center justify-between text-[11px]">
+            <span class="text-gray-400">Chuẩn giống Khoái Châu</span>
+            <button onclick="openConnectModal('MS 204: Đông Tảo Tiến Vua Chân Khủng', 'Trại Gà Khoái Châu')" class="bg-brand-gold hover:bg-brand-goldHover text-black font-extrabold text-[10px] px-3 py-1.5 rounded">
+              Hỏi Thông Tin Gà
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== SECTION 3: CÁC TRẠI GIAO LƯU ==================== -->
+    <section id="farms" class="space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-1.5 h-6 bg-brand-red rounded-full"></div>
+          <h2 class="text-xl font-extrabold tracking-tight text-white uppercase">
+            Các Trại Giao Lưu Thường Xuyên Lên Live
+          </h2>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="scrollSection('farmContainer', -250)" class="w-8 h-8 rounded-full bg-ant-card hover:bg-ant-cardHover border border-ant-border flex items-center justify-center text-gray-400 hover:text-white transition-colors">
+            &lt;
+          </button>
+          <button onclick="scrollSection('farmContainer', 250)" class="w-8 h-8 rounded-full bg-ant-card hover:bg-ant-cardHover border border-ant-border flex items-center justify-center text-gray-400 hover:text-white transition-colors">
+            &gt;
+          </button>
+          <a href="#all" class="text-xs sm:text-sm font-bold text-ant-subtext hover:text-brand-red ml-2 transition-colors">
+            Xem tất cả <span>&gt;</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Farms Avatar Carousel -->
+      <div id="farmContainer" class="flex gap-6 overflow-x-auto no-scrollbar scroll-smooth py-2 px-1">
+        
+        <!-- Farm 1 -->
+        <div class="flex flex-col items-center gap-2 cursor-pointer group min-w-[120px]" onclick="playLiveRoom('Dàn Gà Tơ Mới Dạt', 'Trại Gà Ba Bình Định', 'Chạng 2k8 - 3k1', 'Ba Bình Định', '')">
+          <div class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 bg-gradient-to-tr from-brand-red to-orange-500 group-hover:scale-105 transition-transform shadow-glow-red">
+            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=300&auto=format&fit=crop" class="w-full h-full object-cover rounded-full" alt="Trại Ba Bình Định" />
+            <span class="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#16171d]" title="Đang lên sóng"></span>
+          </div>
+          <span class="text-xs sm:text-sm font-bold text-gray-200 group-hover:text-brand-red transition-colors text-center truncate max-w-[110px]">
+            Ba Bình Định
+          </span>
+          <span class="text-[10px] text-brand-gold">Chuyên dòng gà đòn</span>
+        </div>
+
+        <!-- Farm 2 -->
+        <div class="flex flex-col items-center gap-2 cursor-pointer group min-w-[120px]" onclick="playLiveRoom('Dàn Tre Tân Châu Khét Đỏ', 'Trại Gà Tre Sáu Khải', 'Đuôi phụng dài', 'Sáu Khải Tân Châu', '')">
+          <div class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 bg-[#282a36] group-hover:bg-brand-red group-hover:scale-105 transition-all">
+            <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=300&auto=format&fit=crop" class="w-full h-full object-cover rounded-full" alt="Trại Gà Tre Sáu Khải" />
+            <span class="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#16171d]"></span>
+          </div>
+          <span class="text-xs sm:text-sm font-bold text-gray-200 group-hover:text-brand-red transition-colors text-center truncate max-w-[110px]">
+            Sáu Khải Tân Châu
+          </span>
+          <span class="text-[10px] text-gray-400">Gà tre cảnh An Giang</span>
+        </div>
+
+        <!-- Farm 3 -->
+        <div class="flex flex-col items-center gap-2 cursor-pointer group min-w-[120px]" onclick="playLiveRoom('Dàn Gà Nòi Bến Tre', 'Trại Anh Ba Chợ Lách', 'Chạng 2k5 - 2k7', 'Anh Ba Chợ Lách', '')">
+          <div class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 bg-[#282a36] group-hover:bg-brand-red group-hover:scale-105 transition-all">
+            <img src="https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?q=80&w=300&auto=format&fit=crop" class="w-full h-full object-cover rounded-full" alt="Anh Ba Chợ Lách" />
+            <span class="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#16171d]"></span>
+          </div>
+          <span class="text-xs sm:text-sm font-bold text-gray-200 group-hover:text-brand-red transition-colors text-center truncate max-w-[110px]">
+            Anh Ba Chợ Lách
+          </span>
+          <span class="text-[10px] text-gray-400">Gà nòi cựa Bến Tre</span>
+        </div>
+
+        <!-- Farm 4 -->
+        <div class="flex flex-col items-center gap-2 cursor-pointer group min-w-[120px]" onclick="playLiveRoom('Dàn Gà Đông Tảo Chân Xù', 'Trại Gà Tiến Khoái Châu', 'Chân đỏ xù vảy thịt', 'Bác Tiến Khoái Châu', '')">
+          <div class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 bg-gradient-to-tr from-brand-red to-orange-500 group-hover:scale-105 transition-transform shadow-glow-red">
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop" class="w-full h-full object-cover rounded-full" alt="Trại Đông Tảo Hưng Yên" />
+          </div>
+          <span class="text-xs sm:text-sm font-bold text-gray-200 group-hover:text-brand-red transition-colors text-center truncate max-w-[110px]">
+            Bác Tiến Khoái Châu
+          </span>
+          <span class="text-[10px] text-brand-gold">Đông Tảo thuần chủng</span>
+        </div>
+
+        <!-- Farm 5 -->
+        <div class="flex flex-col items-center gap-2 cursor-pointer group min-w-[120px]" onclick="playLiveRoom('Dàn Kê Cao Lãnh', 'Trại Kê Cao Lãnh', 'Chạng 2k9 - 3k1', 'Út Lớn Cao Lãnh', '')">
+          <div class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 bg-[#282a36] group-hover:bg-brand-red group-hover:scale-105 transition-all">
+            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=300&auto=format&fit=crop" class="w-full h-full object-cover rounded-full" alt="Út Lớn Cao Lãnh" />
+          </div>
+          <span class="text-xs sm:text-sm font-bold text-gray-200 group-hover:text-brand-red transition-colors text-center truncate max-w-[110px]">
+            Út Lớn Cao Lãnh
+          </span>
+          <span class="text-[10px] text-gray-400">Gà nòi đòn Đồng Tháp</span>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== SECTION 4: DÒNG KÊ BA MIỀN ==================== -->
+    <section id="breeds" class="space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-1.5 h-6 bg-brand-red rounded-full"></div>
+          <h2 class="text-xl font-extrabold tracking-tight text-white uppercase">
+            Các Dòng Kê Nổi Danh Ba Miền
+          </h2>
+        </div>
+        <a href="#all" class="text-xs sm:text-sm font-bold text-ant-subtext hover:text-brand-red transition-colors">
+          Xem tất cả <span>&gt;</span>
+        </a>
+      </div>
+
+      <!-- Breeds Cards (AntLive style) -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+        
+        <!-- Breed 1 -->
+        <div class="bg-white hover:bg-gray-100 rounded-xl h-24 sm:h-28 flex items-center justify-center p-3 cursor-pointer transition-transform hover:-translate-y-1 shadow-md">
+          <div class="flex flex-col items-center text-center text-slate-900 font-extrabold text-sm sm:text-base">
+            <span class="text-2xl">🐓</span>
+            <span>Gà Đòn Bình Định</span>
+            <span class="text-[10px] text-gray-500 font-medium">Lối ôm đấm, kiềng mé</span>
+          </div>
+        </div>
+
+        <!-- Breed 2 -->
+        <div class="bg-white hover:bg-gray-100 rounded-xl h-24 sm:h-28 flex items-center justify-center p-3 cursor-pointer transition-transform hover:-translate-y-1 shadow-md">
+          <div class="flex flex-col items-center text-center text-slate-900 font-extrabold text-sm sm:text-base">
+            <span class="text-2xl">🌴</span>
+            <span>Gà Nòi Chợ Lách</span>
+            <span class="text-[10px] text-gray-500 font-medium">Bến Tre • Cựa sắc nhọn</span>
+          </div>
+        </div>
+
+        <!-- Breed 3 -->
+        <div class="bg-white hover:bg-gray-100 rounded-xl h-24 sm:h-28 flex items-center justify-center p-3 cursor-pointer transition-transform hover:-translate-y-1 shadow-md">
+          <div class="flex flex-col items-center text-center text-slate-900 font-extrabold text-sm sm:text-base">
+            <span class="text-2xl">👑</span>
+            <span>Gà Đông Tảo</span>
+            <span class="text-[10px] text-red-600 font-bold uppercase">Khoái Châu Hưng Yên</span>
+          </div>
+        </div>
+
+        <!-- Breed 4 -->
+        <div class="bg-white hover:bg-gray-100 rounded-xl h-24 sm:h-28 flex items-center justify-center p-3 cursor-pointer transition-transform hover:-translate-y-1 shadow-md">
+          <div class="flex flex-col items-center text-center text-slate-900 font-extrabold text-sm sm:text-base">
+            <span class="text-2xl">🪶</span>
+            <span>Gà Tre Tân Châu</span>
+            <span class="text-[10px] text-gray-500 font-medium">Đuôi phụng, bờm xòe</span>
+          </div>
+        </div>
+
+        <!-- Breed 5 -->
+        <div class="bg-white hover:bg-gray-100 rounded-xl h-24 sm:h-28 flex items-center justify-center p-3 cursor-pointer transition-transform hover:-translate-y-1 shadow-md col-span-2 sm:col-span-1">
+          <div class="flex flex-col items-center text-center text-slate-900 font-extrabold text-sm sm:text-base">
+            <span class="text-2xl">⚡</span>
+            <span>Gà Nòi Cao Lãnh</span>
+            <span class="text-[10px] text-gray-500 font-medium">Đồng Tháp • Cốt gà lì</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== BANNER: LƯU Ý GIAO NHẬN XE KHÁCH ==================== -->
+    <div class="relative rounded-2xl overflow-hidden bg-gradient-to-r from-red-950 via-slate-900 to-amber-950 border border-brand-red/40 p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-glow-card">
+      <div class="space-y-2 z-10 text-center sm:text-left">
+        <span class="text-brand-gold font-bold uppercase text-xs tracking-wider">Kinh Nghiệm Giao Nhận</span>
+        <h3 class="text-xl sm:text-2xl font-black text-white">
+          LƯU Ý KHI GIAO NHẬN GÀ QUA XE KHÁCH ĐI CÁC TỈNH
+        </h3>
+        <p class="text-xs sm:text-sm text-gray-300 max-w-2xl">
+          Khi ra điểm đón xe nhận lồng gà, anh em nhớ quay video từ lúc nhận thùng từ tay phụ xe tới lúc khui lồng, kiểm tra thể trạng và cho gà uống nước chè ấm hồi sức sau chặng đường dài.
+        </p>
+      </div>
+      <button onclick="openPolicyModal()" class="z-10 flex-shrink-0 bg-gradient-to-r from-brand-red to-orange-600 hover:from-brand-redHover hover:to-orange-500 text-white font-extrabold text-xs sm:text-sm py-3 px-6 rounded-xl shadow-lg transition-transform hover:scale-105 uppercase tracking-wider">
+        Xem Hướng Dẫn Chi Tiết
+      </button>
+    </div>
+
+    <!-- ==================== SECTION 5: KINH NGHIỆM CHĂM SÓC GÀ ==================== -->
+    <section id="guide" class="space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-1.5 h-6 bg-brand-red rounded-full"></div>
+          <h2 class="text-xl font-extrabold tracking-tight text-white uppercase">
+            Kinh Nghiệm Nuôi &amp; Vần Đòn
+          </h2>
+        </div>
+        <a href="#all" class="text-xs sm:text-sm font-bold text-ant-subtext hover:text-brand-red transition-colors">
+          Xem tất cả bài viết <span>&gt;</span>
+        </a>
+      </div>
+
+      <!-- Articles Grid (4 cards) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- Article 1 -->
+        <article class="bg-ant-card rounded-xl border border-ant-border overflow-hidden hover:border-brand-red/50 transition-all cursor-pointer group flex flex-col justify-between">
+          <div class="relative h-40 overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=500&auto=format&fit=crop" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Xem vảy gà" />
+            <span class="absolute top-2 right-2 bg-brand-red text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+              Xem Tướng &amp; Vảy
+            </span>
+          </div>
+          <div class="p-3.5 space-y-2">
+            <h4 class="font-bold text-xs sm:text-sm text-gray-100 group-hover:text-brand-red transition-colors line-clamp-2">
+              Nhận biết vảy Án Thiên, Giáp Thới, Huyền Trâm và cách xem vảy hậu cho gà đòn
+            </h4>
+            <span class="text-[10px] text-gray-500 block">Chia sẻ từ Trại Ba Bình Định</span>
+          </div>
+        </article>
+
+        <!-- Article 2 -->
+        <article class="bg-ant-card rounded-xl border border-ant-border overflow-hidden hover:border-brand-red/50 transition-all cursor-pointer group flex flex-col justify-between">
+          <div class="relative h-40 overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1598439210625-5067c578f3f6?q=80&w=500&auto=format&fit=crop" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Chế độ om bóp" />
+            <span class="absolute top-2 right-2 bg-brand-red text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+              Vô Nghệ &amp; Om Nước
+            </span>
+          </div>
+          <div class="p-3.5 space-y-2">
+            <h4 class="font-bold text-xs sm:text-sm text-gray-100 group-hover:text-brand-red transition-colors line-clamp-2">
+              Nấu nước chè xanh om gà kết hợp rượu nghệ củ chè giúp gà săn chắc cơ bắp, dày da
+            </h4>
+            <span class="text-[10px] text-gray-500 block">Chia sẻ từ Út Lớn Cao Lãnh</span>
+          </div>
+        </article>
+
+        <!-- Article 3 -->
+        <article class="bg-ant-card rounded-xl border border-ant-border overflow-hidden hover:border-brand-red/50 transition-all cursor-pointer group flex flex-col justify-between">
+          <div class="relative h-40 overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1582457601555-46797a9f7336?q=80&w=500&auto=format&fit=crop" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Chăm sóc gà đông tảo" />
+            <span class="absolute top-2 right-2 bg-amber-600 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+              Dưỡng Chân Gà
+            </span>
+          </div>
+          <div class="p-3.5 space-y-2">
+            <h4 class="font-bold text-xs sm:text-sm text-gray-100 group-hover:text-brand-red transition-colors line-clamp-2">
+              Phòng ngừa bệnh sưng củ bàn, lậu đế và cách trải đệm lót chuồng cho gà chọi
+            </h4>
+            <span class="text-[10px] text-gray-500 block">Chia sẻ từ Bác Tiến Khoái Châu</span>
+          </div>
+        </article>
+
+        <!-- Article 4 -->
+        <article class="bg-ant-card rounded-xl border border-ant-border overflow-hidden hover:border-brand-red/50 transition-all cursor-pointer group flex flex-col justify-between">
+          <div class="relative h-40 overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=500&auto=format&fit=crop" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Dinh dưỡng mồi tươi" />
+            <span class="absolute top-2 right-2 bg-brand-red text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+              Mồi Tươi &amp; Vần Đòn
+            </span>
+          </div>
+          <div class="p-3.5 space-y-2">
+            <h4 class="font-bold text-xs sm:text-sm text-gray-100 group-hover:text-brand-red transition-colors line-clamp-2">
+              Lịch bổ sung mồi tươi (thịt bò, lươn om, dế) và chu kỳ dạt hơi 15 ngày/lần cho gà tơ
+            </h4>
+            <span class="text-[10px] text-gray-500 block">Chia sẻ từ Hội Anh Em Gà Nòi</span>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- ==================== BANNER: CHỦ TRẠI ĐĂNG KÝ ==================== -->
+    <div class="relative rounded-2xl overflow-hidden bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 border border-emerald-800/40 p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-glow-card">
+      <div class="space-y-2 z-10 text-center sm:text-left">
+        <span class="text-emerald-400 font-bold uppercase text-xs tracking-wider">Dành Cho Chủ Trại</span>
+        <h3 class="text-xl sm:text-2xl font-black text-white">
+          Bạn Có Dàn Gà Hay Muốn Lên Sóng Giao Lưu Cùng Anh Em?
+        </h3>
+        <p class="text-xs sm:text-sm text-gray-300 max-w-2xl">
+          Đăng ký kênh phát sóng trực tiếp trên Kê Trường Live để chia sẻ đòn lối, soi cán vảy thực tế và kết nối trực tiếp với những anh em cùng đam mê khắp các tỉnh thành.
+        </p>
+      </div>
+      <button onclick="openFarmModal()" class="z-10 flex-shrink-0 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs sm:text-sm py-3 px-6 rounded-xl shadow-lg transition-transform hover:scale-105 uppercase tracking-wider">
+        Mở Kênh Live Ngay
+      </button>
+    </div>
+
+  </main>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="mt-16 bg-[#0a0b0e] border-t border-ant-border pt-12 pb-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        
+        <!-- Col 1: Brand Info -->
+        <div class="space-y-4">
+          <a href="#" class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-brand-red flex items-center justify-center shadow-glow-red">
+              <span class="text-xl">🐓</span>
+            </div>
+            <span class="text-2xl font-black italic tracking-tighter text-white">
+              kê<span class="text-brand-red">TRƯỜNG</span> <span class="text-xs font-bold text-gray-400">LIVE</span>
+            </span>
+          </a>
+          <p class="text-xs sm:text-sm text-gray-400 leading-relaxed">
+            Kênh phát sóng trực tiếp giao lưu gà nòi, gà đòn, gà tre cảnh. Nơi chia sẻ đam mê, học hỏi kinh nghiệm vần đòn và kết nối anh em kê thủ khắp ba miền.
+          </p>
+        </div>
+
+        <!-- Col 2: Quick Links -->
+        <div class="space-y-3">
+          <h4 class="text-sm font-bold text-white uppercase tracking-wider">Mục Truy Cập Nhanh</h4>
+          <ul class="space-y-2 text-xs sm:text-sm text-gray-400">
+            <li><a href="#" class="hover:text-brand-red transition-colors">Trang chủ</a></li>
+            <li><a href="#live-session" class="hover:text-brand-red transition-colors">Phòng Live Xổ Gà</a></li>
+            <li><a href="#featured-chickens" class="hover:text-brand-red transition-colors">Gà Mới Lên Chuồng</a></li>
+            <li><a href="#breeds" class="hover:text-brand-red transition-colors">Dòng Kê Ba Miền</a></li>
+            <li><a href="#farms" class="hover:text-brand-red transition-colors">Danh Sách Trại Giao Lưu</a></li>
+            <li><a href="#guide" class="hover:text-brand-red transition-colors">Kinh Nghiệm Chăm Gà</a></li>
+          </ul>
+        </div>
+
+        <!-- Col 3: About Us -->
+        <div class="space-y-3">
+          <h4 class="text-sm font-bold text-white uppercase tracking-wider">Hỗ Trợ Giao Nhận</h4>
+          <ul class="space-y-2 text-xs sm:text-sm text-gray-400">
+            <li><a href="#policy" onclick="openPolicyModal()" class="hover:text-brand-red transition-colors">Quy cách đóng thùng thoáng khí</a></li>
+            <li><a href="#policy" onclick="openPolicyModal()" class="hover:text-brand-red transition-colors">Cách chăm sóc gà sau khi đi xe xa</a></li>
+            <li><a href="#" class="hover:text-brand-red transition-colors">Hướng dẫn kết nối Zalo với chủ trại</a></li>
+            <li><a href="#" class="hover:text-brand-red transition-colors">Quy chế sinh hoạt diễn đàn</a></li>
+          </ul>
+        </div>
+
+        <!-- Col 4: Support Card -->
+        <div class="bg-[#13141a] rounded-xl p-5 border border-ant-border space-y-4">
+          <h4 class="text-sm font-bold text-white uppercase tracking-wider">Liên Hệ Ban Quản Trị</h4>
+          <p class="text-xs text-gray-400">
+            Hỗ trợ kết nối các trại gà uy tín và hướng dẫn cài đặt camera live trực tiếp.
+          </p>
+          <button onclick="openSupportModal()" class="w-full bg-white hover:bg-gray-100 text-slate-900 font-bold text-xs py-2.5 px-4 rounded-full transition-all text-center">
+            Nhắn Zalo Ban Quản Trị
+          </button>
+          
+          <!-- Social Icons -->
+          <div class="flex items-center gap-3 pt-2 text-gray-400">
+            <a href="#" class="hover:text-brand-red transition-colors p-1.5 bg-[#1e2029] rounded-full" title="Zalo">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.93-1.28 4.88-2.12 5.86-2.53 2.79-1.16 3.37-1.36 3.75-1.37.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+            </a>
+            <a href="#" class="hover:text-brand-red transition-colors p-1.5 bg-[#1e2029] rounded-full" title="TikTok">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.04-.1z"/></svg>
+            </a>
+            <a href="#" class="hover:text-brand-red transition-colors p-1.5 bg-[#1e2029] rounded-full" title="Facebook">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Copyright bottom -->
+      <div class="pt-6 border-t border-ant-border flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 gap-4">
+        <p>© 2026 Kê Trường Live. Kênh Giao Lưu &amp; Kết Nối Đam Mê Gà Nòi Toàn Quốc.</p>
+        <div class="flex items-center gap-4">
+          <a href="#" class="hover:text-gray-300">Nội quy phòng live</a>
+          <span>•</span>
+          <a href="#" class="hover:text-gray-300">Văn hóa giao lưu</a>
+        </div>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- ==================== FLOATING BACK TO TOP BUTTON ==================== -->
+  <button onclick="window.scrollTo({ top: 0, behavior: 'smooth' })" class="fixed bottom-6 right-6 z-30 w-11 h-11 rounded-full bg-brand-red hover:bg-brand-redHover text-white shadow-glow-red flex items-center justify-center transition-transform hover:scale-110" title="Lên đầu trang">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
+  </button>
+
+  <!-- ==================== MODAL: LIVESTREAM XEM GÀ & LIVE CHAT ==================== -->
+  <div id="liveModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden items-center justify-center p-2 sm:p-4">
+    <div class="bg-[#12131a] border border-ant-border rounded-2xl w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+      
+      <!-- Live Header -->
+      <div class="p-4 bg-[#181922] border-b border-ant-border flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="w-2.5 h-2.5 rounded-full bg-brand-red live-pulse"></span>
+          <div>
+            <h3 id="modalChickenTitle" class="text-sm sm:text-base font-extrabold text-white">
+              MS 101: Gà Ô Chân Trắng Điểm Mực (Chạng 2.85kg)
+            </h3>
+            <p id="modalFarmName" class="text-xs text-gray-400">Trại Gà Ba Bình Định • Đang phát sóng trực tiếp</p>
+          </div>
+        </div>
+        <button onclick="closeLiveModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white flex items-center justify-center transition-colors">
+          ✕
+        </button>
+      </div>
+
+      <!-- Live Body (Video Stream + Pinned Chicken + Realistic Chat) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 flex-1 overflow-hidden">
+        
+        <!-- Video Screen (8 cols) -->
+        <div class="lg:col-span-8 bg-black flex flex-col justify-center relative aspect-video">
+          <video id="liveVideoPlayer" class="w-full h-full object-contain" controls autoplay playsinline poster="https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1200&auto=format&fit=crop"></video>
+          
+          <!-- Stream camera selector -->
+          <div class="absolute top-3 left-3 flex items-center gap-1.5 z-10">
+            <span class="bg-black/60 backdrop-blur-sm text-[11px] font-semibold text-white px-2 py-0.5 rounded border border-white/20">
+              🔴 TRỰC TIẾP
+            </span>
+            <button class="bg-brand-red text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">
+              Góc Quay Xổ Thử Đòn
+            </button>
+            <button class="bg-black/60 hover:bg-black text-gray-300 text-[10px] font-bold px-2 py-0.5 rounded">
+              Góc Soi Cán Vảy
+            </button>
+          </div>
+
+          <!-- Pinned Chicken Overlay on Video -->
+          <div class="absolute bottom-3 left-3 right-3 sm:right-auto sm:max-w-md bg-black/85 backdrop-blur-md border border-brand-red/40 p-2.5 rounded-xl flex items-center justify-between gap-3 z-10 shadow-glow-card">
+            <div class="flex items-center gap-2.5 truncate">
+              <img id="modalChickenThumb" src="https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=100&auto=format&fit=crop" class="w-11 h-11 rounded-lg object-cover border border-brand-gold" alt="Gà đang lên sóng" />
+              <div class="truncate">
+                <div id="pinnedChickenName" class="text-xs font-black text-white truncate">MS 101: Gà Ô Chân Trắng Điểm</div>
+                <div id="pinnedChickenDesc" class="text-xs font-semibold text-brand-gold">Chạng: 2.85kg • Lối ôm đấm, kiềng mé</div>
+              </div>
+            </div>
+            <button onclick="openConnectModalFromLive()" class="bg-gradient-to-r from-brand-red to-orange-600 hover:from-brand-redHover hover:to-orange-500 text-white font-extrabold text-xs px-3.5 py-2 rounded-lg shadow-glow-red flex-shrink-0">
+              HỎI VỀ CON NÀY
+            </button>
+          </div>
+        </div>
+
+        <!-- Realistic Live Chat Panel (4 cols) -->
+        <div class="lg:col-span-4 bg-[#16171f] border-t lg:border-t-0 lg:border-l border-ant-border flex flex-col h-[300px] lg:h-auto">
+          <!-- Chat header -->
+          <div class="p-3 border-b border-ant-border flex items-center justify-between">
+            <span class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+              💬 Trò Chuyện Trong Live
+            </span>
+            <span id="modalHostBadge" class="bg-brand-red/20 text-brand-red text-[10px] font-bold px-2 py-0.5 rounded">
+              Chủ Trại: Ba Bình Định
+            </span>
+          </div>
+
+          <!-- Chat messages stream (Realistic slang) -->
+          <div id="chatMessages" class="flex-1 p-3 overflow-y-auto space-y-2 text-xs">
+            <div class="text-brand-gold text-[11px] bg-brand-gold/10 border border-brand-gold/20 p-2 rounded leading-relaxed">
+              📌 <strong>Ghim từ chủ trại:</strong> Anh em xem live có thể yêu cầu quay lại cặp cán, vảy hậu hoặc xem thả nhấp vài chân. Cần hỏi thêm Zalo: 0988.888.xxx!
+            </div>
+            <div>
+              <span class="font-bold text-amber-400">Hùng_Quận12:</span>
+              <span class="text-gray-200"> Bác Ba quay lại cái cựa chân phải em ngó tí với</span>
+            </div>
+            <div>
+              <span class="font-bold text-cyan-400">Tuan_BinhDuong:</span>
+              <span class="text-gray-200"> Con xám này chạng 2k95 đòn lưng có nặng không anh?</span>
+            </div>
+            <div>
+              <span class="font-bold text-brand-red">Ba Bình Định:</span>
+              <span class="text-white font-medium"> @Tuan_BinhDuong Đòn mé giáp lưng rất rát nhé bác, đợi xíu em thả với con gà phu cho xem 30 giây</span>
+            </div>
+            <div>
+              <span class="font-bold text-emerald-400">MinhKêThủ:</span>
+              <span class="text-gray-200"> Có ship về bến xe Ngã Tư Ga không anh Ba ơi?</span>
+            </div>
+            <div>
+              <span class="font-bold text-brand-red">Ba Bình Định:</span>
+              <span class="text-white font-medium"> @MinhKêThủ Có tuyến xe giường nằm chạy qua ngã tư Ga hằng ngày nhé bác</span>
+            </div>
+          </div>
+
+          <!-- Chat Input -->
+          <form onsubmit="handleSendChat(event)" class="p-2.5 border-t border-ant-border flex gap-2">
+            <input id="chatInput" type="text" placeholder="Bình luận hỏi thăm đòn lối..." class="flex-1 bg-[#101116] border border-ant-border rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-brand-red" />
+            <button type="submit" class="bg-brand-red hover:bg-brand-redHover text-white px-3 py-1.5 rounded-lg text-xs font-bold">
+              Gửi
+            </button>
+          </form>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: KẾT NỐI VỚI CHỦ TRẠI ==================== -->
+  <div id="connectModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-[#16171f] border border-ant-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl relative">
+      <button onclick="closeConnectModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">✕</button>
+      
+      <div class="text-center space-y-1">
+        <span class="text-2xl">🤝</span>
+        <h3 class="text-xl font-black text-white">Liên Hệ Với Chủ Trại</h3>
+        <p class="text-xs text-gray-400">Gửi lời nhắn để chủ trại gọi điện hoặc kết bạn Zalo trao đổi clip chi tiết</p>
+      </div>
+
+      <div class="bg-[#101116] p-3 rounded-xl border border-ant-border flex items-center justify-between">
+        <div>
+          <div id="connectChickenName" class="text-xs font-bold text-white">MS 101: Gà Ô Chân Trắng Điểm Mực</div>
+          <div id="connectFarmName" class="text-[11px] text-brand-gold">Trại Gà Ba Bình Định</div>
+        </div>
+        <span class="text-xs font-bold text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded">Đang Trực Tiếp</span>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="font-bold text-gray-300 block mb-1">Tên anh em</label>
+          <input id="connectCustomerName" type="text" placeholder="Ví dụ: Anh Hùng, Chú Minh..." class="w-full bg-[#101116] border border-ant-border rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:border-brand-red" />
+        </div>
+        <div>
+          <label class="font-bold text-gray-300 block mb-1">Số điện thoại / Zalo</label>
+          <input id="connectCustomerPhone" type="tel" placeholder="09xx.xxx.xxx..." class="w-full bg-[#101116] border border-ant-border rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:border-brand-red" />
+        </div>
+        <div>
+          <label class="font-bold text-gray-300 block mb-1">Tỉnh / Thành phố đón xe</label>
+          <input id="connectCustomerAddress" type="text" placeholder="Ví dụ: Bến xe Miền Đông, Bến xe Nước Ngầm..." class="w-full bg-[#101116] border border-ant-border rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:border-brand-red" />
+        </div>
+        <div>
+          <label class="font-bold text-gray-300 block mb-1">Lời nhắn (Cần xem thêm clip gì?)</label>
+          <input id="connectNote" type="text" placeholder="Ví dụ: Gửi giúp em clip quay sát cặp cán và clip thả nhấp..." class="w-full bg-[#101116] border border-ant-border rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:border-brand-red" />
+        </div>
+        <button onclick="submitConnect()" class="w-full bg-brand-red hover:bg-brand-redHover text-white font-extrabold py-2.5 rounded-lg shadow-glow-red transition-all text-sm uppercase">
+          Gửi Lời Nhắn Cho Chủ Trại
+        </button>
+      </div>
+
+      <div class="text-center text-[11px] text-gray-400 pt-1">
+        🔒 Chủ trại sẽ chủ động gọi điện hoặc nhắn Zalo riêng cho bạn.
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: ĐĂNG KÝ MỞ TRẠI BÁN GÀ ==================== -->
+  <div id="farmModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-[#16171f] border border-emerald-500/40 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl relative">
+      <button onclick="closeFarmModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">✕</button>
+      
+      <div class="text-center space-y-1">
+        <span class="text-2xl">🏡</span>
+        <h3 class="text-xl font-black text-white">Chủ Trại Đăng Ký Mở Kênh Live</h3>
+        <p class="text-xs text-gray-400">Tham gia phát sóng trực tiếp dàn gà của trại bạn</p>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="font-bold text-gray-300 block mb-1">Tên Trại Gà / Tên Bạn</label>
+          <input type="text" placeholder="Ví dụ: Trại Gà Út Lớn Cao Lãnh..." class="w-full bg-[#101116] border border-ant-border rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none" />
+        </div>
+        <div>
+          <label class="font-bold text-gray-300 block mb-1">Địa chỉ trại (Tỉnh / Thành)</label>
+          <input type="text" placeholder="Ví dụ: Bình Định, Bến Tre, Đồng Tháp, Hưng Yên..." class="w-full bg-[#101116] border border-ant-border rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none" />
+        </div>
+        <div>
+          <label class="font-bold text-gray-300 block mb-1">Số điện thoại / Zalo</label>
+          <input type="tel" placeholder="09xx.xxx.xxx..." class="w-full bg-[#101116] border border-ant-border rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none" />
+        </div>
+        <div>
+          <label class="font-bold text-gray-300 block mb-1">Dòng gà chính</label>
+          <select class="w-full bg-[#101116] border border-ant-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none">
+            <option>Gà Đòn Bình Định / Miền Trung</option>
+            <option>Gà Nòi Cựa Bến Tre / Đồng Tháp</option>
+            <option>Gà Tre Cảnh Tân Châu An Giang</option>
+            <option>Gà Đông Tảo Khoái Châu</option>
+            <option>Gà Lai Mỹ / Asil</option>
+          </select>
+        </div>
+        <button onclick="alert('Đã nhận thông tin! Ban quản trị Kê Trường Live sẽ gọi hỗ trợ bạn mở luồng phát sóng ngay trong ngày.'); closeFarmModal();" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-2.5 rounded-lg transition-all text-sm uppercase">
+          Gửi Đăng Ký
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: AUTHENTICATION ==================== -->
+  <div id="authModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-[#16171f] border border-ant-border rounded-2xl w-full max-w-md p-6 space-y-5 shadow-2xl relative">
+      <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">✕</button>
+      
+      <div class="text-center space-y-1">
+        <h3 class="text-xl font-black text-white">Đăng Nhập Kê Trường Live</h3>
+        <p class="text-xs text-gray-400">Đăng nhập để bình luận và theo dõi các phòng live</p>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs font-bold text-gray-300 block mb-1">Số điện thoại hoặc Email</label>
+          <input type="text" placeholder="Nhập SĐT của bạn..." class="w-full bg-[#101116] border border-ant-border rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:border-brand-red" />
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-300 block mb-1">Mật khẩu</label>
+          <input type="password" placeholder="Nhập mật khẩu..." class="w-full bg-[#101116] border border-ant-border rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:border-brand-red" />
+        </div>
+        <button onclick="alert('Đăng nhập thành công!'); closeAuthModal();" class="w-full bg-brand-red hover:bg-brand-redHover text-white font-bold py-2.5 rounded-lg shadow-glow-red transition-all text-sm">
+          Đăng Nhập
+        </button>
+      </div>
+
+      <div class="text-center text-xs text-gray-400 pt-2 border-t border-ant-border">
+        Chưa có tài khoản? <span class="text-brand-red font-bold cursor-pointer hover:underline">Tạo tài khoản nhanh</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: SEARCH (Ctrl+K) ==================== -->
+  <div id="searchModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-start justify-center pt-20 p-4">
+    <div class="bg-[#16171f] border border-ant-border rounded-2xl w-full max-w-lg p-5 space-y-4 shadow-2xl">
+      <div class="flex items-center gap-2 border-b border-ant-border pb-3">
+        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input id="searchInput" type="text" placeholder="Gõ tìm chạng cân (ví dụ: 2k9, 3k1), mã số MS, tên trại..." class="w-full bg-transparent text-sm text-white focus:outline-none" oninput="handleSearch(this.value)" />
+        <button onclick="closeSearchModal()" class="text-gray-400 hover:text-white text-xs">ESC</button>
+      </div>
+      <div id="searchResults" class="space-y-2 text-xs max-h-60 overflow-y-auto">
+        <div class="text-gray-400 p-2">Gõ từ khóa để tìm kiếm...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== JAVASCRIPT LOGIC ==================== -->
+  <script>
+    let hlsInstance = null;
+    let currentLiveChicken = {
+      title: 'MS 101: Gà Ô Chân Trắng Điểm Mực',
+      farm: 'Trại Gà Ba Bình Định',
+      desc: 'Chạng 2.85kg • Lối ôm đấm, kiềng mé',
+      host: 'Ba Bình Định',
+      streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
+      thumb: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=500&auto=format&fit=crop'
+    };
+
+    // Open Live Video Stream Player
+    function playLiveRoom(title, farm, desc, host, streamUrl, thumb) {
+      currentLiveChicken = { title, farm, desc, host, streamUrl, thumb: thumb || 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=500&auto=format&fit=crop' };
+
+      document.getElementById('modalChickenTitle').innerText = title;
+      document.getElementById('modalFarmName').innerText = `${farm} • Đang phát trực tiếp`;
+      document.getElementById('modalHostBadge').innerText = `Chủ Trại: ${host}`;
+      document.getElementById('pinnedChickenName').innerText = title;
+      document.getElementById('pinnedChickenDesc').innerText = desc;
+      document.getElementById('modalChickenThumb').src = currentLiveChicken.thumb;
+
+      const modal = document.getElementById('liveModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      const video = document.getElementById('liveVideoPlayer');
+      const hlsSource = streamUrl || 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8';
+
+      if (Hls.isSupported()) {
+        if (hlsInstance) hlsInstance.destroy();
+        hlsInstance = new Hls();
+        hlsInstance.loadSource(hlsSource);
+        hlsInstance.attachMedia(video);
+        hlsInstance.on(Hls.Events.MANIFEST_PARSED, function () {
+          video.play().catch(() => {});
+        });
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = hlsSource;
+        video.play().catch(() => {});
+      }
+    }
+
+    function closeLiveModal() {
+      const modal = document.getElementById('liveModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+
+      const video = document.getElementById('liveVideoPlayer');
+      video.pause();
+      if (hlsInstance) {
+        hlsInstance.destroy();
+        hlsInstance = null;
+      }
+    }
+
+    // Live chat send
+    function handleSendChat(e) {
+      e.preventDefault();
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const chatBox = document.getElementById('chatMessages');
+      const newMsg = document.createElement('div');
+      newMsg.innerHTML = `<span class="font-bold text-emerald-400">Bạn:</span> <span class="text-white">${text}</span>`;
+
+      chatBox.appendChild(newMsg);
+      input.value = '';
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // Connect with Farm Modal
+    function openConnectModal(chickenName, farmName) {
+      document.getElementById('connectChickenName').innerText = chickenName;
+      document.getElementById('connectFarmName').innerText = farmName;
+      
+      const modal = document.getElementById('connectModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function openConnectModalFromLive() {
+      openConnectModal(currentLiveChicken.title, currentLiveChicken.farm);
+    }
+
+    function closeConnectModal() {
+      const modal = document.getElementById('connectModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function submitConnect() {
+      const name = document.getElementById('connectCustomerName').value.trim();
+      const phone = document.getElementById('connectCustomerPhone').value.trim();
+      const addr = document.getElementById('connectCustomerAddress').value.trim();
+      const note = document.getElementById('connectNote').value.trim();
+
+      if (!phone) {
+        alert('Vui lòng nhập Số Điện Thoại / Zalo để chủ trại tiện liên hệ!');
+        return;
+      }
+
+      alert(`✅ ĐÃ GỬI THÀNH CÔNG!\n\nChiến kê: ${document.getElementById('connectChickenName').innerText}\nChủ trại: ${document.getElementById('connectFarmName').innerText}\nNgười gửi: ${name || 'Anh em mê gà'}\nSĐT/Zalo: ${phone}\n\nChủ trại sẽ nhắn tin hoặc gọi Zalo gửi clip chi tiết cho bạn.`);
+      closeConnectModal();
+    }
+
+    // Scroll horizontal containers
+    function scrollSection(containerId, offset) {
+      const el = document.getElementById(containerId);
+      if (el) el.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+
+    function scrollToSection(id) {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Category button filter
+    function filterCategory(type, btn) {
+      document.querySelectorAll('.category-btn').forEach(b => {
+        b.className = 'category-btn flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg font-bold text-xs sm:text-sm transition-all duration-300 bg-ant-card hover:bg-ant-cardHover text-gray-300 border border-ant-border';
+      });
+      btn.className = 'category-btn flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg font-bold text-xs sm:text-sm transition-all duration-300 bg-brand-red text-white shadow-glow-red';
+    }
+
+    // Modals control
+    function openFarmModal() {
+      const modal = document.getElementById('farmModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+    function closeFarmModal() {
+      const modal = document.getElementById('farmModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function openAuthModal() {
+      const modal = document.getElementById('authModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+    function closeAuthModal() {
+      const modal = document.getElementById('authModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function openSearchModal() {
+      const modal = document.getElementById('searchModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      setTimeout(() => document.getElementById('searchInput').focus(), 100);
+    }
+    function closeSearchModal() {
+      const modal = document.getElementById('searchModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function openPolicyModal() {
+      alert('KINH NGHIỆM GIAO NHẬN GÀ QUA XE KHÁCH:\n\n1. Chuẩn bị thùng carton thoáng khí, lót rơm hoặc trấu dày để chống trơn trượt.\n2. Cho gà uống nước chè xanh ấm hoặc điện giải nhẹ trước khi đưa lên xe.\n3. Khi đón xe: Nhận lồng, quay video đồng kiểm tra với tài xế/phụ xe và cho gà vào nơi râm mát hồi sức.');
+    }
+
+    function openSupportModal() {
+      alert('ZALO / HOTLINE GIAO LƯU:\n\nHotline: 0988.888.xxx\nZalo: 0988.888.xxx\nKết nối chia sẻ kinh nghiệm cùng anh em ba miền.');
+    }
+
+    // Hotkeys (Ctrl+K, ESC)
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        openSearchModal();
+      }
+      if (e.key === 'Escape') {
+        closeSearchModal();
+        closeAuthModal();
+        closeLiveModal();
+        closeConnectModal();
+        closeFarmModal();
+      }
+    });
+
+    function handleSearch(query) {
+      const results = document.getElementById('searchResults');
+      if (!query.trim()) {
+        results.innerHTML = '<div class="text-gray-400 p-2">Gõ từ khóa để tìm kiếm...</div>';
+        return;
+      }
+      results.innerHTML = `
+        <div onclick="playLiveRoom('MS 101: Gà Ô Chân Trắng Điểm Mực', 'Trại Gà Ba Bình Định', 'Chạng 2.85kg', 'Ba Bình Định', ''); closeSearchModal();" class="p-2.5 rounded-lg bg-[#111217] hover:bg-[#1f2029] cursor-pointer flex justify-between items-center">
+          <div>
+            <div class="font-bold text-white">MS 101: Gà Ô Chân Trắng Điểm Mực</div>
+            <div class="text-[10px] text-gray-400">Trại Gà Ba Bình Định • Chạng 2.85 kg • Lối ôm đấm</div>
+          </div>
+          <span class="text-brand-red font-bold text-[10px]">LIVE</span>
+        </div>
+        <div onclick="playLiveRoom('MS 102: Gà Tre Tân Châu Khét Đỏ', 'Trại Gà Cảnh Sáu Khải', 'Lông đuôi dài', 'Sáu Khải Tân Châu', ''); closeSearchModal();" class="p-2.5 rounded-lg bg-[#111217] hover:bg-[#1f2029] cursor-pointer flex justify-between items-center">
+          <div>
+            <div class="font-bold text-white">MS 102: Gà Tre Tân Châu Khét Đỏ</div>
+            <div class="text-[10px] text-gray-400">Trại Gà Cảnh Sáu Khải • Đuôi phụng xòe 3 lớp</div>
+          </div>
+          <span class="text-brand-red font-bold text-[10px]">LIVE</span>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>
