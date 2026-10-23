@@ -270,50 +270,17 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
         </button>
       )}
 
-      {/* OVERLAY TRẠNG THÁI: NGOẠI TUYẾN / ĐANG KẾT NỐI */}
+      {/* VIDEO MÀN HÌNH CHỜ KHI CHƯA LÊN SÓNG / ĐANG KẾT NỐI */}
       {streamStatus !== 'playing' && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-md px-6 text-center transition-all duration-300">
-          {streamStatus === 'connecting' ? (
-            <div className="flex flex-col items-center gap-4">
-              <div className="relative flex items-center justify-center">
-                <div className="w-16 h-16 rounded-full border-4 border-rose-500/30 border-t-rose-500 animate-spin" />
-                <Tv className="w-7 h-7 text-rose-400 absolute" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white tracking-wide">Đang kết nối luồng trực tiếp...</h3>
-                <p className="text-sm text-slate-400 mt-1">
-                  Đang tải tín hiệu hình ảnh từ chuồng xổ...
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center max-w-md gap-4 animate-fade-in">
-              <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500">
-                <WifiOff className="w-8 h-8" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-white tracking-tight">
-                  {errorMessage || "Luồng trực tiếp đang ngoại tuyến..."}
-                </h3>
-                <p className="text-sm text-slate-400 mt-2 leading-relaxed">
-                  Chủ trại hiện chưa bắt đầu phiên phát sóng hoặc đang tạm nghỉ giữa hiệp.
-                </p>
-              </div>
-              <div className="flex items-center gap-3 mt-2">
-                <button
-                  onClick={() => setRetryCount((prev) => prev + 1)}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-sm transition-all shadow-lg shadow-rose-900/40 hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <RefreshCw className="w-4 h-4 animate-spin-hover" />
-                  Thử kết nối lại
-                </button>
-              </div>
-              <span className="text-xs text-slate-500 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                Tự động kiểm tra lại sau mỗi 6 giây
-              </span>
-            </div>
-          )}
+        <div className="absolute inset-0 z-20 bg-black overflow-hidden">
+          <video
+            src="/waiting_screen.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-full object-cover"
+          />
         </div>
       )}
 
