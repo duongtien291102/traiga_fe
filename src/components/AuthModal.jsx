@@ -50,22 +50,6 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
     }
   };
 
-  // Nút điền nhanh tài khoản System Admin mặc định
-  const fillSysAdmin = () => {
-    setIsLoginTab(true);
-    setUsername('sysadmin');
-    setPassword('123456');
-    setErrorMsg('');
-  };
-
-  // Nút điền nhanh tài khoản Admin mặc định
-  const fillAdmin = () => {
-    setIsLoginTab(true);
-    setUsername('admin01');
-    setPassword('123456');
-    setErrorMsg('');
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
       <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-8 overflow-hidden">
@@ -88,7 +72,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
               {isLoginTab ? 'Đăng nhập tài khoản' : 'Đăng ký thành viên'}
             </h2>
             <p className="text-xs text-slate-400">
-              {isLoginTab ? 'Truy cập Admin Portal hoặc Studio' : 'Tạo tài khoản tự do, nhận Stream Key riêng'}
+              {isLoginTab ? 'Đăng nhập để giao lưu và bình luận trực tiếp' : 'Tạo tài khoản thành viên miễn phí'}
             </p>
           </div>
         </div>
@@ -111,7 +95,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
               !isLoginTab ? 'bg-slate-800 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            Đăng ký (Tự do)
+            Đăng ký thành viên
           </button>
         </div>
 
@@ -135,7 +119,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Ví dụ: Hoàng Gamer"
+                  placeholder="Ví dụ: Anh Tuấn Long Biên"
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
                 />
               </div>
@@ -143,7 +127,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
           )}
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5">Tên đăng nhập (Username)</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1.5">Tên đăng nhập</label>
             <div className="relative">
               <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
               <input
@@ -151,7 +135,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder={isLoginTab ? 'admin01 hoặc username' : 'viết liền không dấu (tiến, hoang...)'}
+                placeholder="Nhập tên đăng nhập..."
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
               />
             </div>
@@ -177,30 +161,9 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
             disabled={loading}
             className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm shadow-lg shadow-rose-900/40 hover:shadow-rose-900/60 transition-all mt-2 disabled:opacity-50"
           >
-            {loading ? 'Đang xử lý...' : (isLoginTab ? 'Đăng nhập ngay' : 'Đăng ký tài khoản người xem')}
+            {loading ? 'Đang xử lý...' : (isLoginTab ? 'Đăng nhập ngay' : 'Đăng ký tài khoản')}
           </button>
         </form>
-
-        {/* Nút đăng nhập nhanh System Admin & Admin */}
-        <div className="mt-6 pt-5 border-t border-slate-800/80 flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={fillSysAdmin}
-            className="w-full py-2.5 px-3 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-semibold flex items-center justify-center gap-2 transition"
-          >
-            <Shield className="w-4 h-4 text-purple-400" />
-            <span>🛡️ Điền nhanh Tổng Quản Trị (sysadmin / 123456)</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={fillAdmin}
-            className="w-full py-2.5 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center justify-center gap-2 transition"
-          >
-            <Shield className="w-4 h-4 text-amber-400" />
-            <span>👑 Điền nhanh Admin Streamer (admin01 / 123456)</span>
-          </button>
-        </div>
 
       </div>
     </div>

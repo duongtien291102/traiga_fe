@@ -766,6 +766,7 @@ export default function App() {
 
               <button
                 onClick={() => {
+                  setSelectedMarketChicken(null);
                   setActiveNavTab('market');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
@@ -909,6 +910,7 @@ export default function App() {
         </button>
         <button
           onClick={() => {
+            setSelectedMarketChicken(null);
             setActiveNavTab('market');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}

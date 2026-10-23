@@ -108,7 +108,7 @@ export default function LiveStudioModal({
     setStudioMessages([]);
     const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
     const streamerName = user?.full_name || user?.username || 'Chủ Trại (Live)';
-    const wsUrl = `${getWsUrl(selectedKey)}&token=${encodeURIComponent(token)}&guestName=${encodeURIComponent(streamerName)}`;
+    const wsUrl = getWsUrl(selectedKey);
 
     let ws = null;
     try {
@@ -117,9 +117,10 @@ export default function LiveStudioModal({
 
       ws.onopen = () => {
         setIsChatConnected(true);
-        console.log(`[STUDIO CHAT] Đã kết nối kênh chat: ${selectedKey}`);
         if (token) {
           ws.send(JSON.stringify({ type: 'auth_token', token }));
+        } else {
+          ws.send(JSON.stringify({ type: 'auth_guest', guest_name: streamerName }));
         }
       };
 
@@ -598,7 +599,7 @@ export default function LiveStudioModal({
                 )}
               </div>
               <p className="text-[10px] sm:text-[11px] text-gray-400 truncate max-w-[170px] sm:max-w-xs">
-                Kênh: <span className="font-mono text-rose-400 font-bold">{selectedKey}</span>
+                Trạng thái: <span className="text-rose-400 font-bold">{isLive ? 'Đang phát sóng trực tiếp' : 'Sẵn sàng lên sóng'}</span>
               </p>
             </div>
           </div>
@@ -860,7 +861,7 @@ export default function LiveStudioModal({
                       <p className="font-semibold text-gray-400">Chưa có bình luận nào</p>
                       <p className="text-[11px] text-gray-500 mt-0.5">
                         {isChatConnected 
-                          ? `Đang kết nối phòng #${selectedKey}. Bình luận từ người xem sẽ hiện ngay tại đây!` 
+                          ? 'Đã kết nối phòng trò chuyện trực tiếp. Bình luận từ người xem sẽ hiện ngay tại đây!' 
                           : 'Đang kết nối vào phòng trò chuyện...'}
                       </p>
                     </div>
@@ -925,25 +926,25 @@ export default function LiveStudioModal({
             {/* TAB 2: CẤU HÌNH PHÒNG & THÔNG SỐ */}
             {activeTab === 'config' && (
               <div className="flex-1 space-y-3.5 overflow-y-auto max-h-[320px] pr-1 text-xs">
-                {/* 1. CHỌN STREAM KEY */}
+                {/* 1. CHỌN KÊNH PHÁT */}
                 <div>
                   <label className="text-gray-400 mb-1.5 block font-semibold text-[11px] flex items-center justify-between">
-                    <span>Kênh phát (Stream Key):</span>
+                    <span>Kênh phát sóng:</span>
                     {isLive && <span className="text-emerald-400 text-[10px] font-mono">● Đang phát</span>}
                   </label>
                   <select
                     value={selectedKey}
                     onChange={(e) => setSelectedKey(e.target.value)}
                     disabled={isLive}
-                    className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-rose-500 disabled:opacity-50"
+                    className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 disabled:opacity-50"
                   >
-                    {streamKeys.map((k) => (
+                    {streamKeys.map((k, idx) => (
                       <option key={k.key} value={k.key}>
-                        {k.key} {k.title ? `(${k.title})` : ''}
+                        {k.title || k.streamer || `Kênh phát sóng #${idx + 1}`}
                       </option>
                     ))}
                     {streamKeys.length === 0 && (
-                      <option value="tiendev">tiendev (Mặc định)</option>
+                      <option value="tiendev">Kênh phát chính</option>
                     )}
                   </select>
                 </div>

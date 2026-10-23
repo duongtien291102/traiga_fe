@@ -20,7 +20,9 @@ import {
   Square,
   Clock,
   Send,
-  Zap
+  Zap,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { getApiBaseUrl } from '../config';
 
@@ -29,6 +31,8 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
   const [keys, setKeys] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [copiedSessionId, setCopiedSessionId] = useState(null);
+  const [revealedKeys, setRevealedKeys] = useState({});
+  const [copiedKeyId, setCopiedKeyId] = useState(null);
   const [newKey, setNewKey] = useState('');
   const [newTitle, setNewTitle] = useState('');
   const [newStreamer, setNewStreamer] = useState('');
@@ -168,8 +172,8 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
         setIsRoomBotsRunning(newRunningState);
         setRoomBotsMsg(
           newRunningState
-            ? `🎉 Đã kích hoạt ${selectedBotIds.length} bot vào phòng '${selectedRoomKey}' thành công! Bot sẽ tự động chat và thả tim định kỳ.`
-            : `⏹️ Đã dừng bot tương tác trong phòng '${selectedRoomKey}'!`
+            ? `🎉 Đã kích hoạt ${selectedBotIds.length} bot vào phòng thành công! Bot sẽ tự động chat và thả tim định kỳ.`
+            : `⏹️ Đã dừng bot tương tác trong phòng!`
         );
         setTimeout(() => setRoomBotsMsg(''), 5000);
       } else {
@@ -273,7 +277,7 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
                   Bảng Quản Trị Streamer (Admin Portal)
                 </h2>
                 <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
-                  {currentUser?.username || 'admin'}
+                  {currentUser?.full_name || 'Quản Trị Viên'}
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
@@ -414,66 +418,88 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/60 font-mono">
-                      {keys.map((k) => (
-                        <tr key={k.id || k.key} className="hover:bg-slate-800/30 transition">
-                          <td className="py-3.5 font-bold text-white">
-                            <span className="bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 text-rose-400">
-                              {k.key}
-                            </span>
-                          </td>
-                          <td className="py-3.5 font-sans">
-                            <div className="font-semibold text-slate-200">{k.title || k.key}</div>
-                            <div className="text-[11px] text-slate-500">{k.streamer || 'Chưa đặt tên'}</div>
-                          </td>
-                          <td className="py-3.5 font-sans">
-                            {k.is_active ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                Đang mở quyền
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
-                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                                Đã khoá (Bị chặn)
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3.5 text-right font-sans">
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                onClick={() => handleToggleKey(k.key, k.is_active)}
-                                className={`p-2 rounded-xl transition ${
-                                  k.is_active 
-                                    ? 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20' 
-                                    : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
-                                }`}
-                                title={k.is_active ? "Khoá luồng này" : "Mở khoá luồng này"}
-                              >
-                                <Power className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteKey(k.key)}
-                                className="p-2 rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 transition"
-                                title="Xóa key"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                      {keys.map((k) => {
+                        const isRevealed = !!revealedKeys[k.key];
+                        return (
+                          <tr key={k.id || k.key} className="hover:bg-slate-800/30 transition">
+                            <td className="py-3.5 font-bold text-white">
+                              <div className="inline-flex items-center gap-1.5 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800 text-rose-400">
+                                <span>{isRevealed ? k.key : '••••••••'}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setRevealedKeys((prev) => ({ ...prev, [k.key]: !prev[k.key] }))}
+                                  className="text-slate-400 hover:text-white ml-1"
+                                  title={isRevealed ? 'Ẩn Stream Key' : 'Hiện Stream Key'}
+                                >
+                                  {isRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(k.key);
+                                    setCopiedKeyId(k.key);
+                                    setTimeout(() => setCopiedKeyId(null), 2000);
+                                  }}
+                                  className="text-slate-400 hover:text-white"
+                                  title="Sao chép Stream Key"
+                                >
+                                  {copiedKeyId === k.key ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                                </button>
+                              </div>
+                            </td>
+                            <td className="py-3.5 font-sans">
+                              <div className="font-semibold text-slate-200">{k.title || 'Kênh Phát Sóng'}</div>
+                              <div className="text-[11px] text-slate-500">{k.streamer || 'Chủ Trại'}</div>
+                            </td>
+                            <td className="py-3.5 font-sans">
+                              {k.is_active ? (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                  Đang mở quyền
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                  Đã khoá (Bị chặn)
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3.5 text-right font-sans">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => handleToggleKey(k.key, k.is_active)}
+                                  className={`p-2 rounded-xl transition ${
+                                    k.is_active 
+                                      ? 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20' 
+                                      : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+                                  }`}
+                                  title={k.is_active ? "Khoá luồng này" : "Mở khoá luồng này"}
+                                >
+                                  <Power className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteKey(k.key)}
+                                  className="p-2 rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 transition"
+                                  title="Xóa key"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
               </div>
 
-              {/* Bảng danh sách Phiên Livestream & Session IDs */}
+              {/* Bảng danh sách Phiên Livestream */}
               <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-emerald-400" /> Lịch sử Phiên Livestream & Session ID ({sessions.length})
+                    <Activity className="w-4 h-4 text-emerald-400" /> Lịch sử Phiên Livestream ({sessions.length})
                   </h3>
-                  <span className="text-[11px] text-slate-500 font-mono">Tự động ghi nhận từ SRS Webhook</span>
                 </div>
 
                 {sessions.length === 0 ? (
@@ -485,36 +511,24 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
                     <table className="w-full text-left text-xs font-sans">
                       <thead>
                         <tr className="border-b border-slate-800 text-slate-400">
-                          <th className="pb-3 font-semibold">Session ID</th>
-                          <th className="pb-3 font-semibold">Stream Key</th>
-                          <th className="pb-3 font-semibold">Client IP</th>
+                          <th className="pb-3 font-semibold">Mã Phiên</th>
+                          <th className="pb-3 font-semibold">Chủ Trại</th>
                           <th className="pb-3 font-semibold">Thời gian phát</th>
                           <th className="pb-3 font-semibold text-right">Trạng thái</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800/60 font-mono">
                         {sessions.map((s) => {
-                          const sId = s.id || s._id || 'unknown';
+                          const sId = String(s.id || s._id || 'unknown');
+                          const maskedId = sId.length > 6 ? `••••${sId.slice(-4)}` : '••••';
                           return (
                             <tr key={sId} className="hover:bg-slate-800/30 transition">
                               <td className="py-3 font-bold text-white">
-                                <div className="inline-flex items-center gap-1.5 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 text-emerald-400">
-                                  <span>{sId}</span>
-                                  <button
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(sId);
-                                      setCopiedSessionId(sId);
-                                      setTimeout(() => setCopiedSessionId(null), 2000);
-                                    }}
-                                    className="text-slate-500 hover:text-white"
-                                    title="Sao chép Session ID"
-                                  >
-                                    {copiedSessionId === sId ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                                  </button>
-                                </div>
+                                <span className="bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 text-emerald-400">
+                                  {maskedId}
+                                </span>
                               </td>
-                              <td className="py-3 text-rose-400 font-bold">{s.stream_key}</td>
-                              <td className="py-3 text-slate-400 text-[11px]">{s.client_ip || '127.0.0.1'}</td>
+                              <td className="py-3 text-slate-200 font-sans font-semibold">{s.streamer || 'Chủ Trại'}</td>
                               <td className="py-3 text-slate-400 text-[11px] font-sans">
                                 {s.started_at ? new Date(s.started_at).toLocaleString('vi-VN') : 'Mới đây'}
                               </td>
@@ -552,16 +566,16 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
                       <select
                         value={selectedRoomKey}
                         onChange={(e) => setSelectedRoomKey(e.target.value)}
-                        className="px-3.5 py-2 rounded-xl bg-slate-950 border border-cyan-500/40 text-cyan-200 font-mono font-bold text-xs focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                        className="px-3.5 py-2 rounded-xl bg-slate-950 border border-cyan-500/40 text-cyan-200 font-bold text-xs focus:outline-none focus:ring-2 focus:ring-cyan-400"
                       >
                         {keys.length > 0 ? (
-                          keys.map((k) => (
+                          keys.map((k, idx) => (
                             <option key={k.key} value={k.key}>
-                              📺 {k.title || k.key} ({k.key})
+                              📺 {k.title || k.streamer || `Kênh phát #${idx + 1}`}
                             </option>
                           ))
                         ) : (
-                          <option value={selectedRoomKey}>{selectedRoomKey}</option>
+                          <option value={selectedRoomKey}>Kênh phát chính</option>
                         )}
                       </select>
 
@@ -617,8 +631,8 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
                     }`} />
                     <span className={isRoomBotsRunning ? 'text-emerald-300 font-semibold' : 'text-slate-400'}>
                       {isRoomBotsRunning
-                        ? `Đang có ${selectedBotIds.length} bot hoạt động tự động trong phòng '${selectedRoomKey}'`
-                        : `Bot đang tắt trong phòng '${selectedRoomKey}'. Hãy chọn tối đa 5 bot bên dưới và bấm Kích Hoạt.`}
+                        ? `Đang có ${selectedBotIds.length} bot hoạt động tự động trong phòng live`
+                        : `Bot đang tắt. Hãy chọn tối đa 5 bot bên dưới và bấm Kích Hoạt.`}
                     </span>
                   </div>
 

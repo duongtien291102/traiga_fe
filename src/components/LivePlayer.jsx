@@ -281,8 +281,8 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
               </div>
               <div>
                 <h3 className="text-xl font-bold text-white tracking-wide">Đang kết nối luồng trực tiếp...</h3>
-                <p className="text-sm text-slate-400 mt-1 font-mono">
-                  URL: {streamUrl}
+                <p className="text-sm text-slate-400 mt-1">
+                  Đang tải tín hiệu hình ảnh từ chuồng xổ...
                 </p>
               </div>
             </div>
@@ -296,7 +296,7 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
                   {errorMessage || "Luồng trực tiếp đang ngoại tuyến..."}
                 </h3>
                 <p className="text-sm text-slate-400 mt-2 leading-relaxed">
-                  Streamer chưa bắt đầu phát sóng bằng Stream Key <span className="font-mono text-rose-400 bg-rose-950/40 px-2 py-0.5 rounded border border-rose-800/50">"{streamKey}"</span> hoặc đang tạm nghỉ.
+                  Chủ trại hiện chưa bắt đầu phiên phát sóng hoặc đang tạm nghỉ giữa hiệp.
                 </p>
               </div>
               <div className="flex items-center gap-3 mt-2">
@@ -330,11 +330,6 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
             <span>OFFLINE</span>
           </div>
         )}
-
-        <div className="bg-slate-900/80 text-slate-300 text-xs font-mono px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm border border-slate-800 flex items-center gap-1.5">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Key: {streamKey}</span>
-        </div>
       </div>
 
       {/* THANH ĐIỀU KHIỂN TÙY BIẾN DƯỚI ĐÁY VIDEO (HOVER VÀO SẼ HIỆN) */}

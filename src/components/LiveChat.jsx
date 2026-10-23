@@ -140,7 +140,6 @@ export default function LiveChat({ streamKey = 'tiendev', user = null, onOpenAut
 
     ws.onclose = () => {
       setIsConnected(false);
-      console.log(`[WS CHAT] Ngắt kết nối phòng chat: ${streamKey}`);
     };
 
     return () => {
@@ -200,7 +199,7 @@ export default function LiveChat({ streamKey = 'tiendev', user = null, onOpenAut
               Trò chuyện trực tiếp
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             </h3>
-            <p className="text-xs text-slate-400 font-mono">#{streamKey}</p>
+            <p className="text-xs text-slate-400">Phòng giao lưu trực tuyến</p>
           </div>
         </div>
 
@@ -323,7 +322,11 @@ export default function LiveChat({ streamKey = 'tiendev', user = null, onOpenAut
                       ? 'text-rose-400' 
                       : 'text-slate-300'
                   }`}>
-                    {msg.username}
+                    {msg.username === 'sysadmin'
+                      ? 'Ban Quản Trị'
+                      : msg.username === 'admin01'
+                      ? 'Chủ Trại'
+                      : msg.username}
                   </span>
 
                   {/* THỜI GIAN */}
@@ -405,7 +408,7 @@ export default function LiveChat({ streamKey = 'tiendev', user = null, onOpenAut
               !isConnected 
                 ? "Đang kết nối phòng chat..." 
                 : user 
-                ? `Chat với tên ${user.username}...` 
+                ? `Nhập bình luận với tư cách ${user.role === 'admin' ? (user.full_name || 'Chủ Trại') : user.role === 'systemadmin' ? 'Ban Quản Trị' : (user.full_name || user.username)}...` 
                 : `Chat với tên ${guestName}...`
             }
             className="w-full bg-slate-900/90 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-rose-500/80 focus:ring-1 focus:ring-rose-500/50 transition pr-8 disabled:opacity-50"
