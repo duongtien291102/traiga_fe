@@ -41,13 +41,18 @@ export const getWsUrl = (streamKey) => {
   return `${wsProtocol}//${wsHost}/ws/chat?streamKey=${encodeURIComponent(streamKey)}`;
 };
 
-// HLS Stream: Nếu có cấu hình VITE_HLS_URL hoặc chạy local
+// HLS Stream: Nếu có cấu hình VITE_HLS_URL hoặc dùng link Ngrok công khai (có HTTPS)
+export const NGROK_HLS_URL = 'https://subpentagonal-kenyetta-experientially.ngrok-free.dev';
+
 export const getHlsBaseUrl = () => {
-  // Có thể truyền biến môi trường VITE_HLS_URL trên Vercel khi có VPS SRS
   if (import.meta.env?.VITE_HLS_URL) {
     return import.meta.env.VITE_HLS_URL;
   }
-  if (typeof window !== 'undefined' && window.location.host && !isVercel()) {
+  // Khi chạy trên Vercel, ưu tiên lấy luồng từ đường hầm Ngrok HTTPS để không bị lỗi Mixed Content
+  if (isVercel()) {
+    return NGROK_HLS_URL;
+  }
+  if (typeof window !== 'undefined' && window.location.host) {
     return `${window.location.protocol}//${window.location.host}`;
   }
   return `http://${getHost()}:8080`;
