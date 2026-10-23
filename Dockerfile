@@ -21,7 +21,11 @@ RUN rm -rf /etc/nginx/conf.d/*
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy file cấu hình Nginx
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/templates/default.conf.template
+
+# Địa chỉ backend (ghi đè bằng biến môi trường khi chạy container)
+# Nginx image tự envsubst template -> /etc/nginx/conf.d/default.conf lúc khởi động
+ENV BACKEND_URL=http://backend:8000
 
 EXPOSE 80
 
