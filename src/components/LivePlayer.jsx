@@ -236,13 +236,22 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
     setIsMuted(nextMuted);
   };
 
-  // Xem toàn màn hình
+  // Xem toàn màn hình (Hỗ trợ cả iOS Safari webkitEnterFullscreen)
   const toggleFullScreen = () => {
-    if (!containerRef.current) return;
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().catch((err) => console.error(err));
-    } else {
+    const video = videoRef.current;
+    const container = containerRef.current;
+    if (!container) return;
+
+    if (document.fullscreenElement) {
       document.exitFullscreen().catch((err) => console.error(err));
+    } else if (container.requestFullscreen) {
+      container.requestFullscreen().catch(() => {
+        if (video && video.webkitEnterFullscreen) {
+          video.webkitEnterFullscreen();
+        }
+      });
+    } else if (video && video.webkitEnterFullscreen) {
+      video.webkitEnterFullscreen();
     }
   };
 
@@ -297,22 +306,33 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
       )}
 
       {/* THANH ĐIỀU KHIỂN & BADGE TRÊN VIDEO */}
-      <div className="absolute top-4 left-4 z-10 flex items-center gap-2 pointer-events-none">
+      <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 flex items-center gap-2 pointer-events-none">
         {streamStatus === 'playing' ? (
-          <div className="flex items-center gap-2 bg-rose-600/90 text-white text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm animate-pulse">
+          <div className="flex items-center gap-1.5 bg-rose-600/90 text-white text-[11px] sm:text-xs font-bold uppercase tracking-wider px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full shadow-lg backdrop-blur-sm animate-pulse">
             <Radio className="w-3.5 h-3.5 animate-pulse" />
             <span>LIVE</span>
           </div>
         ) : (
-          <div className="flex items-center gap-2 bg-slate-800/90 text-slate-300 text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm border border-slate-700">
+          <div className="flex items-center gap-1.5 bg-slate-800/90 text-slate-300 text-[11px] sm:text-xs font-semibold px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full shadow-lg backdrop-blur-sm border border-slate-700">
             <span className="w-2 h-2 rounded-full bg-slate-500" />
             <span>OFFLINE</span>
           </div>
         )}
       </div>
 
-      {/* THANH ĐIỀU KHIỂN TÙY BIẾN DƯỚI ĐÁY VIDEO (HOVER VÀO SẼ HIỆN) */}
-      <div className="absolute bottom-0 inset-x-0 z-10 p-4 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-between text-white">
+      {/* NÚT BẬT TIẾNG NHANH TRÊN ĐIỆN THOẠI KHI ĐANG BỊ MUTE TỰ ĐỘNG */}
+      {streamStatus === 'playing' && isMuted && (
+        <button
+          onClick={toggleMute}
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 flex items-center gap-1.5 bg-black/75 hover:bg-black/90 text-amber-300 border border-amber-500/40 text-xs font-bold px-3 py-1.5 rounded-full shadow-lg backdrop-blur-md transition cursor-pointer"
+        >
+          <VolumeX className="w-3.5 h-3.5 text-rose-400" />
+          <span>Chạm bật tiếng</span>
+        </button>
+      )}
+
+      {/* THANH ĐIỀU KHIỂN TÙY BIẾN DƯỚI ĐÁY VIDEO */}
+      <div className="absolute bottom-0 inset-x-0 z-10 p-2.5 sm:p-4 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-between text-white">
         <div className="flex items-center gap-3">
           <button
             onClick={() => {

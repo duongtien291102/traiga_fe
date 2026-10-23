@@ -841,10 +841,10 @@ export default function App() {
 
       {/* ==================== MAIN HEADER ==================== */}
       <header className="sticky top-0 z-40 bg-[#12141c]/95 backdrop-blur-md border-b border-slate-800">
-        <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
+        <div className="w-full max-w-[1440px] mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-1.5 sm:gap-4">
 
           {/* Left: Logo & Desktop Navigation */}
-          <div className="flex items-center gap-2 xl:gap-6 shrink-0">
+          <div className="flex items-center gap-2 xl:gap-6 min-w-0 shrink-0">
             <a
               href="#"
               onClick={(e) => {
@@ -852,21 +852,21 @@ export default function App() {
                 setActiveNavTab('home');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className="flex items-center gap-2.5 group shrink-0 cursor-pointer"
+              className="flex items-center gap-2 sm:gap-2.5 group shrink-0 cursor-pointer"
             >
               {/* Prestigious crest emblem */}
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-b from-amber-500 to-amber-700 p-[1.5px] shadow-md group-hover:shadow-amber-500/20 transition-all">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-b from-amber-500 to-amber-700 p-[1.5px] shadow-md group-hover:shadow-amber-500/20 transition-all shrink-0">
                 <div className="w-full h-full bg-[#14151b] rounded-[7px] flex items-center justify-center border border-amber-400/30">
-                  <span className="text-amber-400 font-black text-sm tracking-tight">TT</span>
+                  <span className="text-amber-400 font-black text-xs sm:text-sm tracking-tight">TT</span>
                 </div>
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-base sm:text-lg font-black tracking-tight text-white leading-none whitespace-nowrap">
+                  <span className="text-sm sm:text-lg font-black tracking-tight text-white leading-none whitespace-nowrap">
                     TRẠI GÀ <span className="text-amber-400">THÀNH TRUNG</span>
                   </span>
                 </div>
-                <span className="text-[10px] font-semibold text-gray-400 tracking-wider uppercase whitespace-nowrap mt-0.5">
+                <span className="hidden sm:block text-[10px] font-semibold text-gray-400 tracking-wider uppercase whitespace-nowrap mt-0.5">
                   Cơ Sở Long Biên • Hà Nội
                 </span>
               </div>
@@ -927,16 +927,17 @@ export default function App() {
           </div>
 
           {/* Right: Search, Post chicken button, Admin controls, User Profile */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
 
             {/* Prominent Đăng Bán Gà Button */}
             <button
               onClick={openPostChickenWithAuth}
-              className="bg-red-700 hover:bg-red-600 text-white font-bold text-xs px-3 sm:px-4 py-2 rounded-lg shadow transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+              className="bg-red-700 hover:bg-red-600 text-white font-bold text-[11px] sm:text-xs px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg shadow transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
               title="Đăng bán chiến kê tuyển chọn"
             >
               <Plus className="w-3.5 h-3.5 stroke-[3]" />
-              <span>Đăng Bán Gà</span>
+              <span className="hidden sm:inline">Đăng Bán Gà</span>
+              <span className="sm:hidden">Đăng Gà</span>
             </button>
 
             {/* Search Button (Ctrl+K) */}
@@ -945,7 +946,7 @@ export default function App() {
               title="Tìm kiếm chạng gà, mã số MS (Ctrl+K)"
               className="p-1.5 sm:p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg border border-white/10 transition-colors cursor-pointer shrink-0"
             >
-              <Search className="w-4 h-4" />
+              <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
 
             {/* Light / Dark Mode Toggle Button */}
@@ -956,12 +957,12 @@ export default function App() {
             >
               {themeMode === 'dark' ? (
                 <>
-                  <Sun className="w-4 h-4 text-amber-400" />
+                  <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
                   <span className="hidden xl:inline text-xs font-semibold">Sáng</span>
                 </>
               ) : (
                 <>
-                  <Moon className="w-4 h-4 text-slate-700" />
+                  <Moon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-700" />
                   <span className="hidden xl:inline text-xs font-semibold">Tối</span>
                 </>
               )}
@@ -969,7 +970,7 @@ export default function App() {
 
             {/* User authenticated actions */}
             {currentUser ? (
-              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                 {/* SYSTEM ADMIN BUTTON */}
                 {currentUser.role === 'systemadmin' && (
                   <button
@@ -987,7 +988,7 @@ export default function App() {
                   <>
                     <button
                       onClick={() => setIsLiveStudioOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition shadow-sm border border-rose-500/40 cursor-pointer whitespace-nowrap shrink-0"
+                      className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-[11px] sm:text-xs transition shadow-sm border border-rose-500/40 cursor-pointer whitespace-nowrap shrink-0"
                       title="Bật camera phát sóng trực tiếp"
                     >
                       <Radio className="w-3.5 h-3.5 animate-pulse text-white" />
@@ -996,7 +997,7 @@ export default function App() {
 
                     <button
                       onClick={() => setIsAdminPanelOpen(true)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-bold transition shadow-sm cursor-pointer whitespace-nowrap shrink-0"
+                      className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-bold transition shadow-sm cursor-pointer whitespace-nowrap shrink-0"
                       title="Bảng điều khiển quản trị viên"
                     >
                       <Shield className="w-3.5 h-3.5 text-amber-400" />
@@ -1005,8 +1006,8 @@ export default function App() {
                   </>
                 )}
 
-                {/* User avatar & role/name */}
-                <div className="flex items-center gap-1.5 bg-[#16171f] border border-white/10 rounded-full py-1 px-2.5 shrink-0">
+                {/* User avatar & role/name (Ẩn trên điện thoại nhỏ để tránh tràn thanh Header) */}
+                <div className="hidden sm:flex items-center gap-1.5 bg-[#16171f] border border-white/10 rounded-full py-1 px-2.5 shrink-0">
                   <div className={`w-5 h-5 rounded-full text-white font-bold text-[11px] flex items-center justify-center uppercase ${currentUser.role === 'systemadmin' ? 'bg-purple-600' : currentUser.role === 'admin' ? 'bg-amber-500 text-slate-950' : 'bg-rose-600'
                     }`}>
                     {currentUser.username.substring(0, 1)}
@@ -1022,17 +1023,16 @@ export default function App() {
                   className="p-1.5 sm:p-2 rounded-lg bg-[#16171f] hover:bg-white/10 text-gray-400 hover:text-white border border-white/10 transition cursor-pointer shrink-0"
                   title="Đăng xuất"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
               </div>
             ) : (
               <button
                 onClick={() => setIsAuthModalOpen(true)}
-                className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold py-1.5 sm:py-2 px-3 sm:px-4 rounded-lg shadow-md transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+                className="bg-rose-600 hover:bg-rose-500 text-white text-[11px] sm:text-xs font-bold py-1.5 sm:py-2 px-2.5 sm:px-4 rounded-lg shadow-md transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
               >
-                <LogIn className="w-4 h-4" />
-                <span className="hidden xs:inline">Đăng Nhập</span>
-                <span className="xs:hidden">Vào</span>
+                <LogIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span>Đăng Nhập</span>
               </button>
             )}
 
@@ -1042,9 +1042,10 @@ export default function App() {
       </header>
 
       {/* Mobile Sub-Navigation Bar */}
-      <div className="lg:hidden flex items-center border-b border-white/10 bg-[#0e0f14] px-4 py-2 gap-2 text-xs font-medium overflow-x-auto no-scrollbar">
+      <div className="lg:hidden flex items-center border-b border-white/10 bg-[#0e0f14] px-3 py-2 gap-1.5 text-xs font-medium overflow-x-auto no-scrollbar">
         <button
           onClick={() => {
+            setSelectedMarketChicken(null);
             setActiveNavTab('home');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
@@ -1055,6 +1056,7 @@ export default function App() {
         </button>
         <button
           onClick={() => {
+            setSelectedMarketChicken(null);
             setActiveNavTab('live');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
@@ -1062,7 +1064,7 @@ export default function App() {
             }`}
         >
           <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-          Phòng Live
+          Xem Trực Tiếp
         </button>
         <button
           onClick={() => {
@@ -1074,31 +1076,13 @@ export default function App() {
             }`}
         >
           <Tag className="w-3.5 h-3.5" />
-          Chợ Gà (Đăng Bán)
-        </button>
-        <button
-          onClick={() => {
-            if (activeNavTab !== 'home') setActiveNavTab('home');
-            setTimeout(() => document.getElementById('featured-chickens')?.scrollIntoView({ behavior: 'smooth' }), 50);
-          }}
-          className="px-3 py-1.5 rounded-lg whitespace-nowrap text-gray-400 hover:text-white bg-white/5 cursor-pointer shrink-0"
-        >
-          Gà Mới
-        </button>
-        <button
-          onClick={() => {
-            if (activeNavTab !== 'home') setActiveNavTab('home');
-            setTimeout(() => document.getElementById('farms')?.scrollIntoView({ behavior: 'smooth' }), 50);
-          }}
-          className="px-3 py-1.5 rounded-lg whitespace-nowrap text-gray-400 hover:text-white bg-white/5 cursor-pointer shrink-0"
-        >
-          Trại Giao Lưu
+          Chợ Gà ({chickensList.length})
         </button>
         <button
           onClick={() => setIsPolicyModalOpen(true)}
           className="px-3 py-1.5 rounded-lg whitespace-nowrap text-gray-400 hover:text-white bg-white/5 cursor-pointer shrink-0"
         >
-          Cẩm Nang
+          Lưu Ý Gửi Xe
         </button>
       </div>
 
@@ -1149,17 +1133,17 @@ export default function App() {
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-2.5 shrink-0">
+                      <div className="flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto shrink-0">
                         <button
                           onClick={() => changeChannel(topLiveRoom.id, true)}
-                          className="bg-red-700 hover:bg-red-600 text-white text-xs sm:text-sm font-bold py-2.5 px-4 sm:px-5 rounded-lg flex items-center gap-2 transition cursor-pointer"
+                          className="flex-1 sm:flex-initial justify-center bg-red-700 hover:bg-red-600 text-white text-xs sm:text-sm font-bold py-2.5 px-4 sm:px-5 rounded-lg flex items-center gap-2 transition cursor-pointer"
                         >
                           <Tv className="w-4 h-4" />
                           <span>VÀO PHÒNG LIVE</span>
                         </button>
                         <button
                           onClick={() => openConnectWithFarm(topLiveRoom.title, topLiveRoom.farm)}
-                          className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs sm:text-sm font-bold py-2.5 px-3.5 rounded-lg transition flex items-center gap-1.5 shrink-0 cursor-pointer"
+                          className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs sm:text-sm font-bold py-2.5 px-3.5 rounded-lg transition flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
                         >
                           <Phone className="w-3.5 h-3.5 text-amber-400" />
                           <span>LIÊN HỆ</span>
@@ -1177,7 +1161,7 @@ export default function App() {
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0e1017] via-[#0e1017]/80 to-transparent"></div>
 
                     <div className="relative z-10 space-y-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="bg-red-700 text-white text-[11px] font-bold uppercase px-2.5 py-0.5 rounded tracking-wide">
                           LỊCH XỔ GÀ HÔM NAY
                         </span>
@@ -1186,7 +1170,7 @@ export default function App() {
                         </span>
                       </div>
 
-                      <h2 className="text-xl sm:text-3xl font-black text-white tracking-tight leading-snug">
+                      <h2 className="text-lg sm:text-3xl font-black text-white tracking-tight leading-snug">
                         SỔ THỬ ĐÒN DÀN GÀ TƠ CHẠNG 2K8 - 3K2 &amp; <span className="text-amber-400">SOI CÁN VẢY TRỰC TIẾP</span>
                       </h2>
 
@@ -1194,20 +1178,20 @@ export default function App() {
                         Trại Gà Thành Trung chuyên gà đòn, gà nòi tuyển chọn. Lịch xổ đòn vào 14h00 &amp; 19h30 hàng ngày. Anh em có thể xem video thực tế hoặc qua trực tiếp chuồng trại tại Long Biên giao lưu.
                       </p>
 
-                      <div className="flex flex-wrap items-center gap-3 pt-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 pt-2">
                         <button
                           onClick={() => {
                             if (activeNavTab !== 'market') setActiveNavTab('market');
                             window.scrollTo({ top: 0, behavior: 'smooth' });
                           }}
-                          className="bg-red-700 hover:bg-red-600 text-white text-xs sm:text-sm font-bold py-2.5 px-5 rounded-lg flex items-center gap-2 transition cursor-pointer"
+                          className="w-full sm:w-auto justify-center bg-red-700 hover:bg-red-600 text-white text-xs sm:text-sm font-bold py-2.5 px-5 rounded-lg flex items-center gap-2 transition cursor-pointer"
                         >
                           <ShoppingBag className="w-4 h-4" />
                           XEM DÀN GÀ ĐANG CÓ SẴN
                         </button>
                         <button
                           onClick={() => openConnectWithFarm('Dàn Gà Tơ Trại Thành Trung', 'Trại Gà Thành Trung Long Biên')}
-                          className="bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 text-xs sm:text-sm font-bold py-2.5 px-4 rounded-lg transition flex items-center gap-1.5 cursor-pointer"
+                          className="w-full sm:w-auto justify-center bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 text-xs sm:text-sm font-bold py-2.5 px-4 rounded-lg transition flex items-center gap-1.5 cursor-pointer"
                         >
                           <Phone className="w-3.5 h-3.5 text-amber-400" />
                           LIÊN HỆ XEM CLIP ZALO
@@ -1358,13 +1342,24 @@ export default function App() {
                         >
                           Xem Chi Tiết
                         </button>
-                        <a
-                          href={`tel:${item.phone?.replace(/\D/g, '') || '0988888888'}`}
-                          className="py-2 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-bold transition flex items-center justify-center gap-1.5"
-                        >
-                          <Phone className="w-4 h-4" />
-                          <span>Gọi Điện</span>
-                        </a>
+                        {currentUser ? (
+                          <a
+                            href={`tel:${item.phone?.replace(/\D/g, '') || '0988888888'}`}
+                            className="py-2 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-bold transition flex items-center justify-center gap-1.5"
+                          >
+                            <Phone className="w-4 h-4" />
+                            <span>Gọi Điện</span>
+                          </a>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => openConnectWithFarm(item.title, item.farm)}
+                            className="py-2 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <Phone className="w-4 h-4" />
+                            <span>Gọi Điện</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1482,7 +1477,7 @@ export default function App() {
 
                       <button
                         onClick={() => openConnectWithFarm(currentRoomInfo.title, currentRoomInfo.farm)}
-                        className="bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-500 hover:to-orange-500 text-white font-extrabold text-xs px-4 py-2 rounded-xl shadow-lg transition-transform hover:scale-105 shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
+                        className="w-full sm:w-auto bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-500 hover:to-orange-500 text-white font-extrabold text-xs px-4 py-2.5 sm:py-2 rounded-xl shadow-lg transition-transform hover:scale-105 shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <Phone className="w-3.5 h-3.5" />
                         <span>Hỏi Về Con Này</span>
@@ -1523,7 +1518,7 @@ export default function App() {
 
                   {/* TAB 1: REAL LIVE CHAT COMPONENT */}
                   {activeRightTab === 'chat' && (
-                    <div className="h-[480px] lg:h-[530px] w-full rounded-2xl overflow-hidden border border-white/10 bg-[#16171d] shadow-xl">
+                    <div className="h-[380px] sm:h-[460px] lg:h-[530px] w-full rounded-2xl overflow-hidden border border-white/10 bg-[#16171d] shadow-xl">
                       <LiveChat
                         streamKey={streamKey}
                         user={currentUser}
@@ -1534,7 +1529,7 @@ export default function App() {
 
                   {/* TAB 2: THÔNG TIN CHI TIẾT CHIẾN KÊ HIỆN TẠI */}
                   {activeRightTab === 'info' && (
-                    <div className="h-[480px] lg:h-[530px] w-full rounded-2xl overflow-y-auto border border-white/10 bg-[#16171d] p-5 space-y-4 text-xs shadow-xl">
+                    <div className="h-[380px] sm:h-[460px] lg:h-[530px] w-full rounded-2xl overflow-y-auto border border-white/10 bg-[#16171d] p-4 sm:p-5 space-y-4 text-xs shadow-xl">
                       <div className="text-amber-400 font-bold text-sm uppercase flex items-center gap-2">
                         <Sparkles className="w-4 h-4" />
                         <span>Hồ Sơ Chiến Kê Trên Sóng</span>
@@ -1694,7 +1689,7 @@ export default function App() {
       </main>
 
       {/* ==================== FOOTER ==================== */}
-      <footer className="mt-16 bg-[#0a0b0e] border-t border-white/10 pt-12 pb-8 text-xs text-gray-400">
+      <footer className="mt-16 bg-[#0a0b0e] border-t border-white/10 pt-10 pb-24 lg:pb-8 text-xs text-gray-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-4">
@@ -1755,39 +1750,6 @@ export default function App() {
                     <span>Chợ Gà (Đăng Bán)</span>
                   </button>
                 </li>
-                <li>
-                  <button
-                    onClick={() => {
-                      if (activeNavTab !== 'home') setActiveNavTab('home');
-                      setTimeout(() => document.getElementById('featured-chickens')?.scrollIntoView({ behavior: 'smooth' }), 50);
-                    }}
-                    className="hover:text-rose-400 transition-colors cursor-pointer text-left"
-                  >
-                    Gà Mới Lên Chuồng
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => {
-                      if (activeNavTab !== 'home') setActiveNavTab('home');
-                      setTimeout(() => document.getElementById('breeds')?.scrollIntoView({ behavior: 'smooth' }), 50);
-                    }}
-                    className="hover:text-rose-400 transition-colors cursor-pointer text-left"
-                  >
-                    Dòng Kê Ba Miền
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => {
-                      if (activeNavTab !== 'home') setActiveNavTab('home');
-                      setTimeout(() => document.getElementById('farms')?.scrollIntoView({ behavior: 'smooth' }), 50);
-                    }}
-                    className="hover:text-rose-400 transition-colors cursor-pointer text-left"
-                  >
-                    Danh Sách Trại Giao Lưu
-                  </button>
-                </li>
               </ul>
             </div>
 
@@ -1824,10 +1786,76 @@ export default function App() {
         </div>
       </footer>
 
+      {/* ==================== MOBILE STICKY BOTTOM NAVIGATION BAR ==================== */}
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[#12141c]/95 backdrop-blur-md border-t border-white/10 px-2 py-1.5 grid grid-cols-4 gap-1 shadow-2xl">
+        <button
+          onClick={() => {
+            setSelectedMarketChicken(null);
+            setActiveNavTab('home');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`flex flex-col items-center justify-center py-1 rounded-xl transition cursor-pointer ${
+            activeNavTab === 'home' ? 'text-rose-500 font-bold bg-rose-500/10' : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <Tv className="w-4 h-4 mb-0.5" />
+          <span className="text-[10px]">Trang Chủ</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setSelectedMarketChicken(null);
+            setActiveNavTab('live');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`flex flex-col items-center justify-center py-1 rounded-xl transition cursor-pointer relative ${
+            activeNavTab === 'live' ? 'text-rose-500 font-bold bg-rose-500/10' : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <div className="relative">
+            <Radio className="w-4 h-4 mb-0.5" />
+            <span className="absolute -top-0.5 -right-1 w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+          </div>
+          <span className="text-[10px]">Xem Live</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setSelectedMarketChicken(null);
+            setActiveNavTab('market');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`flex flex-col items-center justify-center py-1 rounded-xl transition cursor-pointer ${
+            activeNavTab === 'market' ? 'text-amber-400 font-bold bg-amber-500/10' : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <ShoppingBag className="w-4 h-4 mb-0.5" />
+          <span className="text-[10px]">Chợ Gà ({chickensList.length})</span>
+        </button>
+
+        {currentUser?.role === 'admin' ? (
+          <button
+            onClick={() => setIsLiveStudioOpen(true)}
+            className="flex flex-col items-center justify-center py-1 rounded-xl text-rose-400 font-bold bg-rose-600/15 border border-rose-500/30 cursor-pointer"
+          >
+            <Radio className="w-4 h-4 mb-0.5 animate-pulse" />
+            <span className="text-[10px]">Phát Live</span>
+          </button>
+        ) : (
+          <button
+            onClick={openPostChickenWithAuth}
+            className="flex flex-col items-center justify-center py-1 rounded-xl text-amber-300 font-bold hover:text-white cursor-pointer"
+          >
+            <Plus className="w-4 h-4 mb-0.5" />
+            <span className="text-[10px]">Đăng Bán</span>
+          </button>
+        )}
+      </nav>
+
       {/* ==================== FLOATING BACK TO TOP BUTTON ==================== */}
       <button
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        className="fixed bottom-6 right-6 z-30 w-11 h-11 rounded-full bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-950/60 flex items-center justify-center transition-transform hover:scale-110"
+        className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-30 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-950/60 flex items-center justify-center transition-transform hover:scale-110"
         title="Lên đầu trang"
       >
         <ArrowUp className="w-5 h-5" />

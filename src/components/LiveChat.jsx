@@ -379,7 +379,7 @@ export default function LiveChat({ streamKey = 'tiendev', user = null, onOpenAut
                   ? "Đang kết nối phòng chat..." 
                   : `Nhập bình luận với tư cách ${user.role === 'admin' ? (user.full_name || 'Chủ Trại') : user.role === 'systemadmin' ? 'Ban Quản Trị' : (user.full_name || user.username)}...`
               }
-              className="w-full bg-slate-900/90 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-rose-500/80 focus:ring-1 focus:ring-rose-500/50 transition pr-8 disabled:opacity-50"
+              className="w-full bg-slate-900/90 border border-slate-800 rounded-xl px-3.5 py-2 text-base sm:text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-rose-500/80 focus:ring-1 focus:ring-rose-500/50 transition pr-8 disabled:opacity-50"
             />
           </div>
 
