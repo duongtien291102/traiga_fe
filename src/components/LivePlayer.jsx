@@ -36,11 +36,25 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
   const streamUrl = `${getHlsBaseUrl()}/live/${encodeURIComponent(streamKey.trim())}.m3u8`;
 
   // Hàm khởi tạo và tải luồng HLS
-  const loadStream = useCallback(() => {
+  const loadStream = useCallback(async () => {
     const video = videoRef.current;
     if (!video || !streamKey) return;
 
-    setStreamStatus('connecting');
+    const loadUrl = `${streamUrl}?_t=${Date.now()}`;
+
+    // Kiểm tra nhanh xem luồng .m3u8 đã online chưa trước khi khởi tạo Hls Worker
+    // (Tránh việc hls.js retry 6 lần liên tục gây giật lag video màn hình chờ)
+    try {
+      const checkRes = await fetch(loadUrl, { method: 'GET', cache: 'no-store' });
+      if (!checkRes.ok) {
+        setStreamStatus('offline');
+        return;
+      }
+    } catch (e) {
+      setStreamStatus('offline');
+      return;
+    }
+
     setErrorMessage('');
 
     // Dọn dẹp instance HLS cũ nếu đang có
@@ -69,16 +83,13 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
         maxMaxBufferLength: 40,
         liveSyncDurationCount: syncCount,
         liveMaxLatencyDurationCount: maxLatency,
-        manifestLoadingMaxRetry: 6,
+        manifestLoadingMaxRetry: 2,
         manifestLoadingRetryDelay: 1000,
-        manifestLoadingTimeOut: 15000,
-        fragLoadingMaxRetry: 6,
+        manifestLoadingTimeOut: 10000,
+        fragLoadingMaxRetry: 4,
         fragLoadingRetryDelay: 1000,
-        fragLoadingTimeOut: 20000,
+        fragLoadingTimeOut: 15000,
         xhrSetup: (xhr, url) => {
-          // Bỏ qua trang cảnh báo ngrok-free để tránh lỗi CORS ERR_NGROK_6024
-          xhr.setRequestHeader('ngrok-skip-browser-warning', 'true');
-
           // Ngăn ngừa trình duyệt cache file playlist m3u8
           if (url.includes('.m3u8')) {
             xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -89,8 +100,7 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
 
       hlsRef.current = hls;
 
-      // 1. Nạp URL luồng HLS (gắn timestamp chống cache trình duyệt)
-      const loadUrl = `${streamUrl}?_t=${Date.now()}`;
+      // 1. Nạp URL luồng HLS
       hls.loadSource(loadUrl);
 
       // 2. Gắn kết nối vào thẻ HTML5 video
@@ -275,6 +285,8 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
         <div className="absolute inset-0 z-20 bg-black overflow-hidden">
           <video
             src="/waiting_screen.mp4"
+            poster="/waiting_poster.jpg"
+            preload="auto"
             autoPlay
             loop
             muted
