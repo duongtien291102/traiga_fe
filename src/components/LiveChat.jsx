@@ -107,6 +107,11 @@ export default function LiveChat({ streamKey = 'tiendev', user = null, onOpenAut
               }
               break;
 
+            case 'reset_chat':
+            case 'clear_chat':
+              setMessages([]);
+              break;
+
             case 'chat':
               if (data.data && (!data.data.stream_key || data.data.stream_key === streamKey)) {
                 setMessages((prev) => [...prev, data.data]);
@@ -229,7 +234,7 @@ export default function LiveChat({ streamKey = 'tiendev', user = null, onOpenAut
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 gap-2 py-8">
             <Sparkles className="w-8 h-8 text-slate-600 animate-pulse" />
-            <p className="text-xs">Chưa có tin nhắn nào trong phòng live này.</p>
+            <p className="text-xs">Chưa có tin nhắn nào trong phiên phát sóng này.</p>
             <p className="text-[11px] text-slate-600">Hãy là người đầu tiên gửi lời chào tới Streamer!</p>
           </div>
         ) : (
