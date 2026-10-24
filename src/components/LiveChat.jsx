@@ -38,6 +38,7 @@ export default function LiveChat({ streamKey = 'thanhtrung01', user = null, onOp
   const reconnectTimerRef = useRef(null);
   const isMountedRef = useRef(true);
   const isPageHiddenRef = useRef(false);
+  const tokenFailedRef = useRef(false);
 
   // Tự động cuộn xuống cuối khi có tin nhắn mới (chỉ cuộn khung chat, tuyệt đối không cuộn cả trang web)
   const scrollToBottom = useCallback((smooth = true) => {
@@ -99,8 +100,9 @@ export default function LiveChat({ streamKey = 'thanhtrung01', user = null, onOp
         ws.onopen = () => {
           if (!isMountedRef.current) return;
           setIsConnected(true);
-          if (token) {
-            ws.send(JSON.stringify({ type: 'auth_token', token }));
+          const activeToken = !tokenFailedRef.current ? (localStorage.getItem('auth_token') || localStorage.getItem('token') || '') : '';
+          if (activeToken) {
+            ws.send(JSON.stringify({ type: 'auth_token', token: activeToken }));
           } else {
             ws.send(JSON.stringify({ type: 'auth_guest', guest_name: guestName }));
           }
@@ -142,6 +144,17 @@ export default function LiveChat({ streamKey = 'thanhtrung01', user = null, onOp
                 case 'reaction':
                   if (data.emoji) {
                     spawnFloatingReaction(data.emoji, data.sender);
+                  }
+                  break;
+
+                case 'error':
+                  if (data.error && (data.error.includes('Token') || data.error.includes('hết hạn') || data.error.includes('thu hồi') || data.error.includes('xác thực'))) {
+                    console.warn('[LiveChat] Token auth rejected, falling back to guest mode:', data.error);
+                    tokenFailedRef.current = true;
+                    localStorage.removeItem('auth_token');
+                    try {
+                      ws.send(JSON.stringify({ type: 'auth_guest', guest_name: guestName }));
+                    } catch (e) {}
                   }
                   break;
 

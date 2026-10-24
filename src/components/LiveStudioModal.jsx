@@ -47,6 +47,7 @@ export default function LiveStudioModal({
   const [facingMode, setFacingMode] = useState('user'); // 'user' (trước) | 'environment' (sau)
   const [isCameraOn, setIsCameraOn] = useState(true);
   const [isMicOn, setIsMicOn] = useState(true);
+  const [micVolume, setMicVolume] = useState(0); // 0-100% cường độ âm thanh mic thu được thực tế
   const [isPublishing, setIsPublishing] = useState(false);
   const [isLive, setIsLive] = useState(false);
   const [hasStream, setHasStream] = useState(false);
@@ -81,6 +82,16 @@ export default function LiveStudioModal({
   const timerRef = useRef(null);
   const studioWsRef = useRef(null);
   const chatScrollRef = useRef(null);
+  const reconnectTimerRef = useRef(null);
+  const isMountedRef = useRef(false);
+  const isPageHiddenRef = useRef(false);
+  const tokenFailedRef = useRef(false);
+  const reconnectAttemptsRef = useRef(0);
+  const userRef = useRef(user);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   useEffect(() => {
     if (currentStreamKey) {
@@ -102,38 +113,110 @@ export default function LiveStudioModal({
     return () => clearInterval(timerRef.current);
   }, [isLive]);
 
-  // Kết nối WebSocket phòng Chat để Streamer đọc bình luận trực tiếp
+  // Bộ đo cường độ âm thanh thời gian thực từ Micro (Audio Level Meter)
   useEffect(() => {
-    if (!isOpen || !selectedKey) return;
+    if (!isOpen || !isMicOn || !mediaStreamRef.current) {
+      setMicVolume(0);
+      return;
+    }
 
-    setStudioMessages([]);
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
-    const streamerName = user?.full_name || user?.username || 'Chủ Trại (Live)';
-    const wsUrl = getWsUrl(selectedKey);
+    const audioTrack = mediaStreamRef.current.getAudioTracks()[0];
+    if (!audioTrack || audioTrack.readyState === 'ended' || !audioTrack.enabled) {
+      setMicVolume(0);
+      return;
+    }
 
-    let ws = null;
+    let audioCtx = null;
+    let analyser = null;
+    let animId = null;
+
     try {
-      ws = new WebSocket(wsUrl);
+      const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtxClass) return;
+      audioCtx = new AudioCtxClass();
+      const source = audioCtx.createMediaStreamSource(new MediaStream([audioTrack]));
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 64;
+      analyser.smoothingTimeConstant = 0.5;
+      source.connect(analyser);
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+      const checkVolume = () => {
+        if (!analyser) return;
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          sum += dataArray[i];
+        }
+        const avg = sum / (dataArray.length || 1);
+        // Quy đổi về thang 0 - 100
+        const vol = Math.min(100, Math.round((avg / 128) * 100));
+        setMicVolume(vol);
+        animId = requestAnimationFrame(checkVolume);
+      };
+
+      animId = requestAnimationFrame(checkVolume);
+    } catch (e) {
+      console.warn('Không thể khởi tạo bộ đo âm thanh:', e);
+    }
+
+    return () => {
+      if (animId) cancelAnimationFrame(animId);
+      if (audioCtx && audioCtx.state !== 'closed') {
+        audioCtx.close().catch(() => {});
+      }
+    };
+  }, [isOpen, isMicOn, hasStream, isLive]);
+
+  // Khởi tạo kết nối WebSocket phòng Chat với Auto-Reconnect và Fallback chế độ Guest
+  const connectChat = () => {
+    if (!isMountedRef.current || isPageHiddenRef.current || !isOpen || !selectedKey) return;
+
+    if (studioWsRef.current && (studioWsRef.current.readyState === WebSocket.OPEN || studioWsRef.current.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+
+    try {
+      const wsUrl = getWsUrl(selectedKey);
+      const ws = new WebSocket(wsUrl);
       studioWsRef.current = ws;
 
+      const streamerName = userRef.current?.full_name || userRef.current?.username || 'Chủ Trại (Live)';
+      const rawToken = localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
+
       ws.onopen = () => {
+        if (!isMountedRef.current) return;
         setIsChatConnected(true);
-        if (token) {
-          ws.send(JSON.stringify({ type: 'auth_token', token }));
+        reconnectAttemptsRef.current = 0;
+
+        if (rawToken && !tokenFailedRef.current) {
+          ws.send(JSON.stringify({ type: 'auth_token', token: rawToken }));
         } else {
           ws.send(JSON.stringify({ type: 'auth_guest', guest_name: streamerName }));
         }
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
+        if (!isMountedRef.current) return;
         setIsChatConnected(false);
+        // Tự động kết nối lại sau 2.5s nếu studio vẫn đang mở và không phải đóng chủ đích (1000)
+        if (!isPageHiddenRef.current && event?.code !== 1000) {
+          clearTimeout(reconnectTimerRef.current);
+          const delay = Math.min(2000 + reconnectAttemptsRef.current * 1000, 5000);
+          reconnectAttemptsRef.current += 1;
+          reconnectTimerRef.current = setTimeout(connectChat, delay);
+        }
       };
 
       ws.onerror = () => {
-        setIsChatConnected(false);
+        if (isMountedRef.current) {
+          setIsChatConnected(false);
+        }
       };
 
       ws.onmessage = (event) => {
+        if (!isMountedRef.current) return;
         try {
           const rawLines = event.data.split('\n');
           for (const line of rawLines) {
@@ -158,30 +241,116 @@ export default function LiveStudioModal({
               setTimeout(() => {
                 setFloatingEmojis((prev) => prev.filter((item) => item.id !== id));
               }, 2000);
+            } else if (data.type === 'auth_login_result') {
+              if (data.success) {
+                setIsChatConnected(true);
+              }
+            } else if (data.type === 'error') {
+              const errStr = String(data.error || '');
+              if (errStr.includes('Token') || errStr.includes('hết hạn') || errStr.includes('thu hồi') || errStr.includes('xác thực')) {
+                console.warn('[Studio Chat] Token auth rejected by backend, falling back to guest mode:', errStr);
+                tokenFailedRef.current = true;
+                localStorage.removeItem('auth_token');
+                try {
+                  ws.send(JSON.stringify({ type: 'auth_guest', guest_name: streamerName }));
+                } catch (e) {}
+              }
             }
           }
         } catch (e) {}
       };
-    } catch (e) {}
+    } catch (e) {
+      if (isMountedRef.current && !isPageHiddenRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = setTimeout(connectChat, 3000);
+      }
+    }
+  };
 
-    return () => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.close();
+  // Quản lý vòng đời kết nối WebSocket và hỗ trợ tương thích đa nền tảng (iOS Safari, Android Chrome)
+  useEffect(() => {
+    if (!isOpen || !selectedKey) {
+      setIsChatConnected(false);
+      clearTimeout(reconnectTimerRef.current);
+      if (studioWsRef.current) {
+        try {
+          studioWsRef.current.close(1000, 'Studio closed');
+        } catch (e) {}
+        studioWsRef.current = null;
+      }
+      return;
+    }
+
+    isMountedRef.current = true;
+    isPageHiddenRef.current = false;
+    setStudioMessages([]);
+    setIsChatConnected(false);
+
+    connectChat();
+
+    // Hồi phục kết nối ngay khi quay lại tab từ chế độ cấp quyền Camera hoặc khóa màn hình điện thoại
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        isPageHiddenRef.current = true;
+        clearTimeout(reconnectTimerRef.current);
+      } else {
+        isPageHiddenRef.current = false;
+        if (!studioWsRef.current || studioWsRef.current.readyState !== WebSocket.OPEN) {
+          connectChat();
+        }
       }
     };
-  }, [isOpen, selectedKey, user]);
+
+    const handlePageShow = () => {
+      isPageHiddenRef.current = false;
+      if (!studioWsRef.current || studioWsRef.current.readyState !== WebSocket.OPEN) {
+        connectChat();
+      }
+    };
+
+    const handleOnline = () => {
+      if (!studioWsRef.current || studioWsRef.current.readyState !== WebSocket.OPEN) {
+        connectChat();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      isMountedRef.current = false;
+      clearTimeout(reconnectTimerRef.current);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('online', handleOnline);
+      if (studioWsRef.current) {
+        try {
+          studioWsRef.current.close(1000, 'Unmount');
+        } catch (e) {}
+        studioWsRef.current = null;
+      }
+    };
+  }, [isOpen, selectedKey]);
 
   // Gửi tin nhắn trả lời từ Studio
   const handleSendStudioChat = (e) => {
     e?.preventDefault();
     const text = studioChatInput.trim();
-    if (!text || !studioWsRef.current || studioWsRef.current.readyState !== WebSocket.OPEN) return;
+    if (!text) return;
+
+    if (!studioWsRef.current || studioWsRef.current.readyState !== WebSocket.OPEN) {
+      connectChat();
+      return;
+    }
     
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
+    const token = !tokenFailedRef.current ? (localStorage.getItem('auth_token') || localStorage.getItem('token') || '') : '';
+    const streamerName = userRef.current?.full_name || userRef.current?.username || 'Chủ Trại (Live)';
     const payload = {
       type: 'chat',
       message: text,
-      token: token
+      token: token,
+      sender: streamerName
     };
     studioWsRef.current.send(JSON.stringify(payload));
     setStudioChatInput('');
@@ -303,47 +472,54 @@ export default function LiveStudioModal({
           autoGainControl: true
         };
 
-        // 1. Thu nhận tín hiệu Video
-        let videoStream = null;
+        // 1. Yêu cầu quyền và thu nhận tín hiệu đồng thời cả Camera và Micro trong 1 lần duy nhất
+        // (Cách này ngăn chặn việc mobile trình duyệt như Chrome/Safari chặn micro khi gọi getUserMedia 2 lần)
+        let combinedStream = null;
         try {
-          videoStream = await navigator.mediaDevices.getUserMedia({
-            video: videoConstraints
+          combinedStream = await navigator.mediaDevices.getUserMedia({
+            video: videoConstraints,
+            audio: audioConstraints
           });
-        } catch (vErr) {
-          console.warn('[CAMERA] Thử cấu hình camera linh hoạt:', vErr);
+          console.log('[MEDIA] Đã kết nối đồng thời Camera và Micro chuẩn');
+        } catch (errCombined) {
+          console.warn('[MEDIA] Thử cấu hình camera linh hoạt kèm audio:', errCombined);
           try {
-            videoStream = await navigator.mediaDevices.getUserMedia({
-              video: { facingMode: { ideal: mode } }
+            combinedStream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: { ideal: mode } },
+              audio: { echoCancellation: true, noiseSuppression: true }
             });
-          } catch {
-            videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            console.log('[MEDIA] Đã kết nối Camera linh hoạt và Micro');
+          } catch (errFlex) {
+            console.warn('[MEDIA] Không thể mở chung, thử mở riêng từng thiết bị:', errFlex);
+            // Mở video riêng
+            let vStream = null;
+            try {
+              vStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            } catch (vErr) {
+              throw vErr;
+            }
+            combinedStream = new MediaStream(vStream.getVideoTracks());
+            // Mở micro riêng nếu có thể
+            try {
+              const aStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+              aStream.getAudioTracks().forEach((track) => combinedStream.addTrack(track));
+            } catch (aErr) {
+              console.warn('[MIC] Thiết bị không hỗ trợ Micro hoặc bị từ chối:', aErr);
+            }
           }
         }
 
-        // 2. Thu nhận tín hiệu Micro độc lập (tránh trường hợp lỗi mic làm sập cả camera)
-        let audioStream = null;
-        try {
-          audioStream = await navigator.mediaDevices.getUserMedia({
-            audio: audioConstraints
-          });
-          console.log('[MIC] Đã kết nối Micro thành công');
-        } catch (aErr) {
-          console.warn('[MIC] Chưa thể mở Micro tự động:', aErr);
-        }
-
-        // 3. Kết hợp các luồng vào stream chuẩn
-        stream = new MediaStream();
-        if (videoStream) {
-          videoStream.getVideoTracks().forEach((track) => stream.addTrack(track));
-          setIsCameraOn(true);
-        }
-
-        if (audioStream && audioStream.getAudioTracks().length > 0) {
-          audioStream.getAudioTracks().forEach((track) => stream.addTrack(track));
+        stream = combinedStream;
+        const audioTracks = stream.getAudioTracks();
+        if (audioTracks.length > 0) {
+          audioTracks.forEach((t) => { t.enabled = true; });
           setIsMicOn(true);
         } else {
           setIsMicOn(false);
         }
+
+        const videoTracks = stream.getVideoTracks();
+        setIsCameraOn(videoTracks.length > 0);
       } else {
         // Chia sẻ màn hình
         stream = await navigator.mediaDevices.getDisplayMedia({
@@ -569,20 +745,25 @@ export default function LiveStudioModal({
       });
       peerConnRef.current = pc;
 
-      // Đảm bảo khai báo transceiver sendonly cho cả audio và video để SRS tạo đúng cấu hình luồng
+      // QUAN TRỌNG VỚI SRS MEDIA SERVER (SRS 5):
+      // Bắt buộc phải khởi tạo cả 2 Transceiver audio và video ở chế độ "sendonly"
+      // trước khi tạo Offer để SRS cấu hình đúng luồng Ingest và bộ chuyển đổi Opus -> AAC
+      pc.addTransceiver('audio', { direction: 'sendonly' });
+      pc.addTransceiver('video', { direction: 'sendonly' });
+
       const audioTrack = mediaStreamRef.current.getAudioTracks()[0];
       const videoTrack = mediaStreamRef.current.getVideoTracks()[0];
 
       if (audioTrack) {
+        audioTrack.enabled = isMicOn;
         pc.addTrack(audioTrack, mediaStreamRef.current);
-      } else {
-        pc.addTransceiver('audio', { direction: 'sendonly' });
+        console.log('[WEBRTC] Đã gắn Audio Track vào bộ phát sendonly:', audioTrack.label);
       }
 
       if (videoTrack) {
+        videoTrack.enabled = isCameraOn;
         pc.addTrack(videoTrack, mediaStreamRef.current);
-      } else {
-        pc.addTransceiver('video', { direction: 'sendonly' });
+        console.log('[WEBRTC] Đã gắn Video Track vào bộ phát sendonly:', videoTrack.label);
       }
 
       const offer = await pc.createOffer();
@@ -861,12 +1042,20 @@ export default function LiveStudioModal({
                 <div className="absolute bottom-3 inset-x-0 flex items-center justify-center gap-3 z-20">
                   <button
                     onClick={toggleMic}
-                    className={`p-2.5 sm:p-3 rounded-full transition shadow-lg backdrop-blur-md cursor-pointer ${
-                      isMicOn ? 'bg-black/60 text-white hover:bg-black/80 border border-white/20' : 'bg-rose-600 text-white border border-rose-400'
+                    className={`px-3 py-2 sm:py-2.5 rounded-full transition shadow-lg backdrop-blur-md cursor-pointer flex items-center gap-2 ${
+                      isMicOn ? 'bg-black/75 text-white hover:bg-black/90 border border-white/20' : 'bg-rose-600 text-white border border-rose-400'
                     }`}
-                    title={isMicOn ? "Tắt Micro" : "Bật Micro"}
+                    title={isMicOn ? `Micro đang bật (Âm lượng: ${micVolume}%)` : "Bật Micro"}
                   >
-                    {isMicOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+                    {isMicOn ? <Mic className="w-4 h-4 text-emerald-400" /> : <MicOff className="w-4 h-4 text-white" />}
+                    {isMicOn && (
+                      <div className="flex items-center gap-0.5 h-3" title={`Âm lượng mic: ${micVolume}%`}>
+                        <span className={`w-1 rounded-full transition-all duration-75 ${micVolume > 5 ? 'h-3 bg-emerald-400' : 'h-1 bg-white/30'}`} />
+                        <span className={`w-1 rounded-full transition-all duration-75 ${micVolume > 25 ? 'h-3 bg-emerald-400' : 'h-1 bg-white/30'}`} />
+                        <span className={`w-1 rounded-full transition-all duration-75 ${micVolume > 50 ? 'h-3 bg-amber-400' : 'h-1 bg-white/30'}`} />
+                        <span className={`w-1 rounded-full transition-all duration-75 ${micVolume > 75 ? 'h-3 bg-rose-500' : 'h-1 bg-white/30'}`} />
+                      </div>
+                    )}
                   </button>
 
                   <button
@@ -981,17 +1170,47 @@ export default function LiveStudioModal({
             {activeTab === 'chat' && (
               <div className="flex-1 flex flex-col justify-between min-h-[220px]">
                 
+                {/* Trạng thái phòng chat trực tiếp */}
+                <div className="flex items-center justify-between px-2.5 py-1 mb-2 bg-black/40 rounded-lg border border-white/5 text-[11px] text-gray-400">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`w-2 h-2 rounded-full ${isChatConnected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`} />
+                    <span>Kênh: <strong className="text-gray-200 font-mono">{selectedKey}</strong></span>
+                  </div>
+                  {!isChatConnected ? (
+                    <button
+                      type="button"
+                      onClick={() => connectChat()}
+                      className="text-rose-400 hover:text-rose-300 font-semibold flex items-center gap-1 transition cursor-pointer"
+                    >
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                      <span>Kết nối lại</span>
+                    </button>
+                  ) : (
+                    <span className="text-emerald-400 font-medium text-[10px]">● Trực tuyến</span>
+                  )}
+                </div>
+
                 {/* Danh sách bình luận cuộn mượt mà */}
                 <div className="flex-1 overflow-y-auto space-y-2 pr-1 max-h-[220px] sm:max-h-[280px]">
                   {studioMessages.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center p-4 text-gray-500 text-xs">
                       <MessageSquare className="w-8 h-8 stroke-1 text-gray-600 mb-2" />
                       <p className="font-semibold text-gray-400">Chưa có bình luận nào</p>
-                      <p className="text-[11px] text-gray-500 mt-0.5">
+                      <p className="text-[11px] text-gray-500 mt-0.5 max-w-[260px]">
                         {isChatConnected 
-                          ? 'Đã kết nối phòng trò chuyện trực tiếp. Bình luận từ người xem sẽ hiện ngay tại đây!' 
-                          : 'Đang kết nối vào phòng trò chuyện...'}
+                          ? `Đã kết nối phòng "${selectedKey}". Bình luận từ khán giả sẽ hiện ngay tại đây!` 
+                          : `Đang kết nối vào phòng trò chuyện kênh "${selectedKey}"...`}
                       </p>
+                      {!isChatConnected && (
+                        <button
+                          type="button"
+                          onClick={() => connectChat()}
+                          className="mt-3 px-3 py-1.5 bg-white/10 hover:bg-white/20 active:scale-95 text-white rounded-lg text-[11px] font-semibold transition flex items-center gap-1.5 cursor-pointer border border-white/10"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          <span>Thử kết nối lại ngay</span>
+                        </button>
+                      )}
                     </div>
                   ) : (
                     studioMessages.map((msg, idx) => {

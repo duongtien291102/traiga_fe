@@ -29,6 +29,7 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
   const [streamStatus, setStreamStatus] = useState('connecting'); // 'connecting' | 'playing' | 'offline' | 'error'
   const [errorMessage, setErrorMessage] = useState('');
   const [isMuted, setIsMuted] = useState(true);
+  const [volume, setVolume] = useState(1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
@@ -268,9 +269,29 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
     const nextMuted = !videoRef.current.muted;
     videoRef.current.muted = nextMuted;
     if (!nextMuted) {
-      videoRef.current.volume = 1;
+      videoRef.current.volume = volume > 0 ? volume : 1;
+      setVolume(videoRef.current.volume);
     }
     setIsMuted(nextMuted);
+  };
+
+  // Xử lý khi bấm trực tiếp vào màn hình video
+  const handleVideoClick = () => {
+    if (!videoRef.current) return;
+    // Nếu video đang tắt tiếng (Muted do autoplay), ưu tiên BẬT TIẾNG ngay
+    if (isMuted || videoRef.current.muted) {
+      videoRef.current.muted = false;
+      videoRef.current.volume = volume > 0 ? volume : 1;
+      setIsMuted(false);
+      videoRef.current.play().catch(() => {});
+      return;
+    }
+    // Nếu đã có tiếng thì chuyển đổi Tạm dừng / Phát tiếp
+    if (isPlaying) {
+      videoRef.current.pause();
+    } else {
+      videoRef.current.play().catch(() => {});
+    }
   };
 
   // Xem toàn màn hình (Hỗ trợ cả iOS Safari webkitEnterFullscreen)
@@ -305,26 +326,17 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
         autoPlay
         muted={isMuted}
         controls={false}
-        onClick={() => {
+        onClick={handleVideoClick}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onVolumeChange={() => {
           if (videoRef.current) {
-            if (isPlaying) {
-              videoRef.current.pause();
-            } else {
-              videoRef.current.muted = false;
-              videoRef.current.volume = 1;
-              setIsMuted(false);
-              videoRef.current.play().catch(() => {
-                if (videoRef.current) {
-                  videoRef.current.muted = true;
-                  setIsMuted(true);
-                  videoRef.current.play().catch(() => {});
-                }
-              });
+            setIsMuted(videoRef.current.muted || videoRef.current.volume === 0);
+            if (!videoRef.current.muted && videoRef.current.volume > 0) {
+              setVolume(videoRef.current.volume);
             }
           }
         }}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
       />
 
       {/* NÚT PLAY TRUNG TÂM NẾU TRÌNH DUYỆT CHẶN AUTOPLAY HOẶC ĐANG TẠM DỪNG */}
@@ -333,7 +345,7 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
           onClick={() => {
             if (videoRef.current) {
               videoRef.current.muted = false;
-              videoRef.current.volume = 1;
+              videoRef.current.volume = volume > 0 ? volume : 1;
               setIsMuted(false);
               videoRef.current.play().catch(() => {
                 if (videoRef.current) {
@@ -382,14 +394,14 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
         )}
       </div>
 
-      {/* NÚT BẬT TIẾNG NHANH TRÊN ĐIỆN THOẠI KHI ĐANG BỊ MUTE TỰ ĐỘNG */}
+      {/* NÚT BẬT TIẾNG NỔI BẬT DỄ THẤY KHI TRÌNH DUYỆT TỰ ĐỘNG TẮT TIẾNG */}
       {streamStatus === 'playing' && isMuted && (
         <button
           onClick={toggleMute}
-          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 flex items-center gap-1.5 bg-black/75 hover:bg-black/90 text-amber-300 border border-amber-500/40 text-xs font-bold px-3 py-1.5 rounded-full shadow-lg backdrop-blur-md transition cursor-pointer"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 flex items-center gap-2 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white border border-rose-300/40 text-xs font-extrabold px-3.5 py-2 rounded-full shadow-2xl backdrop-blur-md transition-all transform hover:scale-105 active:scale-95 cursor-pointer animate-pulse"
         >
-          <VolumeX className="w-3.5 h-3.5 text-rose-400" />
-          <span>Chạm bật tiếng</span>
+          <VolumeX className="w-4 h-4 text-white" />
+          <span>Chạm để bật âm thanh 🔊</span>
         </button>
       )}
 
@@ -403,7 +415,7 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
                 else videoRef.current.play().catch(() => {});
               }
             }}
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition backdrop-blur-sm text-white"
+            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition backdrop-blur-sm text-white cursor-pointer"
             title={isPlaying ? "Tạm dừng" : "Phát"}
           >
             {isPlaying ? (
@@ -413,13 +425,37 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
             )}
           </button>
 
-          <button
-            onClick={toggleMute}
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition backdrop-blur-sm text-white"
-            title={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
-          >
-            {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
-          </button>
+          <div className="flex items-center gap-1.5 group/vol">
+            <button
+              onClick={toggleMute}
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition backdrop-blur-sm text-white cursor-pointer"
+              title={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
+            >
+              {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+            </button>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={isMuted ? 0 : volume}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                setVolume(val);
+                if (videoRef.current) {
+                  videoRef.current.volume = val;
+                  const newMuted = val === 0;
+                  videoRef.current.muted = newMuted;
+                  setIsMuted(newMuted);
+                }
+              }}
+              className="w-16 sm:w-20 accent-rose-500 cursor-pointer h-1.5 bg-white/30 rounded-lg hidden xs:inline-block"
+              title={`Âm lượng: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
+            />
+            <span className="text-[11px] font-mono text-slate-300 w-8 hidden xs:inline-block">
+              {Math.round((isMuted ? 0 : volume) * 100)}%
+            </span>
+          </div>
 
           <span className="text-xs text-slate-300 font-mono hidden sm:inline-block">
             {streamStatus === 'playing' ? 'Đang phát trực tiếp 1080p@60' : 'Chưa có tín hiệu'}

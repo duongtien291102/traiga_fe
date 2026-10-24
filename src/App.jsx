@@ -92,10 +92,8 @@ export default function App() {
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
   const [isSystemAdminOpen, setIsSystemAdminOpen] = useState(false);
   const [isLiveStudioOpen, setIsLiveStudioOpen] = useState(false);
-  const [activeRightTab, setActiveRightTab] = useState('chat'); // 'chat' | 'obs' | 'info'
   const [liveCamera, setLiveCamera] = useState('cam1'); // 'cam1' (toàn cảnh) | 'cam2' (soi chân vảy)
   const [liveAudioTrack, setLiveAudioTrack] = useState('blv'); // 'blv' (BLV Thành Trung) | 'arena' (Sới gốc)
-  const [liveTab, setLiveTab] = useState('chat'); // 'chat' | 'info' | 'h2h' | 'market' | 'shipping'
   const [showAllRooms, setShowAllRooms] = useState(false); // false: chỉ hiện phòng đang live thực tế, true: hiện tất cả kênh đăng ký
   const [previewSelectedChannel, setPreviewSelectedChannel] = useState(null); // Kênh người dùng chủ động chọn xem khi không có live tự động
   const [themeMode, setThemeMode] = useState(() => {
@@ -1531,340 +1529,28 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* THANH TAB TÍNH NĂNG KIỂU CAKHIATV NGAY DƯỚI VIDEO (Icon Tab Bar) */}
-                  <div className="flex items-center gap-1 sm:gap-2 p-1.5 rounded-2xl bg-[#16171d] border border-white/10 overflow-x-auto scrollbar-none">
-                    {[
-                      { key: 'chat', label: 'Bình luận', icon: MessageSquare },
-                      { key: 'info', label: 'Soi đòn vảy', icon: Swords },
-                      { key: 'h2h', label: 'Đối đầu (H2H)', icon: History },
-                      { key: 'market', label: 'Chợ cùng chạng', icon: ShoppingBag },
-                      { key: 'shipping', label: 'Bến xe gửi gà', icon: Truck },
-                    ].map((tab) => {
-                      const IconComp = tab.icon;
-                      const isActive = liveTab === tab.key;
-                      return (
-                        <button
-                          key={tab.key}
-                          type="button"
-                          onClick={() => {
-                            setLiveTab(tab.key);
-                            setActiveRightTab(tab.key === 'chat' ? 'chat' : 'info');
-                          }}
-                          className={`flex-1 min-w-[90px] sm:min-w-0 py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                            isActive
-                              ? 'bg-rose-600 text-white shadow-md'
-                              : 'text-gray-400 hover:text-white hover:bg-white/5'
-                          }`}
-                        >
-                          <IconComp className="w-3.5 h-3.5" />
-                          <span>{tab.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* NỘI DUNG HIỂN THỊ THEO TAB TRÊN MOBILE (VÀ DƯỚI VIDEO) */}
+                  {/* PHÒNG BÌNH LUẬN TRỰC TIẾP TRÊN MOBILE */}
                   <div className="block lg:hidden">
-                    {liveTab === 'chat' && (
-                      <div className="h-[430px] w-full rounded-2xl overflow-hidden border border-white/10 bg-[#16171d] shadow-xl">
-                        <LiveChat
-                          streamKey={streamKey}
-                          user={currentUser}
-                          onOpenAuth={() => setIsAuthModalOpen(true)}
-                        />
-                      </div>
-                    )}
-
-                    {liveTab === 'info' && (
-                      <div className="p-4 rounded-2xl bg-[#16171d] border border-white/10 space-y-4 text-xs shadow-xl">
-                        <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                          <span className="font-extrabold uppercase text-amber-400 flex items-center gap-1.5">
-                            <Swords className="w-4 h-4" /> Soi Đòn Vảy &amp; Thông Tin Chiến Kê
-                          </span>
-                          <span className="text-[10px] text-gray-400 font-mono">Dữ liệu thực tế</span>
-                        </div>
-
-                        {/* Bảng thông tin chiến kê */}
-                        <div className="p-3.5 rounded-xl bg-rose-500/5 border border-rose-500/20 space-y-2">
-                          <div className="font-black text-rose-400 uppercase text-xs pb-1 border-b border-rose-500/20 flex items-center justify-between">
-                            <span>CHIẾN KÊ LÊN SÓNG: {currentRoomInfo.title}</span>
-                            <span className="font-mono text-white">{currentRoomInfo.ms || 'MS KÊ'}</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 pt-1 text-gray-300">
-                            <p><span className="text-gray-500">Chạng cân:</span> <b className="text-amber-400">{currentRoomInfo.chang || 'Tiêu chuẩn'}</b></p>
-                            <p><span className="text-gray-500">Lối đá:</span> <span className="text-white">{currentRoomInfo.loi || 'Chuẩn lối'}</span></p>
-                            <p><span className="text-gray-500">Cán vảy:</span> <span className="text-white">{currentRoomInfo.can_vay || 'Chuẩn sừng'}</span></p>
-                            <p><span className="text-gray-500">Trại chủ:</span> <span className="text-emerald-400">{currentRoomInfo.farm || currentRoomInfo.streamer}</span></p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {liveTab === 'h2h' && (
-                      <div className="p-4 rounded-2xl bg-[#16171d] border border-white/10 space-y-3 text-xs shadow-xl">
-                        <div className="font-extrabold uppercase text-amber-400 flex items-center gap-1.5 pb-2 border-b border-white/10">
-                          <History className="w-4 h-4" /> Lịch Sử Các Phiên Phát Sóng Trước Đây
-                        </div>
-
-                        {sessions.filter((s) => s.stream_key === streamKey && s.status === 'ended').length > 0 ? (
-                          sessions
-                            .filter((s) => s.stream_key === streamKey && s.status === 'ended')
-                            .slice(0, 5)
-                            .map((s, idx) => (
-                              <div key={s.id || idx} className="p-3 rounded-xl bg-[#0e0f14] border border-white/10 flex flex-col gap-1.5">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-[11px] text-gray-400 font-mono">
-                                    {s.started_at ? new Date(s.started_at).toLocaleString('vi-VN') : 'Gần đây'}
-                                  </span>
-                                  <span className="px-2 py-0.5 rounded text-[10px] font-black border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-                                    {s.duration_seconds > 0 ? `${Math.floor(s.duration_seconds / 60)} phút` : 'Hoàn thành'}
-                                  </span>
-                                </div>
-                                <div className="text-white font-bold text-xs pt-1">
-                                  Streamer: <span className="text-rose-400">{s.streamer || streamKey}</span>
-                                </div>
-                              </div>
-                            ))
-                        ) : (
-                          <div className="p-6 text-center text-gray-400 text-xs space-y-2">
-                            <History className="w-8 h-8 mx-auto text-gray-600 mb-2" />
-                            <p>Chưa có dữ liệu các phiên phát sóng trước đây của kênh này.</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {liveTab === 'market' && (
-                      <div className="p-4 rounded-2xl bg-[#16171d] border border-white/10 space-y-3 text-xs shadow-xl">
-                        <div className="font-extrabold uppercase text-amber-400 flex items-center justify-between pb-2 border-b border-white/10">
-                          <span className="flex items-center gap-1.5">
-                            <ShoppingBag className="w-4 h-4" /> Chiến Kê Cùng Chạng (2.8kg - 3.0kg) Mở Bán
-                          </span>
-                          <button
-                            onClick={() => {
-                              setActiveNavTab('market');
-                              window.scrollTo({ top: 0, behavior: 'smooth' });
-                            }}
-                            className="text-[11px] text-rose-400 hover:underline font-bold"
-                          >
-                            Xem tất cả &rarr;
-                          </button>
-                        </div>
-
-                        {chickensList.length > 0 ? (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {chickensList.slice(0, 2).map((ck) => (
-                              <div key={ck.id} className="p-3 rounded-xl bg-[#0e0f14] border border-white/10 flex gap-3 items-center">
-                                <img src={ck.image} alt={ck.title} className="w-16 h-16 rounded-lg object-cover border border-white/10 shrink-0" />
-                                <div className="min-w-0 flex-1">
-                                  <div className="font-bold text-white text-xs truncate">{ck.ms ? `${ck.ms}: ` : ''}{ck.title}</div>
-                                  <div className="text-[11px] text-amber-400 font-bold mt-0.5">{ck.priceText}</div>
-                                  <div className="text-[10px] text-gray-400">Chạng {ck.chang} • {ck.breedName}</div>
-                                  <button
-                                    onClick={() => setSelectedMarketChicken(ck)}
-                                    className="mt-1.5 px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] cursor-pointer"
-                                  >
-                                    Xem chi tiết
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-5 text-xs text-gray-400 bg-[#0e0f14] rounded-xl border border-white/5">
-                            Đang cập nhật chiến kê giao lưu...
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {liveTab === 'shipping' && (
-                      <div className="p-4 rounded-2xl bg-[#16171d] border border-white/10 space-y-3 text-xs shadow-xl">
-                        <div className="font-extrabold uppercase text-amber-400 flex items-center gap-1.5 pb-2 border-b border-white/10">
-                          <Truck className="w-4 h-4" /> Tuyến Xe Gửi Gà An Toàn Từ Long Biên (Hà Nội)
-                        </div>
-
-                        <div className="space-y-2.5 text-gray-300">
-                          <div className="p-2.5 rounded-xl bg-[#0e0f14] border border-white/10">
-                            <b className="text-white text-xs flex items-center gap-1.5 text-rose-400">
-                              🚌 Tuyến Bến Xe Gia Lâm &rarr; Miền Bắc:
-                            </b>
-                            <p className="text-[11px] text-gray-300 mt-1">
-                              Hải Phòng, Quảng Ninh, Bắc Giang, Lạng Sơn, Thái Nguyên, Phú Thọ. Xe chạy liên tục 30 phút/chuyến. Nhận gà sau 2 - 4 tiếng.
-                            </p>
-                          </div>
-
-                          <div className="p-2.5 rounded-xl bg-[#0e0f14] border border-white/10">
-                            <b className="text-white text-xs flex items-center gap-1.5 text-cyan-400">
-                              🚌 Tuyến Bến Nước Ngầm &amp; Giáp Bát &rarr; Miền Trung &amp; Nam:
-                            </b>
-                            <p className="text-[11px] text-gray-300 mt-1">
-                              Thanh Hóa, Nghệ An, Hà Tĩnh, Huế, Đà Nẵng, Bình Định, TP. Hồ Chí Minh. Gửi xe giường nằm khoang máy lạnh, lồng xốp khoét lỗ thoáng khí kèm ngô nước đầy đủ.
-                            </p>
-                          </div>
-
-                          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px]">
-                            ⭐ <b>Cam kết Trại Thành Trung:</b> Bảo hiểm sống khỏe 100% đến tận tay anh em. Quay video cân gà và đóng thùng trước khi xe lăn bánh!
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                </div>
-
-                {/* Cột phải (Desktop 4 cols): CakhiaTV Dynamic Tab Display */}
-                <div className="hidden lg:flex lg:col-span-4 flex-col gap-3">
-
-                  {/* TAB 1: PHÒNG CHAT TRỰC TIẾP (Mặc định khi xem live) */}
-                  {liveTab === 'chat' && (
-                    <div className="h-[560px] w-full rounded-2xl overflow-hidden border border-white/10 bg-[#16171d] shadow-xl">
+                    <div className="h-[430px] w-full rounded-2xl overflow-hidden border border-white/10 bg-[#16171d] shadow-xl">
                       <LiveChat
                         streamKey={streamKey}
                         user={currentUser}
                         onOpenAuth={() => setIsAuthModalOpen(true)}
                       />
                     </div>
-                  )}
+                  </div>
 
-                  {/* TAB 2: SOI ĐÒN VẢY CHI TIẾT */}
-                  {liveTab === 'info' && (
-                    <div className="h-[560px] w-full rounded-2xl overflow-y-auto border border-white/10 bg-[#16171d] p-5 space-y-4 text-xs shadow-xl">
-                      <div className="text-amber-400 font-bold text-sm uppercase flex items-center gap-2 border-b border-white/10 pb-3">
-                        <Swords className="w-4 h-4" />
-                        <span>Soi Kỹ Đòn Vảy &amp; Tông Dòng</span>
-                      </div>
+                </div>
 
-                      {/* Thông tin Chiến Kê Thực Tế */}
-                      <div className="p-3.5 rounded-xl bg-rose-500/5 border border-rose-500/20 space-y-2">
-                        <div className="font-black text-rose-400 text-xs pb-1 border-b border-rose-500/20 flex items-center justify-between">
-                          <span>CHIẾN KÊ: {currentRoomInfo.title}</span>
-                          <span className="font-mono text-white">{currentRoomInfo.ms || 'MS KÊ'}</span>
-                        </div>
-                        <div className="space-y-1.5 text-gray-300 font-mono">
-                          <p><span className="text-gray-500 font-sans">Chạng:</span> <b className="text-amber-300">{currentRoomInfo.chang || 'Tiêu chuẩn'}</b></p>
-                          <p><span className="text-gray-500 font-sans">Lối đá:</span> <span className="text-emerald-400 font-sans">{currentRoomInfo.loi || 'Chuẩn lối'}</span></p>
-                          <p><span className="text-gray-500 font-sans">Cán vảy:</span> <span className="text-white font-sans">{currentRoomInfo.can_vay || 'Chuẩn sừng'}</span></p>
-                          <p><span className="text-gray-500 font-sans">Trại chủ:</span> <span className="text-rose-400 font-sans">{currentRoomInfo.farm || currentRoomInfo.streamer}</span></p>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => openConnectWithFarm(currentRoomInfo.title, currentRoomInfo.farm)}
-                        className="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-2.5 rounded-xl transition text-center shadow-md uppercase cursor-pointer flex items-center justify-center gap-1.5"
-                      >
-                        <Phone className="w-4 h-4" />
-                        <span>Liên Hệ Trực Tiếp Chủ Trại</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {/* TAB 3: LỊCH SỬ CÁC PHIÊN LIVE TRƯỚC ĐÓ TỪ MONGODB */}
-                  {liveTab === 'h2h' && (
-                    <div className="h-[560px] w-full rounded-2xl overflow-y-auto border border-white/10 bg-[#16171d] p-5 space-y-3.5 text-xs shadow-xl">
-                      <div className="text-amber-400 font-bold text-sm uppercase flex items-center gap-2 border-b border-white/10 pb-3">
-                        <History className="w-4 h-4" />
-                        <span>Lịch Sử Các Phiên Phát Sóng Trước Đây</span>
-                      </div>
-
-                      {sessions.filter((s) => s.stream_key === streamKey && s.status === 'ended').length > 0 ? (
-                        sessions
-                          .filter((s) => s.stream_key === streamKey && s.status === 'ended')
-                          .slice(0, 10)
-                          .map((s, idx) => (
-                            <div key={s.id || idx} className="p-3.5 rounded-xl bg-[#0e0f14] border border-white/10 space-y-2">
-                              <div className="flex items-center justify-between">
-                                <span className="text-[11px] text-gray-400 font-mono">
-                                  {s.started_at ? new Date(s.started_at).toLocaleString('vi-VN') : 'Gần đây'}
-                                </span>
-                                <span className="px-2 py-0.5 rounded text-[10px] font-black border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-                                  {s.duration_seconds > 0 ? `${Math.floor(s.duration_seconds / 60)} phút` : 'Hoàn tất'}
-                                </span>
-                              </div>
-                              <div className="text-xs font-bold text-white">
-                                Streamer: <span className="text-rose-400">{s.streamer || streamKey}</span>
-                              </div>
-                            </div>
-                          ))
-                      ) : (
-                        <div className="p-8 text-center text-gray-400 text-xs space-y-2">
-                          <History className="w-8 h-8 mx-auto text-gray-600 mb-2" />
-                          <p>Chưa có lịch sử các phiên live trước đây của kênh này.</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* TAB 4: CHỢ GÀ CÙNG CHẠNG */}
-                  {liveTab === 'market' && (
-                    <div className="h-[560px] w-full rounded-2xl overflow-y-auto border border-white/10 bg-[#16171d] p-5 space-y-3.5 text-xs shadow-xl">
-                      <div className="text-amber-400 font-bold text-sm uppercase flex items-center justify-between border-b border-white/10 pb-3">
-                        <span className="flex items-center gap-1.5">
-                          <ShoppingBag className="w-4 h-4" /> Kê Cùng Chạng (2.8kg - 3.0kg)
-                        </span>
-                      </div>
-
-                      <div className="space-y-3">
-                        {chickensList.length > 0 ? (
-                          chickensList.slice(0, 3).map((ck) => (
-                            <div key={ck.id} className="p-3 rounded-xl bg-[#0e0f14] border border-white/10 flex gap-3 items-center">
-                              <img src={ck.image} alt={ck.title} className="w-16 h-16 rounded-lg object-cover border border-white/10 shrink-0" />
-                              <div className="min-w-0 flex-1">
-                                <div className="font-bold text-white text-xs truncate">{ck.ms ? `${ck.ms}: ` : ''}{ck.title}</div>
-                                <div className="text-[11px] text-amber-400 font-bold mt-0.5">{ck.priceText}</div>
-                                <div className="text-[10px] text-gray-400">Chạng {ck.chang} • {ck.breedName}</div>
-                                <button
-                                  onClick={() => setSelectedMarketChicken(ck)}
-                                  className="mt-2 px-3 py-1 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] cursor-pointer"
-                                >
-                                  Xem chi tiết &amp; Đặt cọc
-                                </button>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-8 text-xs text-gray-400 bg-[#0e0f14] rounded-xl border border-white/5">
-                            Đang cập nhật chiến kê cùng chạng...
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB 5: BẾN XE GỬI GÀ */}
-                  {liveTab === 'shipping' && (
-                    <div className="h-[560px] w-full rounded-2xl overflow-y-auto border border-white/10 bg-[#16171d] p-5 space-y-3.5 text-xs shadow-xl">
-                      <div className="text-amber-400 font-bold text-sm uppercase flex items-center gap-2 border-b border-white/10 pb-3">
-                        <Truck className="w-4 h-4" />
-                        <span>Bến Xe &amp; Hậu Cần Gửi Gà</span>
-                      </div>
-
-                      <div className="space-y-3 text-gray-300">
-                        <div className="p-3 rounded-xl bg-[#0e0f14] border border-white/10">
-                          <b className="text-white text-xs flex items-center gap-1.5 text-rose-400">
-                            🚌 Tuyến Bến Xe Gia Lâm &rarr; Miền Bắc:
-                          </b>
-                          <p className="text-[11px] text-gray-300 mt-1 leading-relaxed">
-                            Hải Phòng, Quảng Ninh, Bắc Giang, Lạng Sơn, Thái Nguyên, Phú Thọ. Xe chạy liên tục 30 phút/chuyến. Nhận gà sau 2 - 4 tiếng.
-                          </p>
-                        </div>
-
-                        <div className="p-3 rounded-xl bg-[#0e0f14] border border-white/10">
-                          <b className="text-white text-xs flex items-center gap-1.5 text-cyan-400">
-                            🚌 Tuyến Bến Nước Ngầm &amp; Giáp Bát &rarr; Miền Trung &amp; Nam:
-                          </b>
-                          <p className="text-[11px] text-gray-300 mt-1 leading-relaxed">
-                            Thanh Hóa, Nghệ An, Hà Tĩnh, Huế, Đà Nẵng, Bình Định, TP. Hồ Chí Minh. Gửi xe giường nằm khoang máy lạnh, lồng xốp khoét lỗ thoáng khí kèm ngô nước đầy đủ.
-                          </p>
-                        </div>
-
-                        <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] leading-relaxed">
-                          ⭐ <b>Cam kết Trại Thành Trung:</b> Bảo hiểm sống khỏe 100% đến tận tay anh em. Quay video cân gà và đóng thùng trước khi xe lăn bánh!
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
+                {/* Cột phải (Desktop 4 cols): Phòng bình luận trực tiếp */}
+                <div className="hidden lg:flex lg:col-span-4 flex-col gap-3">
+                  <div className="h-[560px] w-full rounded-2xl overflow-hidden border border-white/10 bg-[#16171d] shadow-xl">
+                    <LiveChat
+                      streamKey={streamKey}
+                      user={currentUser}
+                      onOpenAuth={() => setIsAuthModalOpen(true)}
+                    />
+                  </div>
                 </div>
 
               </div>
