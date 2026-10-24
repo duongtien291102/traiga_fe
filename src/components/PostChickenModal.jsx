@@ -54,7 +54,8 @@ export default function PostChickenModal({ isOpen, onClose, onAddChicken, curren
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
 
-  if (!isOpen) return null;
+  const canPost = currentUser && (currentUser.role === 'admin' || currentUser.role === 'systemadmin');
+  if (!isOpen || !canPost) return null;
 
   const validate = () => {
     const errs = {};

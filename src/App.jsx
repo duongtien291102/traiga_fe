@@ -254,6 +254,9 @@ export default function App() {
   const [selectedMarketChicken, setSelectedMarketChicken] = useState(null);
 
   const handleAddChicken = (newChicken) => {
+    if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'systemadmin')) {
+      return;
+    }
     setChickensList((prev) => {
       const updated = [newChicken, ...prev];
       if (typeof window !== 'undefined') {
@@ -530,10 +533,14 @@ export default function App() {
     setIsConnectModalOpen(true);
   };
 
-  // Mở modal đăng bán gà (Bắt buộc đăng nhập tài khoản)
+  // Mở modal đăng bán gà (CHỈ DÀNH CHO CHỦ TRẠI ADMIN HOẶC SYSTEMADMIN)
   const openPostChickenWithAuth = () => {
     if (!currentUser) {
       setIsAuthModalOpen(true);
+      return;
+    }
+    if (currentUser.role !== 'admin' && currentUser.role !== 'systemadmin') {
+      alert('⛔ Chỉ tài khoản Chủ Trại (Admin) hoặc Ban Quản Trị mới có quyền đăng bán chiến kê!');
       return;
     }
     setIsPostChickenModalOpen(true);
@@ -929,15 +936,17 @@ export default function App() {
           {/* Right: Search, Post chicken button, Admin controls, User Profile */}
           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
 
-            {/* Prominent Đăng Bán Gà Button (Trên điện thoại nhỏ đã có ở thanh điều hướng đáy nên ẩn ở Header để không tràn) */}
-            <button
-              onClick={openPostChickenWithAuth}
-              className="hidden sm:flex bg-red-700 hover:bg-red-600 text-white font-bold text-xs px-3.5 py-2 rounded-lg shadow transition-all items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
-              title="Đăng bán chiến kê tuyển chọn"
-            >
-              <Plus className="w-3.5 h-3.5 stroke-[3]" />
-              <span>Đăng Bán Gà</span>
-            </button>
+            {/* Prominent Đăng Bán Gà Button (Chỉ hiển thị cho tài khoản Admin Chủ Trại hoặc SystemAdmin) */}
+            {(currentUser?.role === 'admin' || currentUser?.role === 'systemadmin') && (
+              <button
+                onClick={openPostChickenWithAuth}
+                className="hidden sm:flex bg-red-700 hover:bg-red-600 text-white font-bold text-xs px-3.5 py-2 rounded-lg shadow transition-all items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+                title="Đăng bán chiến kê tuyển chọn"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                <span>Đăng Bán Gà</span>
+              </button>
+            )}
 
             {/* Search Button (Ctrl+K) */}
             <button
@@ -1746,7 +1755,7 @@ export default function App() {
                     className="hover:text-amber-400 transition-colors cursor-pointer text-left flex items-center gap-1.5"
                   >
                     <Tag className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Chợ Gà (Đăng Bán)</span>
+                    <span>Chợ Gà Đang Bán</span>
                   </button>
                 </li>
               </ul>
@@ -1834,19 +1843,27 @@ export default function App() {
 
         {currentUser?.role === 'admin' ? (
           <button
-            onClick={() => setIsLiveStudioOpen(true)}
-            className="flex flex-col items-center justify-center py-1 rounded-xl text-rose-400 font-bold bg-rose-600/15 border border-rose-500/30 cursor-pointer"
-          >
-            <Radio className="w-4 h-4 mb-0.5 animate-pulse" />
-            <span className="text-[10px]">Phát Live</span>
-          </button>
-        ) : (
-          <button
             onClick={openPostChickenWithAuth}
-            className="flex flex-col items-center justify-center py-1 rounded-xl text-amber-300 font-bold hover:text-white cursor-pointer"
+            className="flex flex-col items-center justify-center py-1 rounded-xl text-amber-300 font-bold bg-amber-500/10 border border-amber-500/30 cursor-pointer"
           >
             <Plus className="w-4 h-4 mb-0.5" />
             <span className="text-[10px]">Đăng Bán</span>
+          </button>
+        ) : currentUser?.role === 'systemadmin' ? (
+          <button
+            onClick={() => setIsSystemAdminOpen(true)}
+            className="flex flex-col items-center justify-center py-1 rounded-xl text-purple-300 font-bold bg-purple-600/15 border border-purple-500/30 cursor-pointer"
+          >
+            <Shield className="w-4 h-4 mb-0.5" />
+            <span className="text-[10px]">Quản Trị</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => openConnectWithFarm('Tư vấn chọn chiến kê', 'Trại Gà Thành Trung Long Biên')}
+            className="flex flex-col items-center justify-center py-1 rounded-xl text-emerald-400 font-bold hover:text-white cursor-pointer"
+          >
+            <Phone className="w-4 h-4 mb-0.5" />
+            <span className="text-[10px]">Liên Hệ</span>
           </button>
         )}
       </nav>
