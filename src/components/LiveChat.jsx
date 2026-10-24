@@ -35,6 +35,9 @@ export default function LiveChat({ streamKey = 'thanhtrung01', user = null, onOp
   const wsRef = useRef(null);
   const chatEndRef = useRef(null);
   const chatContainerRef = useRef(null);
+  const reconnectTimerRef = useRef(null);
+  const isMountedRef = useRef(true);
+  const isPageHiddenRef = useRef(false);
 
   // Tự động cuộn xuống cuối khi có tin nhắn mới (chỉ cuộn khung chat, tuyệt đối không cuộn cả trang web)
   const scrollToBottom = useCallback((smooth = true) => {
@@ -69,9 +72,12 @@ export default function LiveChat({ streamKey = 'thanhtrung01', user = null, onOp
     }, 2000);
   };
 
-  // Khởi tạo kết nối WebSocket đến Backend
+  // Khởi tạo kết nối WebSocket đến Backend với Auto-Reconnect và hỗ trợ bfcache (Back-Forward Cache)
   useEffect(() => {
     if (!streamKey) return;
+
+    isMountedRef.current = true;
+    isPageHiddenRef.current = false;
 
     // Reset danh sách tin nhắn khi đổi stream key
     setMessages([]);
@@ -80,76 +86,145 @@ export default function LiveChat({ streamKey = 'thanhtrung01', user = null, onOp
     const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
     const wsUrl = getWsUrl(streamKey);
 
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      setIsConnected(true);
-      if (token) {
-        ws.send(JSON.stringify({ type: 'auth_token', token }));
-      } else {
-        ws.send(JSON.stringify({ type: 'auth_guest', guest_name: guestName }));
+    const connect = () => {
+      if (!isMountedRef.current || isPageHiddenRef.current) return;
+      if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
+        return;
       }
-    };
 
-    ws.onmessage = (event) => {
       try {
-        const rawLines = event.data.split('\n');
-        for (const line of rawLines) {
-          if (!line.trim()) continue;
-          const data = JSON.parse(line);
+        const ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
 
-          switch (data.type) {
-            case 'history':
-              if (Array.isArray(data.history)) {
-                setMessages(data.history);
-                setTimeout(() => scrollToBottom(false), 100);
-              }
-              break;
-
-            case 'reset_chat':
-            case 'clear_chat':
-              setMessages([]);
-              break;
-
-            case 'chat':
-              if (data.data && (!data.data.stream_key || data.data.stream_key === streamKey)) {
-                setMessages((prev) => [...prev, data.data]);
-              }
-              break;
-
-            case 'viewer_count':
-              if (typeof data.viewer_count === 'number') {
-                setViewerCount(data.viewer_count);
-              }
-              break;
-
-            case 'reaction':
-              if (data.emoji) {
-                spawnFloatingReaction(data.emoji, data.sender);
-              }
-              break;
-
-            default:
-              break;
+        ws.onopen = () => {
+          if (!isMountedRef.current) return;
+          setIsConnected(true);
+          if (token) {
+            ws.send(JSON.stringify({ type: 'auth_token', token }));
+          } else {
+            ws.send(JSON.stringify({ type: 'auth_guest', guest_name: guestName }));
           }
+        };
+
+        ws.onmessage = (event) => {
+          if (!isMountedRef.current) return;
+          try {
+            const rawLines = event.data.split('\n');
+            for (const line of rawLines) {
+              if (!line.trim()) continue;
+              const data = JSON.parse(line);
+
+              switch (data.type) {
+                case 'history':
+                  if (Array.isArray(data.history)) {
+                    setMessages(data.history);
+                    setTimeout(() => scrollToBottom(false), 100);
+                  }
+                  break;
+
+                case 'reset_chat':
+                case 'clear_chat':
+                  setMessages([]);
+                  break;
+
+                case 'chat':
+                  if (data.data && (!data.data.stream_key || data.data.stream_key === streamKey)) {
+                    setMessages((prev) => [...prev, data.data]);
+                  }
+                  break;
+
+                case 'viewer_count':
+                  if (typeof data.viewer_count === 'number') {
+                    setViewerCount(data.viewer_count);
+                  }
+                  break;
+
+                case 'reaction':
+                  if (data.emoji) {
+                    spawnFloatingReaction(data.emoji, data.sender);
+                  }
+                  break;
+
+                default:
+                  break;
+              }
+            }
+          } catch (err) {
+            // Không spam console
+          }
+        };
+
+        ws.onerror = () => {
+          // Xử lý êm đẹp lỗi kết nối (tránh báo đỏ khi chuyển trang / rớt mạng)
+          setIsConnected(false);
+        };
+
+        ws.onclose = (event) => {
+          if (!isMountedRef.current) return;
+          setIsConnected(false);
+          // Tự động kết nối lại sau 3s nếu không phải đóng có chủ đích
+          if (!isPageHiddenRef.current && event?.code !== 1000) {
+            clearTimeout(reconnectTimerRef.current);
+            reconnectTimerRef.current = setTimeout(connect, 3000);
+          }
+        };
+      } catch (e) {
+        if (isMountedRef.current && !isPageHiddenRef.current) {
+          clearTimeout(reconnectTimerRef.current);
+          reconnectTimerRef.current = setTimeout(connect, 3000);
         }
-      } catch (err) {
-        console.error('Lỗi phân tích cú pháp WebSocket message:', err);
       }
     };
 
-    ws.onerror = (err) => {
-      console.warn('[WS CHAT] Lỗi kết nối WebSocket:', err);
+    // Khởi tạo kết nối
+    connect();
+
+    // Xử lý khi trang vào Back-Forward Cache (bfcache) và khi quay lại
+    const handlePageHide = () => {
+      isPageHiddenRef.current = true;
+      clearTimeout(reconnectTimerRef.current);
+      if (wsRef.current) {
+        try {
+          wsRef.current.close(1000, 'Page hidden');
+        } catch (e) {}
+      }
     };
 
-    ws.onclose = () => {
-      setIsConnected(false);
+    const handlePageShow = (event) => {
+      isPageHiddenRef.current = false;
+      if (event.persisted || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        connect();
+      }
     };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        isPageHiddenRef.current = false;
+        if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED || wsRef.current.readyState === WebSocket.CLOSING) {
+          connect();
+        }
+      } else {
+        isPageHiddenRef.current = true;
+      }
+    };
+
+    window.addEventListener('pagehide', handlePageHide);
+    window.addEventListener('pageshow', handlePageShow);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      ws.close();
-      wsRef.current = null;
+      isMountedRef.current = false;
+      clearTimeout(reconnectTimerRef.current);
+      window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('pageshow', handlePageShow);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+
+      if (wsRef.current) {
+        try {
+          wsRef.current.close(1000, 'Component unmounted');
+        } catch (e) {}
+        wsRef.current = null;
+      }
     };
   }, [streamKey, user, guestName]);
 
