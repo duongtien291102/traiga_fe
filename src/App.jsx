@@ -797,12 +797,11 @@ export default function App() {
                   setActiveNavTab('live');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className={`px-3.5 py-2 rounded-lg whitespace-nowrap shrink-0 transition-colors flex items-center gap-2 cursor-pointer ${activeNavTab === 'live'
+                className={`px-3.5 py-2 rounded-lg whitespace-nowrap shrink-0 transition-colors flex items-center justify-center cursor-pointer ${activeNavTab === 'live'
                     ? 'text-red-500 bg-red-500/10 font-bold'
                     : 'text-gray-300 hover:text-white hover:bg-white/5'
                   }`}
               >
-                <span className="w-2 h-2 rounded-full bg-red-600"></span>
                 <span>Trực Tiếp</span>
               </button>
 
@@ -978,10 +977,9 @@ export default function App() {
             setActiveNavTab('live');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`py-1.5 px-1 rounded-lg text-center truncate transition-colors flex items-center justify-center gap-1 cursor-pointer ${activeNavTab === 'live' ? 'bg-rose-600 text-white font-bold shadow-sm' : 'text-gray-400 hover:text-white bg-white/5'
+          className={`py-1.5 px-1 rounded-lg text-center truncate transition-colors flex items-center justify-center cursor-pointer ${activeNavTab === 'live' ? 'bg-rose-600 text-white font-bold shadow-sm' : 'text-gray-400 hover:text-white bg-white/5'
             }`}
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse shrink-0"></span>
           <span className="truncate">Trực Tiếp</span>
         </button>
         <button
