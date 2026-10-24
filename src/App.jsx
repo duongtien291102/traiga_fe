@@ -91,7 +91,9 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
   const [isSystemAdminOpen, setIsSystemAdminOpen] = useState(false);
-  const [isLiveStudioOpen, setIsLiveStudioOpen] = useState(false);
+  const [isLiveStudioPage, setIsLiveStudioPage] = useState(() => typeof window !== 'undefined' && window.location.pathname === '/studio');
+  const [isLiveStudioOpen, setIsLiveStudioOpen] = useState(() => typeof window !== 'undefined' && window.location.pathname === '/studio');
+  const [isAuthHydrated, setIsAuthHydrated] = useState(false);
   const [liveCamera, setLiveCamera] = useState('cam1'); // 'cam1' (toàn cảnh) | 'cam2' (soi chân vảy)
   const [liveAudioTrack, setLiveAudioTrack] = useState('blv'); // 'blv' (BLV Thành Trung) | 'arena' (Sới gốc)
   const [showAllRooms, setShowAllRooms] = useState(false); // false: chỉ hiện phòng đang live thực tế, true: hiện tất cả kênh đăng ký
@@ -218,7 +220,40 @@ export default function App() {
         localStorage.clear();
       }
     }
+    setIsAuthHydrated(true);
   }, []);
+
+  useEffect(() => {
+    const handleHistoryChange = () => {
+      const studioIsOpen = window.location.pathname === '/studio';
+      setIsLiveStudioPage(studioIsOpen);
+      setIsLiveStudioOpen(studioIsOpen);
+    };
+    window.addEventListener('popstate', handleHistoryChange);
+    return () => window.removeEventListener('popstate', handleHistoryChange);
+  }, []);
+
+  const openLiveStudioPage = () => {
+    if (window.location.pathname !== '/studio') {
+      window.history.pushState({ liveStudio: true }, '', '/studio');
+    }
+    setIsLiveStudioPage(true);
+    setIsLiveStudioOpen(true);
+  };
+
+  const closeLiveStudioPage = () => {
+    setIsLiveStudioOpen(false);
+    if (window.location.pathname !== '/studio') {
+      setIsLiveStudioPage(false);
+      return;
+    }
+    if (window.history.state?.liveStudio) {
+      window.history.back();
+    } else {
+      window.history.replaceState({}, '', '/');
+      setIsLiveStudioPage(false);
+    }
+  };
 
   // Xử lý tự động đăng xuất khi tài khoản được đăng nhập ở thiết bị khác (token bị thu hồi -> 401)
   const forceKickSession = () => {
@@ -233,7 +268,7 @@ export default function App() {
     setActiveNavTab((curr) => curr === 'profile' ? 'home' : curr);
     setIsAdminPanelOpen(false);
     setIsSystemAdminOpen(false);
-    setIsLiveStudioOpen(false);
+    closeLiveStudioPage();
     setIsPostChickenModalOpen(false);
     alert('Tài khoản của bạn vừa được đăng nhập trên một thiết bị khác. Phiên hiện tại đã tự động đăng xuất.');
   };
@@ -701,6 +736,31 @@ export default function App() {
     </div>
   );
 
+  if (isLiveStudioPage) {
+    return (
+      <main className="min-h-[100dvh] bg-[#0c0d11] text-gray-100 font-sans antialiased">
+        {!isAuthHydrated ? (
+          <div className="min-h-[100dvh] flex items-center justify-center text-sm text-gray-400">
+            Đang tải Live Studio...
+          </div>
+        ) : (
+          <LiveStudioModal
+            isOpen={isLiveStudioOpen}
+            onClose={closeLiveStudioPage}
+            streamKeys={displayKeys}
+            currentStreamKey={streamKey}
+            user={currentUser}
+            sessions={sessions}
+            onStreamStarted={(startedKey) => {
+              setStreamKey(startedKey);
+              setInputKey(startedKey);
+            }}
+          />
+        )}
+      </main>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0c0d11] text-gray-100 font-sans antialiased flex flex-col selection:bg-rose-600 selection:text-white">
 
@@ -879,7 +939,7 @@ export default function App() {
                 {currentUser.role === 'admin' && (
                   <>
                     <button
-                      onClick={() => setIsLiveStudioOpen(true)}
+                      onClick={openLiveStudioPage}
                       className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-[11px] sm:text-xs transition shadow-sm border border-rose-500/40 cursor-pointer whitespace-nowrap shrink-0"
                       title="Bật camera phát sóng trực tiếp"
                     >
@@ -2153,19 +2213,6 @@ export default function App() {
         }}
         token={authToken}
         currentUser={currentUser}
-      />
-
-      <LiveStudioModal
-        isOpen={isLiveStudioOpen}
-        onClose={() => setIsLiveStudioOpen(false)}
-        streamKeys={displayKeys}
-        currentStreamKey={streamKey}
-        user={currentUser}
-        sessions={sessions}
-        onStreamStarted={(startedKey) => {
-          setStreamKey(startedKey);
-          setInputKey(startedKey);
-        }}
       />
 
       {/* ==================== MARKETPLACE MODALS ==================== */}
