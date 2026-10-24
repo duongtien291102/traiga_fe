@@ -862,7 +862,12 @@ export default function LiveStudioModal({
 
       const data = await response.json();
       if (data.code !== 0) {
-        throw new Error(`SRS từ chối phát luồng (mã lỗi ${data.code}).`);
+        const serverReason = data.message || data.error || data.reason || data.msg;
+        throw new Error(
+          serverReason
+            ? `SRS từ chối phát luồng (mã lỗi ${data.code}): ${serverReason}`
+            : `SRS từ chối phát luồng (mã lỗi ${data.code}).`
+        );
       }
 
       await pc.setRemoteDescription(
