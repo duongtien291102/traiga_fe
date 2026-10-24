@@ -8,7 +8,7 @@ import SystemAdminDashboard from './components/SystemAdminDashboard';
 import PostChickenModal from './components/PostChickenModal';
 import ChickenDetailModal from './components/ChickenDetailModal';
 import ChickenMarketplace from './components/ChickenMarketplace';
-import UserProfileModal from './components/UserProfileModal';
+import UserProfilePage from './components/UserProfilePage';
 import {
   Radio,
   Search,
@@ -51,6 +51,34 @@ import {
 } from 'lucide-react';
 import { getApiBaseUrl, getHlsBaseUrl, getRtmpBaseUrl, getHost } from './config';
 
+// Mã hóa Key phòng live để chia sẻ an toàn và không để lộ stream key nhạy cảm trên URL
+export const encodeRoomKey = (key) => {
+  if (!key) return '';
+  try {
+    return btoa(key).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  } catch {
+    return key;
+  }
+};
+
+export const decodeRoomKey = (token) => {
+  if (!token) return '';
+  const clean = String(token).trim();
+  // Nếu là số phòng ngắn gọn (ví dụ: ?room=1 -> thanhtrung01)
+  if (/^\d+$/.test(clean)) {
+    const num = parseInt(clean, 10);
+    return `thanhtrung${String(num).padStart(2, '0')}`;
+  }
+  // Nếu là chuỗi base64url đã mã hóa (ví dụ: dGhhbmh0cnVuZzAx -> thanhtrung01)
+  try {
+    let base64 = clean.replace(/-/g, '+').replace(/_/g, '/');
+    while (base64.length % 4) base64 += '=';
+    const decoded = atob(base64);
+    if (decoded && decoded.length > 0) return decoded;
+  } catch {}
+  return clean;
+};
+
 export default function App() {
   const [streamKey, setStreamKey] = useState('thanhtrung01');
   const [inputKey, setInputKey] = useState('thanhtrung01');
@@ -64,7 +92,6 @@ export default function App() {
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
   const [isSystemAdminOpen, setIsSystemAdminOpen] = useState(false);
   const [isLiveStudioOpen, setIsLiveStudioOpen] = useState(false);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [activeRightTab, setActiveRightTab] = useState('chat'); // 'chat' | 'obs' | 'info'
   const [liveCamera, setLiveCamera] = useState('cam1'); // 'cam1' (toàn cảnh) | 'cam2' (soi chân vảy)
   const [liveAudioTrack, setLiveAudioTrack] = useState('blv'); // 'blv' (BLV Thành Trung) | 'arena' (Sới gốc)
@@ -161,8 +188,6 @@ export default function App() {
     farm: 'Trại Gà Thành Trung 01'
   });
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
-  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
 
   // Danh sách key từ MongoDB & danh sách Video Xem Lại (Replays)
@@ -207,7 +232,7 @@ export default function App() {
     setCurrentUser(null);
     setAuthToken('');
     setMyStreamKey('');
-    setIsProfileModalOpen(false);
+    setActiveNavTab((curr) => curr === 'profile' ? 'home' : curr);
     setIsAdminPanelOpen(false);
     setIsSystemAdminOpen(false);
     setIsLiveStudioOpen(false);
@@ -315,23 +340,23 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Tự động nhận diện kênh từ URL khi vào web và ẩn ngay tham số nhạy cảm khỏi thanh địa chỉ
+  // Tự động nhận diện kênh từ URL (hỗ trợ link mã hóa ?live=... hoặc ?room=...) và ẩn ngay tham số khỏi thanh địa chỉ
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      const urlKey = params.get('stream') || params.get('channel') || params.get('key');
+      const rawParam = params.get('live') || params.get('room') || params.get('v') || params.get('stream') || params.get('channel') || params.get('key');
       const tabParam = params.get('tab');
-      if (urlKey && urlKey.trim()) {
-        const clean = urlKey.trim();
-        setStreamKey(clean);
-        setInputKey(clean);
+      if (rawParam && rawParam.trim()) {
+        const decodedKey = decodeRoomKey(rawParam.trim());
+        setStreamKey(decodedKey);
+        setInputKey(decodedKey);
+        setActiveNavTab('live');
+        setPreviewSelectedChannel(true);
+
         const cleanUrl = new URL(window.location.href);
-        cleanUrl.searchParams.delete('stream');
-        cleanUrl.searchParams.delete('channel');
-        cleanUrl.searchParams.delete('key');
+        ['live', 'room', 'v', 'stream', 'channel', 'key', 'tab'].forEach((k) => cleanUrl.searchParams.delete(k));
         window.history.replaceState({}, '', cleanUrl.toString());
-      }
-      if (tabParam === 'live') {
+      } else if (tabParam === 'live') {
         setActiveNavTab('live');
       }
     }
@@ -340,12 +365,7 @@ export default function App() {
   // Phím tắt Ctrl+K để tìm kiếm nhanh & ESC đóng modal
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setIsSearchModalOpen(true);
-      }
       if (e.key === 'Escape') {
-        setIsSearchModalOpen(false);
         setIsConnectModalOpen(false);
         setIsPolicyModalOpen(false);
       }
@@ -413,7 +433,7 @@ export default function App() {
     setCurrentUser(null);
     setAuthToken('');
     setMyStreamKey('');
-    setIsProfileModalOpen(false);
+    setActiveNavTab((curr) => curr === 'profile' ? 'home' : curr);
   };
 
   // Mở modal liên hệ chủ trại (Bắt buộc đăng nhập tài khoản trước khi liên hệ / mua / gửi lời nhắn)
@@ -824,15 +844,6 @@ export default function App() {
               </button>
             )}
 
-            {/* Search Button (Ctrl+K) */}
-            <button
-              onClick={() => setIsSearchModalOpen(true)}
-              title="Tìm kiếm chạng gà, mã số MS (Ctrl+K)"
-              className="p-1.5 sm:p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg border border-white/10 transition-colors cursor-pointer shrink-0"
-            >
-              <Search className="w-4 h-4" />
-            </button>
-
             {/* Light / Dark Mode Toggle Button */}
             <button
               onClick={toggleThemeMode}
@@ -890,12 +901,20 @@ export default function App() {
                   </>
                 )}
 
-                {/* User avatar & profile button: Click để mở hồ sơ & đổi avatar lưu DB */}
+                {/* User avatar & profile button: Click để mở trang Hồ Sơ Cá Nhân */}
                 <button
                   type="button"
-                  onClick={() => setIsProfileModalOpen(true)}
-                  className="flex items-center gap-1.5 bg-[#16171f] hover:bg-[#20222f] border border-white/10 hover:border-amber-400/50 rounded-full py-1 px-2 sm:px-2.5 shrink-0 transition-all cursor-pointer group shadow-sm active:scale-95"
-                  title="Nhấn để xem thông tin cá nhân và cài đặt ảnh đại diện (Lưu vào Database)"
+                  onClick={() => {
+                    setSelectedMarketChicken(null);
+                    setActiveNavTab('profile');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className={`flex items-center gap-1.5 border rounded-full py-1 px-2 sm:px-2.5 shrink-0 transition-all cursor-pointer group shadow-sm active:scale-95 ${
+                    activeNavTab === 'profile'
+                      ? 'bg-amber-500/20 border-amber-400 text-amber-300 ring-2 ring-amber-400/40 shadow-amber-500/20'
+                      : 'bg-[#16171f] hover:bg-[#20222f] border-white/10 hover:border-amber-400/50 text-gray-200'
+                  }`}
+                  title="Xem và chỉnh sửa hồ sơ cá nhân (Lưu vào Database)"
                 >
                   {currentUser.avatar ? (
                     <img
@@ -909,7 +928,9 @@ export default function App() {
                       {currentUser.username.substring(0, 1)}
                     </div>
                   )}
-                  <span className="text-xs font-semibold text-gray-200 group-hover:text-amber-300 hidden sm:inline whitespace-nowrap transition-colors">
+                  <span className={`text-xs font-semibold hidden sm:inline whitespace-nowrap transition-colors ${
+                    activeNavTab === 'profile' ? 'text-amber-300 font-bold' : 'group-hover:text-amber-300'
+                  }`}>
                     {currentUser.role === 'admin' ? 'Admin' : currentUser.role === 'systemadmin' ? 'SysAdmin' : (currentUser.full_name || currentUser.username).split(' ')[0]}
                   </span>
                 </button>
@@ -1454,11 +1475,12 @@ export default function App() {
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => {
-                    const shareUrl = `${window.location.origin}/?tab=live&key=${streamKey}`;
+                    const shareCode = encodeRoomKey(streamKey);
+                    const shareUrl = `${window.location.origin}/?live=${shareCode}`;
                     copyToClipboard(shareUrl, 'shareChannel');
                   }}
                   className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#1b1c25] hover:bg-white/10 text-gray-300 hover:text-white text-[11px] sm:text-xs font-semibold border border-white/10 transition cursor-pointer"
-                  title="Sao chép link trực tiếp phòng live này để gửi anh em xem"
+                  title="Sao chép link an toàn phòng live này để gửi anh em xem"
                 >
                   {copiedField === 'shareChannel' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-cyan-400" />}
                   <span>{copiedField === 'shareChannel' ? 'Đã sao chép!' : 'Chia sẻ'}</span>
@@ -1493,9 +1515,6 @@ export default function App() {
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-extrabold text-white">
                               {currentRoomInfo.title}
-                            </span>
-                            <span className="bg-amber-500/20 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded">
-                              {currentRoomInfo.chang}
                             </span>
                           </div>
                           <p className="text-[11px] text-gray-400 mt-0.5">
@@ -2041,6 +2060,30 @@ export default function App() {
           )
         )}
 
+        {/* ======================================================== */}
+        {/* VIEW 4: TRANG HỒ SƠ & TÀI KHOẢN CÁ NHÂN (FULL PAGE)      */}
+        {/* ======================================================== */}
+        {activeNavTab === 'profile' && (
+          <UserProfilePage
+            currentUser={currentUser}
+            authToken={authToken}
+            myStreamKey={myStreamKey}
+            onProfileUpdated={(updatedUser) => {
+              handleProfileUpdated(updatedUser);
+              fetchKeysAndSessions();
+            }}
+            onBack={() => {
+              setActiveNavTab('home');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onNavigateTab={(tab) => {
+              setSelectedMarketChicken(null);
+              setActiveNavTab(tab);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        )}
+
       </main>
 
       {/* ==================== FOOTER ==================== */}
@@ -2321,51 +2364,6 @@ export default function App() {
         </div>
       )}
 
-      {/* ==================== MODAL TÌM KIẾM NHANH (Ctrl+K) ==================== */}
-      {isSearchModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-start justify-center pt-20 p-4">
-          <div className="bg-[#16171f] border border-white/10 rounded-2xl w-full max-w-lg p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center gap-2 border-b border-white/10 pb-3">
-              <Search className="w-5 h-5 text-gray-400" />
-              <input
-                autoFocus
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Gõ chạng cân (ví dụ: 2k9, 3k1), mã số MS, tên trại..."
-                className="w-full bg-transparent text-sm text-white focus:outline-none"
-              />
-              <button onClick={() => setIsSearchModalOpen(false)} className="text-gray-400 hover:text-white text-xs">
-                ESC
-              </button>
-            </div>
-
-            <div className="space-y-2 text-xs max-h-60 overflow-y-auto">
-              {liveRooms
-                .filter(r => !searchQuery || r.title.toLowerCase().includes(searchQuery.toLowerCase()) || r.chang.toLowerCase().includes(searchQuery.toLowerCase()) || r.farm.toLowerCase().includes(searchQuery.toLowerCase()))
-                .map((r) => (
-                  <div
-                    key={r.id}
-                    onClick={() => {
-                      changeChannel(r.id, true);
-                      setIsSearchModalOpen(false);
-                    }}
-                    className="p-2.5 rounded-xl bg-[#0e0f14] hover:bg-white/10 cursor-pointer flex justify-between items-center transition"
-                  >
-                    <div>
-                      <div className="font-bold text-white">{r.ms ? `${r.ms}: ` : ''}{r.title}</div>
-                      <div className="text-[10px] text-gray-400">{r.farm}{r.chang ? ` • Chạng: ${r.chang}` : ''}</div>
-                    </div>
-                    <span className="text-rose-500 font-bold text-[10px] bg-rose-500/10 px-2 py-0.5 rounded">
-                      LIVE
-                    </span>
-                  </div>
-                ))}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ==================== SYSTEM & ADMIN MODALS ==================== */}
       <AuthModal
         isOpen={isAuthModalOpen}
@@ -2466,16 +2464,6 @@ export default function App() {
         onClose={() => setIsPostChickenModalOpen(false)}
         onAddChicken={handleAddChicken}
         currentUser={currentUser}
-      />
-
-      {/* ==================== USER PROFILE & AVATAR MODAL ==================== */}
-      <UserProfileModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-        currentUser={currentUser}
-        authToken={authToken}
-        myStreamKey={myStreamKey}
-        onProfileUpdated={handleProfileUpdated}
       />
 
     </div>
