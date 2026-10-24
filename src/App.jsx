@@ -1145,67 +1145,91 @@ export default function App() {
                     <h3 className={`text-xs sm:text-sm font-black uppercase tracking-wider ${
                       themeMode === 'light' ? 'text-slate-900' : 'text-white'
                     }`}>
-                      Đang Xổ &amp; Lên Sóng
+                      {actualLiveRooms.length > 0 ? 'Đang Xổ & Lên Sóng' : 'Danh Sách Kênh'}
                     </h3>
                   </div>
                   <span
                     onClick={() => { setActiveNavTab('live'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                    className="text-xs text-rose-600 font-bold cursor-pointer hover:underline"
+                    className={`text-xs font-bold cursor-pointer hover:underline ${
+                      actualLiveRooms.length > 0 ? 'text-rose-600' : 'text-gray-400'
+                    }`}
                   >
-                    {actualLiveRooms.length > 0 ? `${actualLiveRooms.length} Kênh Live` : '0 Kênh Live'}
+                    {actualLiveRooms.length > 0 ? `${actualLiveRooms.length} Kênh Live` : 'Chờ lên sóng'}
                   </span>
                 </div>
 
                 {/* List of active channels */}
                 <div className="space-y-2.5 my-3 overflow-y-auto max-h-[260px] pr-1">
-                  {displayKeys.map((item) => {
-                    const itemKey = (item.key || item.id || '').trim().toLowerCase();
-                    const isItemLive = allLiveKeys.includes(itemKey) || Boolean(item.is_live);
-                    return (
-                      <div
-                        key={item.key || item.id}
-                        onClick={() => {
-                          setPreviewSelectedChannel(item.key || item.id);
-                          changeChannel(item.key || item.id, true);
-                        }}
-                        className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
-                          streamKey === (item.key || item.id)
-                            ? (themeMode === 'light' ? 'bg-rose-50 border-rose-300 shadow-sm' : 'bg-rose-950/40 border-rose-500/60 shadow-md')
-                            : (themeMode === 'light' ? 'bg-slate-50 hover:bg-slate-100 border-slate-200' : 'bg-[#111217] hover:bg-white/5 border-white/5')
-                        }`}
-                      >
-                        <div className="flex items-center justify-between text-[11px] mb-1">
-                          <span className={`flex items-center gap-1.5 font-bold truncate max-w-[170px] ${
-                            themeMode === 'light' ? 'text-slate-900' : 'text-gray-300'
-                          }`}>
-                            🐓 {item.title || item.streamer || 'Phòng Live Trại Gà'}
-                          </span>
-                          {isItemLive ? (
-                            <span className="text-rose-600 font-bold flex items-center gap-1 text-[11px]">
-                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
-                              LIVE
+                  {(() => {
+                    const sortedKeys = [...displayKeys].sort((a, b) => {
+                      const aKey = (a.key || a.id || '').trim().toLowerCase();
+                      const bKey = (b.key || b.id || '').trim().toLowerCase();
+                      const aLive = allLiveKeys.includes(aKey) || Boolean(a.is_live);
+                      const bLive = allLiveKeys.includes(bKey) || Boolean(b.is_live);
+                      if (aLive && !bLive) return -1;
+                      if (!aLive && bLive) return 1;
+                      return 0;
+                    });
+
+                    return sortedKeys.map((item) => {
+                      const itemKey = (item.key || item.id || '').trim().toLowerCase();
+                      const isItemLive = allLiveKeys.includes(itemKey) || Boolean(item.is_live);
+                      const isSelected = streamKey === (item.key || item.id);
+
+                      return (
+                        <div
+                          key={item.key || item.id}
+                          onClick={() => {
+                            setPreviewSelectedChannel(item.key || item.id);
+                            changeChannel(item.key || item.id, true);
+                          }}
+                          className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
+                            isItemLive
+                              ? (isSelected
+                                  ? (themeMode === 'light' ? 'bg-rose-50 border-rose-300 shadow-sm' : 'bg-rose-950/40 border-rose-500/60 shadow-md')
+                                  : (themeMode === 'light' ? 'bg-rose-50/50 hover:bg-rose-50 border-rose-200' : 'bg-rose-950/20 hover:bg-rose-950/30 border-rose-500/30'))
+                              : (isSelected
+                                  ? (themeMode === 'light' ? 'bg-slate-100 border-slate-300 shadow-sm' : 'bg-white/5 border-white/20 shadow-sm')
+                                  : (themeMode === 'light' ? 'bg-slate-50 hover:bg-slate-100 border-slate-200' : 'bg-[#111217] hover:bg-white/5 border-white/5'))
+                          }`}
+                        >
+                          <div className="flex items-center justify-between text-[11px] mb-1">
+                            <span className={`flex items-center gap-1.5 font-bold truncate max-w-[170px] ${
+                              themeMode === 'light' ? 'text-slate-900' : 'text-gray-300'
+                            }`}>
+                              🐓 {item.title || item.streamer || 'Phòng Live Trại Gà'}
                             </span>
-                          ) : (
-                            <span className="text-gray-500 font-medium text-[10px]">
-                              Chờ lên sóng
+                            {isItemLive ? (
+                              <span className="text-rose-600 font-bold flex items-center gap-1 text-[11px]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                                LIVE
+                              </span>
+                            ) : (
+                              <span className="text-gray-500 font-medium text-[10px]">
+                                Chờ lên sóng
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className={`text-[11px] ${themeMode === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
+                              Chủ kê: {item.streamer || 'Trại Gà Thành Trung'}
                             </span>
-                          )}
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded transition ${
+                              isItemLive
+                                ? (isSelected
+                                    ? 'bg-rose-600 text-white'
+                                    : 'bg-rose-500/20 text-rose-400 border border-rose-500/30')
+                                : (isSelected
+                                    ? (themeMode === 'light' ? 'bg-slate-200 text-slate-800' : 'bg-white/20 text-white')
+                                    : (themeMode === 'light' ? 'bg-slate-100 text-slate-600' : 'bg-white/10 text-gray-300'))
+                            }`}>
+                              {isItemLive ? 'Xem luồng' : 'Vào kênh'}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className={`text-[11px] ${themeMode === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
-                            Chủ kê: {item.streamer || 'Trại Gà Thành Trung'}
-                          </span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                            streamKey === (item.key || item.id)
-                              ? 'bg-rose-600 text-white'
-                              : (themeMode === 'light' ? 'bg-slate-200 text-slate-700' : 'bg-white/10 text-gray-300')
-                          }`}>
-                            {isItemLive ? 'Xem luồng' : 'Vào kênh'}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    });
+                  })()}
                 </div>
 
                 <div
@@ -1570,7 +1594,7 @@ export default function App() {
                       <div className="flex items-center gap-2.5">
                         <div className="w-1.5 h-6 bg-rose-500 rounded-full shrink-0"></div>
                         <h2 className="text-base sm:text-xl font-extrabold tracking-tight text-white uppercase">
-                          {showAllRooms ? 'Danh Sách Tất Cả Kênh Phát' : 'Các Phòng Đang Lên Sóng Trực Tiếp'}
+                          {showAllRooms ? 'Danh Sách Tất Cả Kênh Phát' : (actualLiveRooms.length > 0 ? 'Các Phòng Đang Lên Sóng Trực Tiếp' : 'Phòng Phát Sóng Trực Tiếp')}
                         </h2>
                       </div>
 
@@ -1973,8 +1997,10 @@ export default function App() {
                 <div className="text-xs font-bold text-white">{selectedChickenForConnect.title}</div>
                 <div className="text-[11px] text-amber-400 font-semibold">{selectedChickenForConnect.farm}</div>
               </div>
-              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded">
-                Đang Lên Sóng
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                hasAnyLive ? 'text-emerald-400 bg-emerald-500/20' : 'text-gray-400 bg-white/10'
+              }`}>
+                {hasAnyLive ? 'Đang Lên Sóng' : 'Chiến Kê Sẵn Sàng'}
               </span>
             </div>
 

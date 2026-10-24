@@ -60,11 +60,13 @@ export default function LiveStudioModal({
     return (typeof window !== 'undefined' && localStorage.getItem('traiga_stream_delay_mode')) || 'normal';
   });
   const [resolution, setResolution] = useState('720p'); // '1080p' | '720p' | '480p' | '360p'
+  const [actualVideoSettings, setActualVideoSettings] = useState(null);
   const [orientation, setOrientation] = useState('landscape'); // 'landscape' (Ngang 16:9) | 'portrait' (Dọc 9:16) | 'square' (Vuông 1:1)
   
   // Chế độ phóng to toàn màn hình camera cho Streamer
   const [isCamMaximized, setIsCamMaximized] = useState(false);
   const [videoFit, setVideoFit] = useState('contain'); // 'contain' (khớp người xem) | 'cover' (lấp đầy)
+  const [, setPreviewMetadataVersion] = useState(0);
   
   // Tab điều khiển bên dưới: 'chat' (Bình luận trực tiếp) | 'config' (Cấu hình luồng)
   const [activeTab, setActiveTab] = useState('chat');
@@ -77,6 +79,7 @@ export default function LiveStudioModal({
   const [isChatConnected, setIsChatConnected] = useState(false);
 
   const previewVideoRef = useRef(null);
+  const previewFrameRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const peerConnRef = useRef(null);
   const timerRef = useRef(null);
@@ -405,6 +408,15 @@ export default function LiveStudioModal({
     return { width: w, height: h, aspectRatio: 16 / 9 };
   };
 
+  const syncActualVideoSettings = (track) => {
+    const settings = track?.getSettings?.();
+    setActualVideoSettings(settings?.width && settings?.height ? {
+      width: settings.width,
+      height: settings.height,
+      frameRate: settings.frameRate
+    } : null);
+  };
+
   // Cập nhật lại cấu hình camera khi đổi độ phân giải hoặc xoay dọc/ngang mà không mất luồng
   const updateCameraTrack = async (newRes, newOrient, currentMode = facingMode) => {
     if (sourceType !== 'camera') return;
@@ -431,6 +443,7 @@ export default function LiveStudioModal({
       }
 
       const newVideoTrack = newStream.getVideoTracks()[0];
+      syncActualVideoSettings(newVideoTrack);
       if (mediaStreamRef.current) {
         if (oldVideoTrack) {
           mediaStreamRef.current.removeTrack(oldVideoTrack);
@@ -467,6 +480,26 @@ export default function LiveStudioModal({
   const handleOrientationChange = (orient) => {
     setOrientation(orient);
     updateCameraTrack(resolution, orient);
+  };
+
+  const getPreviewRotation = (video = previewVideoRef.current, orient = orientation) => {
+    if (!video?.videoWidth || !video?.videoHeight || orient === 'square') return 0;
+    const trackIsPortrait = video.videoHeight > video.videoWidth;
+    return (orient === 'portrait') === trackIsPortrait ? 0 : 90;
+  };
+
+  const getPreviewVideoStyle = () => {
+    const video = previewVideoRef.current;
+    const frame = previewFrameRef.current;
+    const rotation = getPreviewRotation(video);
+    const frameWidth = frame?.clientWidth || 0;
+    const frameHeight = frame?.clientHeight || 0;
+    const rotated = rotation !== 0;
+    return {
+      width: rotated && frameHeight ? `${frameHeight}px` : '100%',
+      height: rotated && frameWidth ? `${frameWidth}px` : '100%',
+      transform: `${facingMode === 'user' && sourceType === 'camera' ? 'scaleX(-1) ' : ''}${rotated ? `rotate(${rotation}deg)` : ''}`.trim() || 'none'
+    };
   };
 
   // Khởi tạo nguồn thu Webcam hoặc Màn hình
@@ -552,6 +585,7 @@ export default function LiveStudioModal({
 
         const videoTracks = stream.getVideoTracks();
         setIsCameraOn(videoTracks.length > 0);
+        syncActualVideoSettings(videoTracks[0]);
       } else {
         // Chia sẻ màn hình
         stream = await navigator.mediaDevices.getDisplayMedia({
@@ -567,6 +601,7 @@ export default function LiveStudioModal({
 
         setIsCameraOn(true);
         setIsMicOn(stream.getAudioTracks().length > 0);
+        syncActualVideoSettings(stream.getVideoTracks()[0]);
       }
 
       mediaStreamRef.current = stream;
@@ -632,6 +667,7 @@ export default function LiveStudioModal({
       }
 
       const newVideoTrack = newStream.getVideoTracks()[0];
+      syncActualVideoSettings(newVideoTrack);
 
       if (mediaStreamRef.current) {
         if (oldVideoTrack) {
@@ -961,7 +997,7 @@ export default function LiveStudioModal({
           <div className={`${isCamMaximized ? 'lg:col-span-8' : 'lg:col-span-7'} flex flex-col gap-2.5 transition-all duration-300`}>
             
             {/* KHUNG CAMERA CHUẨN GÓC RỘNG - HỖ TRỢ XOAY DỌC 9:16, NGANG 16:9 VÀ VUÔNG 1:1 */}
-            <div className={`relative w-full ${
+            <div ref={previewFrameRef} className={`relative w-full ${
               orientation === 'portrait'
                 ? 'max-w-[280px] mx-auto aspect-[9/16] h-[360px] sm:h-[430px]'
                 : orientation === 'square'
@@ -976,9 +1012,8 @@ export default function LiveStudioModal({
                 autoPlay
                 playsInline
                 muted
-                style={{
-                  transform: facingMode === 'user' && sourceType === 'camera' ? 'scaleX(-1)' : 'none'
-                }}
+                onLoadedMetadata={() => setPreviewMetadataVersion((version) => version + 1)}
+                style={getPreviewVideoStyle()}
                 className={`w-full h-full ${videoFit === 'contain' ? 'object-contain' : 'object-cover'} object-center bg-black transition-all duration-200`}
               />
 
@@ -1398,7 +1433,7 @@ export default function LiveStudioModal({
                       <Sliders className="w-3.5 h-3.5 text-cyan-400" />
                       <span>Độ phân giải video:</span>
                     </span>
-                    <span className="text-[10px] text-cyan-300/80 font-mono">30 FPS</span>
+                    <span className="text-[10px] text-cyan-300/80 font-mono">Tối đa 30 FPS</span>
                   </label>
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
@@ -1444,7 +1479,7 @@ export default function LiveStudioModal({
                         <Zap className="w-3 h-3 text-amber-400" />
                         <span>Siêu nhanh</span>
                       </div>
-                      <span className="text-[9px] opacity-75 font-mono">~3 - 5s trễ</span>
+                      <span className="text-[9px] opacity-75 font-mono">Ít buffer hơn</span>
                     </button>
 
                     <button
@@ -1460,7 +1495,7 @@ export default function LiveStudioModal({
                         <ShieldCheck className="w-3 h-3 text-emerald-400" />
                         <span>Cân bằng</span>
                       </div>
-                      <span className="text-[9px] opacity-75 font-mono">~6 - 9s trễ</span>
+                      <span className="text-[9px] opacity-75 font-mono">Cân bằng buffer</span>
                     </button>
 
                     <button
@@ -1476,7 +1511,7 @@ export default function LiveStudioModal({
                         <Activity className="w-3 h-3 text-blue-400" />
                         <span>Ổn định cao</span>
                       </div>
-                      <span className="text-[9px] opacity-75 font-mono">~12 - 15s</span>
+                      <span className="text-[9px] opacity-75 font-mono">Nhiều buffer hơn</span>
                     </button>
                   </div>
                 </div>
@@ -1485,7 +1520,7 @@ export default function LiveStudioModal({
                 <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 space-y-1.5 font-mono text-[11px] text-gray-400">
                   <div className="flex justify-between">
                     <span>Giao thức phát:</span>
-                    <span className="text-cyan-400 font-bold">WebRTC (Ultra-low &lt; 0.3s)</span>
+                    <span className="text-cyan-400 font-bold">HLS • buffer tùy chế độ</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Khung hình / Cam:</span>
@@ -1495,12 +1530,16 @@ export default function LiveStudioModal({
                   </div>
                   <div className="flex justify-between">
                     <span>Chất lượng video:</span>
-                    <span className="text-gray-200">{resolution.toUpperCase()} @ 30fps</span>
+                    <span className="text-gray-200">
+                      {actualVideoSettings
+                        ? `${actualVideoSettings.width}×${actualVideoSettings.height}${actualVideoSettings.frameRate ? ` @ ${Math.round(actualVideoSettings.frameRate)} FPS` : ''}`
+                        : `${resolution.toUpperCase()} yêu cầu • tối đa 30 FPS`}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Độ trễ khán giả:</span>
                     <span className="text-emerald-400 font-bold">
-                      {streamDelayMode === 'low' ? 'Siêu nhanh (~3s)' : streamDelayMode === 'safe' ? 'Ổn định cao (~12s)' : 'Cân bằng (~6-9s)'}
+                      {streamDelayMode === 'low' ? 'Ít buffer hơn' : streamDelayMode === 'safe' ? 'Nhiều buffer hơn' : 'Cân bằng buffer'}
                     </span>
                   </div>
                 </div>
