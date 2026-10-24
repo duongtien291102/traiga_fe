@@ -31,7 +31,8 @@ import {
   Sliders,
   Gauge
 } from 'lucide-react';
-import { getWsUrl, NGROK_HLS_URL, isVercel } from '../config';
+import { getApiBaseUrl, getWsUrl, NGROK_HLS_URL, isVercel } from '../config';
+import { mergeChatMessages } from '../chatUtils';
 
 export default function LiveStudioModal({ 
   isOpen, 
@@ -75,6 +76,7 @@ export default function LiveStudioModal({
   const [studioMessages, setStudioMessages] = useState([]);
   const [studioChatInput, setStudioChatInput] = useState('');
   const [studioChatError, setStudioChatError] = useState('');
+  const [isSendingStudioChat, setIsSendingStudioChat] = useState(false);
   const [viewerCount, setViewerCount] = useState(1);
   const [floatingEmojis, setFloatingEmojis] = useState([]);
   const [isChatConnected, setIsChatConnected] = useState(false);
@@ -85,6 +87,8 @@ export default function LiveStudioModal({
   const peerConnRef = useRef(null);
   const timerRef = useRef(null);
   const studioWsRef = useRef(null);
+  const pendingStudioMessageRef = useRef(null);
+  const pendingStudioMessageTimerRef = useRef(null);
   const chatScrollRef = useRef(null);
   const reconnectTimerRef = useRef(null);
   const isMountedRef = useRef(false);
@@ -96,6 +100,26 @@ export default function LiveStudioModal({
   useEffect(() => {
     userRef.current = user;
   }, [user]);
+
+  const acceptStudioMessages = (incoming) => {
+    if (!Array.isArray(incoming) || incoming.length === 0) return;
+    const pending = pendingStudioMessageRef.current;
+    if (pending) {
+      const acknowledged = incoming.some((message) => {
+        if (message.message !== pending.text) return false;
+        const createdAt = new Date(message.created_at || 0).getTime();
+        return !createdAt || createdAt >= pending.sentAt - 2000;
+      });
+      if (acknowledged) {
+        pendingStudioMessageRef.current = null;
+        clearTimeout(pendingStudioMessageTimerRef.current);
+        setIsSendingStudioChat(false);
+        setStudioChatInput((current) => current.trim() === pending.text ? '' : current);
+        setStudioChatError('');
+      }
+    }
+    setStudioMessages((previous) => mergeChatMessages(previous, incoming));
+  };
 
   useEffect(() => {
     if (currentStreamKey) {
@@ -228,25 +252,12 @@ export default function LiveStudioModal({
             const data = JSON.parse(line);
 
             if (data.type === 'history' && Array.isArray(data.history)) {
-              setStudioMessages(data.history);
+              acceptStudioMessages(data.history);
               setTimeout(() => {
                 chatScrollRef.current?.scrollIntoView({ behavior: 'smooth' });
               }, 100);
             } else if (data.type === 'chat' && data.data) {
-              setStudioMessages((prev) => {
-                const incoming = data.data;
-                // Nếu tin nhắn từ chính mình vừa thêm optimistic thì thay thế
-                const existingIndex = prev.findIndex((m) => 
-                  m.id === incoming.id || 
-                  (String(m.id).startsWith('local_') && m.message === incoming.message && m.username === incoming.username)
-                );
-                if (existingIndex !== -1) {
-                  const updated = [...prev];
-                  updated[existingIndex] = incoming;
-                  return updated;
-                }
-                return [...prev, incoming];
-              });
+              acceptStudioMessages([data.data]);
               setTimeout(() => {
                 chatScrollRef.current?.scrollIntoView({ behavior: 'smooth' });
               }, 50);
@@ -268,8 +279,8 @@ export default function LiveStudioModal({
               }
             } else if (data.type === 'error') {
               const errStr = String(data.error || '');
-              setIsChatConnected(false);
               if (errStr.includes('Token') || errStr.includes('hết hạn') || errStr.includes('thu hồi') || errStr.includes('xác thực')) {
+                setIsChatConnected(false);
                 console.warn('[Studio Chat] Token auth rejected by backend, falling back to guest mode:', errStr);
                 tokenFailedRef.current = true;
                 localStorage.removeItem('auth_token');
@@ -278,6 +289,9 @@ export default function LiveStudioModal({
                 } catch (e) {}
               } else {
                 setStudioChatError(errStr || 'Gửi bình luận thất bại.');
+                pendingStudioMessageRef.current = null;
+                clearTimeout(pendingStudioMessageTimerRef.current);
+                setIsSendingStudioChat(false);
               }
             }
           }
@@ -307,9 +321,12 @@ export default function LiveStudioModal({
 
     isMountedRef.current = true;
     isPageHiddenRef.current = false;
+    pendingStudioMessageRef.current = null;
+    clearTimeout(pendingStudioMessageTimerRef.current);
     setStudioMessages([]);
     setIsChatConnected(false);
     setStudioChatError('');
+    setIsSendingStudioChat(false);
 
     connectChat();
 
@@ -346,6 +363,7 @@ export default function LiveStudioModal({
     return () => {
       isMountedRef.current = false;
       clearTimeout(reconnectTimerRef.current);
+      clearTimeout(pendingStudioMessageTimerRef.current);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handlePageShow);
       window.removeEventListener('online', handleOnline);
@@ -358,11 +376,44 @@ export default function LiveStudioModal({
     };
   }, [isOpen, selectedKey]);
 
+  // Phục hồi bình luận từ DB khi WebSocket không broadcast giữa các client/replica.
+  useEffect(() => {
+    if (!isOpen || !selectedKey) return undefined;
+    let cancelled = false;
+    const syncHistory = async () => {
+      if (document.visibilityState === 'hidden') return;
+      try {
+        const response = await fetch(`${getApiBaseUrl()}/api/chat/history?streamKey=${encodeURIComponent(selectedKey)}`, {
+          cache: 'no-store'
+        });
+        if (!response.ok) return;
+        const history = await response.json();
+        if (!cancelled && Array.isArray(history)) {
+          acceptStudioMessages(history);
+        }
+      } catch {
+        // WebSocket remains the primary realtime path; polling is a recovery fallback.
+      }
+    };
+
+    syncHistory();
+    const timer = setInterval(syncHistory, 4000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [isOpen, selectedKey]);
+
   // Gửi tin nhắn trả lời từ Studio
   const handleSendStudioChat = (e) => {
     e?.preventDefault();
     const text = studioChatInput.trim();
     if (!text) return;
+
+    if (pendingStudioMessageRef.current) {
+      setStudioChatError('Đang chờ máy chủ xác nhận bình luận trước đó.');
+      return;
+    }
 
     const streamerName = userRef.current?.full_name || userRef.current?.username || 'Chủ Trại (Live)';
     const token = !tokenFailedRef.current ? (localStorage.getItem('auth_token') || localStorage.getItem('token') || '') : '';
@@ -382,22 +433,22 @@ export default function LiveStudioModal({
     };
 
     try {
+      const pendingMessage = { text, sentAt: Date.now() };
+      pendingStudioMessageRef.current = pendingMessage;
+      setIsSendingStudioChat(true);
       studioWsRef.current.send(JSON.stringify(payload));
       setStudioChatError('');
-      // Tối ưu hiển thị tức thì (optimistic update)
-      const optimisticMsg = {
-        id: 'local_' + Date.now(),
-        username: streamerName,
-        message: text,
-        role: userRef.current?.role || 'admin',
-        created_at: new Date().toISOString()
-      };
-      setStudioMessages((prev) => [...prev, optimisticMsg]);
-      setStudioChatInput('');
-      setTimeout(() => {
-        chatScrollRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 50);
+      pendingStudioMessageTimerRef.current = setTimeout(() => {
+        if (pendingStudioMessageRef.current !== pendingMessage) return;
+        pendingStudioMessageRef.current = null;
+        setIsSendingStudioChat(false);
+        setStudioChatError('Máy chủ chưa xác nhận bình luận. Nội dung vẫn được giữ lại, hãy kiểm tra kết nối rồi gửi lại.');
+      }, 10000);
     } catch (err) {
+      pendingStudioMessageRef.current = null;
+      clearTimeout(pendingStudioMessageTimerRef.current);
+      setIsSendingStudioChat(false);
+      setStudioChatError('Không gửi được bình luận. Nội dung vẫn được giữ lại.');
       console.warn('Lỗi gửi tin nhắn studio:', err);
     }
   };
@@ -1352,18 +1403,11 @@ export default function LiveStudioModal({
                   />
                   <button
                     type="submit"
-                    disabled={!studioChatInput.trim() || !isChatConnected}
-                    onClick={handleSendStudioChat}
-                    onTouchEnd={(e) => {
-                      if (studioChatInput.trim()) {
-                        e.preventDefault();
-                        handleSendStudioChat(e);
-                      }
-                    }}
+                    disabled={!studioChatInput.trim() || !isChatConnected || isSendingStudioChat}
                     className="p-2 rounded-xl bg-rose-600 hover:bg-rose-500 active:scale-95 text-white disabled:opacity-40 transition cursor-pointer shrink-0"
-                    title="Gửi phản hồi"
+                    title={isSendingStudioChat ? 'Đang chờ máy chủ xác nhận' : 'Gửi phản hồi'}
                   >
-                    <Send className="w-3.5 h-3.5" />
+                    {isSendingStudioChat ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                   </button>
                 </form>
                 {studioChatError && (

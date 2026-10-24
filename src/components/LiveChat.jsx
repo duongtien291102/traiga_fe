@@ -15,7 +15,8 @@ import {
   LogIn
 } from 'lucide-react';
 
-import { getWsUrl } from '../config';
+import { getApiBaseUrl, getWsUrl } from '../config';
+import { mergeChatMessages } from '../chatUtils';
 
 const QUICK_EMOJIS = ['❤️', '🔥', '👏', '🎉', '💯', '😂', '⭐', '🚀'];
 
@@ -123,7 +124,7 @@ export default function LiveChat({ streamKey = 'thanhtrung01', user = null, onOp
 
                 case 'history':
                   if (Array.isArray(data.history)) {
-                    setMessages(data.history);
+                    setMessages((prev) => mergeChatMessages(prev, data.history));
                     setTimeout(() => scrollToBottom(false), 100);
                   }
                   break;
@@ -135,7 +136,7 @@ export default function LiveChat({ streamKey = 'thanhtrung01', user = null, onOp
 
                 case 'chat':
                   if (data.data && (!data.data.stream_key || data.data.stream_key === streamKey)) {
-                    setMessages((prev) => [...prev, data.data]);
+                    setMessages((prev) => mergeChatMessages(prev, [data.data]));
                   }
                   break;
 
@@ -245,6 +246,34 @@ export default function LiveChat({ streamKey = 'thanhtrung01', user = null, onOp
     };
   }, [streamKey, user, guestName]);
 
+  // Khôi phục bình luận đã lưu nếu WebSocket bị ngắt hoặc các client nối tới replica khác.
+  useEffect(() => {
+    if (!streamKey) return undefined;
+    let cancelled = false;
+    const syncHistory = async () => {
+      if (document.visibilityState === 'hidden') return;
+      try {
+        const response = await fetch(`${getApiBaseUrl()}/api/chat/history?streamKey=${encodeURIComponent(streamKey)}`, {
+          cache: 'no-store'
+        });
+        if (!response.ok) return;
+        const history = await response.json();
+        if (!cancelled && Array.isArray(history)) {
+          setMessages((prev) => mergeChatMessages(prev, history));
+        }
+      } catch {
+        // WebSocket remains the primary realtime path; polling is a recovery fallback.
+      }
+    };
+
+    syncHistory();
+    const timer = setInterval(syncHistory, 4000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [streamKey]);
+
   // Gửi tin nhắn (Bắt buộc phải đăng nhập tài khoản)
   const handleSendMessage = (e) => {
     e?.preventDefault();
@@ -325,6 +354,7 @@ export default function LiveChat({ streamKey = 'thanhtrung01', user = null, onOp
               <span>Bình luận trực tiếp</span>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             </h3>
+            <p className="text-[9px] text-slate-500 font-mono">Kênh: {streamKey}</p>
           </div>
         </div>
 

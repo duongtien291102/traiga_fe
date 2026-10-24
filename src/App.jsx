@@ -1099,7 +1099,7 @@ export default function App() {
                           <span>Chủ kê: {topLiveRoom.streamer}</span>
                         </div>
                         <h3 className="text-lg sm:text-xl font-bold text-white leading-tight">
-                          {topLiveRoom.title} <span className="text-amber-400">({topLiveRoom.chang})</span>
+                          {topLiveRoom.title}
                         </h3>
                         <p className="text-xs text-slate-400 line-clamp-1">
                           {topLiveRoom.loi} • Trực tiếp từ chuồng xổ
