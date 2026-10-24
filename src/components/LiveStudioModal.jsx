@@ -49,6 +49,7 @@ export default function LiveStudioModal({
   const [isMicOn, setIsMicOn] = useState(true);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isLive, setIsLive] = useState(false);
+  const [hasStream, setHasStream] = useState(false);
   const [streamDuration, setStreamDuration] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
   const [isCopiedSession, setIsCopiedSession] = useState(false);
@@ -364,8 +365,10 @@ export default function LiveStudioModal({
       if (previewVideoRef.current) {
         previewVideoRef.current.srcObject = stream;
       }
+      setHasStream(true);
     } catch (err) {
       console.error('Lỗi truy cập thiết bị thu hình:', err);
+      setHasStream(false);
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         setErrorMessage('Trình duyệt đã chặn quyền Camera/Micro. Vui lòng bấm vào biểu tượng Ổ khóa 🔒 (hoặc Cài đặt trang web) trên thanh địa chỉ, chọn "Cho phép" Camera và Micro, sau đó bấm Thử Lại.');
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
@@ -384,6 +387,7 @@ export default function LiveStudioModal({
       initMediaStream(sourceType, facingMode);
     } else {
       stopLivestream();
+      setHasStream(false);
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach((track) => track.stop());
         mediaStreamRef.current = null;
@@ -834,56 +838,58 @@ export default function LiveStudioModal({
               </div>
 
               {/* THÔNG BÁO NẾU CAMERA BỊ KHÓA HOẶC CHƯA CẤP QUYỀN */}
-              {!mediaStreamRef.current && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-black/90 text-gray-400 z-10">
+              {!hasStream && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-black/95 text-gray-400 z-30">
                   <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 mb-3">
                     <Camera className="w-6 h-6" />
                   </div>
                   <p className="text-xs font-bold text-white mb-1">Chưa nhận được tín hiệu Camera</p>
-                  <p className="text-[11px] text-gray-400 max-w-xs mb-3">
-                    Vui lòng bấm Cho phép khi trình duyệt hỏi quyền truy cập Camera/Microphone.
+                  <p className="text-[11px] text-gray-400 max-w-xs mb-3.5 leading-relaxed">
+                    Vui lòng bấm <b>Cho phép</b> khi trình duyệt hỏi quyền truy cập Camera & Microphone.
                   </p>
                   <button
                     onClick={() => initMediaStream(sourceType, facingMode)}
-                    className="px-4 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-bold shadow-md"
+                    className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg transition active:scale-95 cursor-pointer"
                   >
                     Thử Lại Camera
                   </button>
                 </div>
               )}
 
-              {/* THANH ĐIỀU KHIỂN CAMERA & MIC NẰM NỔI BÊN DƯỚI VIDEO */}
-              <div className="absolute bottom-3 inset-x-0 flex items-center justify-center gap-3 z-20">
-                <button
-                  onClick={toggleMic}
-                  className={`p-2.5 sm:p-3 rounded-full transition shadow-lg backdrop-blur-md cursor-pointer ${
-                    isMicOn ? 'bg-black/60 text-white hover:bg-black/80 border border-white/20' : 'bg-rose-600 text-white border border-rose-400'
-                  }`}
-                  title={isMicOn ? "Tắt Micro" : "Bật Micro"}
-                >
-                  {isMicOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-                </button>
-
-                <button
-                  onClick={toggleCamera}
-                  className={`p-2.5 sm:p-3 rounded-full transition shadow-lg backdrop-blur-md cursor-pointer ${
-                    isCameraOn ? 'bg-black/60 text-white hover:bg-black/80 border border-white/20' : 'bg-rose-600 text-white border border-rose-400'
-                  }`}
-                  title={isCameraOn ? "Tắt Camera" : "Bật Camera"}
-                >
-                  {isCameraOn ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
-                </button>
-
-                {sourceType === 'camera' && (
+              {/* THANH ĐIỀU KHIỂN CAMERA & MIC NẰM NỔI BÊN DƯỚI VIDEO (CHỈ HIỆN KHI ĐÃ CÓ STREAM) */}
+              {hasStream && (
+                <div className="absolute bottom-3 inset-x-0 flex items-center justify-center gap-3 z-20">
                   <button
-                    onClick={toggleFacingMode}
-                    className="p-2.5 sm:p-3 rounded-full bg-amber-500/80 hover:bg-amber-500 text-slate-950 font-bold transition shadow-lg backdrop-blur-md cursor-pointer border border-amber-300"
-                    title="Xoay Camera trước / sau"
+                    onClick={toggleMic}
+                    className={`p-2.5 sm:p-3 rounded-full transition shadow-lg backdrop-blur-md cursor-pointer ${
+                      isMicOn ? 'bg-black/60 text-white hover:bg-black/80 border border-white/20' : 'bg-rose-600 text-white border border-rose-400'
+                    }`}
+                    title={isMicOn ? "Tắt Micro" : "Bật Micro"}
                   >
-                    <RefreshCw className="w-4 h-4" />
+                    {isMicOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
                   </button>
-                )}
-              </div>
+
+                  <button
+                    onClick={toggleCamera}
+                    className={`p-2.5 sm:p-3 rounded-full transition shadow-lg backdrop-blur-md cursor-pointer ${
+                      isCameraOn ? 'bg-black/60 text-white hover:bg-black/80 border border-white/20' : 'bg-rose-600 text-white border border-rose-400'
+                    }`}
+                    title={isCameraOn ? "Tắt Camera" : "Bật Camera"}
+                  >
+                    {isCameraOn ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
+                  </button>
+
+                  {sourceType === 'camera' && (
+                    <button
+                      onClick={toggleFacingMode}
+                      className="p-2.5 sm:p-3 rounded-full bg-amber-500/80 hover:bg-amber-500 text-slate-950 font-bold transition shadow-lg backdrop-blur-md cursor-pointer border border-amber-300"
+                      title="Xoay Camera trước / sau"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              )}
 
             </div>
 
