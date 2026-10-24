@@ -22,7 +22,10 @@ import {
   Radio,
   ShoppingBag,
   Clock,
-  BadgeCheck
+  BadgeCheck,
+  Eye,
+  EyeOff,
+  RefreshCw
 } from 'lucide-react';
 import { getApiBaseUrl } from '../config';
 
@@ -79,6 +82,15 @@ export default function UserProfilePage({
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [copiedKey, setCopiedKey] = useState(false);
+  const [showStreamKey, setShowStreamKey] = useState(false);
+  const [streamKeyValue, setStreamKeyValue] = useState(myStreamKey || currentUser?.username || '');
+  const [isGeneratingKey, setIsGeneratingKey] = useState(false);
+
+  useEffect(() => {
+    if (myStreamKey) {
+      setStreamKeyValue(myStreamKey);
+    }
+  }, [myStreamKey]);
 
   const fileInputRef = useRef(null);
 
@@ -176,10 +188,52 @@ export default function UserProfilePage({
 
   // Sao chép Stream Key
   const handleCopyStreamKey = () => {
-    const keyToCopy = myStreamKey || currentUser.username;
+    const keyToCopy = streamKeyValue || myStreamKey || currentUser.username;
     navigator.clipboard.writeText(keyToCopy);
     setCopiedKey(true);
     setTimeout(() => setCopiedKey(false), 2000);
+  };
+
+  // Băm mã Stream Key bảo mật mới (ngẫu nhiên)
+  const handleGenerateHashedKey = async () => {
+    if (!confirm('Bạn có chắc chắn muốn băm và tạo mã Stream Key bảo mật mới ngẫu nhiên không? OBS/vMix sẽ cần dùng mã mới này để phát sóng.')) {
+      return;
+    }
+    setIsGeneratingKey(true);
+    try {
+      // Tạo chuỗi băm ngẫu nhiên chuẩn stream key bảo mật: live_sk_ + 16 ký tự hex
+      const randomHex = Array.from(crypto.getRandomValues(new Uint8Array(8)))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+      const newHashedKey = `live_sk_${randomHex}`;
+
+      const res = await fetch(`${getApiBaseUrl()}/api/keys`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          key: newHashedKey,
+          title: `Kênh Phát Sóng ${fullName || currentUser.username}`,
+          streamer: currentUser.username
+        })
+      });
+
+      if (res.ok) {
+        setStreamKeyValue(newHashedKey);
+        setShowStreamKey(true);
+        setSuccessMsg(`Đã băm mã Stream Key bảo mật mới thành công: ${newHashedKey}`);
+        if (onProfileUpdated) onProfileUpdated({ ...currentUser, stream_key: newHashedKey });
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setErrorMsg(data.error || 'Không thể tạo mã Stream Key mới');
+      }
+    } catch (e) {
+      setErrorMsg('Lỗi kết nối khi băm mã Stream Key');
+    } finally {
+      setIsGeneratingKey(false);
+    }
   };
 
   // Lưu thông tin người dùng vào database
@@ -614,24 +668,52 @@ export default function UserProfilePage({
 
             {/* Stream Key nếu là tài khoản Admin */}
             {currentUser.role === 'admin' && (
-              <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 space-y-2">
-                <div className="flex items-center justify-between">
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 sm:p-5 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-xs font-bold text-amber-300 flex items-center gap-2">
                     <Key className="w-4 h-4 text-amber-400" />
                     <span>Mã Stream Key Phát Sóng Của Bạn</span>
                   </span>
-                  <button
-                    type="button"
-                    onClick={handleCopyStreamKey}
-                    className="text-xs text-amber-300 hover:text-white flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 transition cursor-pointer font-bold"
-                  >
-                    {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedKey ? 'Đã sao chép' : 'Sao chép'}</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setShowStreamKey(!showStreamKey)}
+                      className="text-xs text-amber-300 hover:text-white flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition cursor-pointer border border-white/5"
+                      title={showStreamKey ? 'Che giấu mã bí mật' : 'Xem mã thực tế'}
+                    >
+                      {showStreamKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      <span className="hidden sm:inline">{showStreamKey ? 'Ẩn' : 'Hiện'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleGenerateHashedKey}
+                      disabled={isGeneratingKey}
+                      className="text-xs text-amber-300 hover:text-white flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 transition cursor-pointer border border-amber-500/20 font-semibold"
+                      title="Băm tạo mã Stream Key bảo mật ngẫu nhiên mới"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isGeneratingKey ? 'animate-spin' : ''}`} />
+                      <span className="hidden sm:inline">Băm mã mới</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCopyStreamKey}
+                      className="text-xs text-amber-300 hover:text-white flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 transition cursor-pointer font-bold"
+                    >
+                      {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedKey ? 'Đã sao chép' : 'Sao chép'}</span>
+                    </button>
+                  </div>
                 </div>
-                <div className="font-mono text-xs sm:text-sm text-amber-200 font-bold bg-black/50 px-3 py-2 rounded-xl select-all border border-amber-500/20">
-                  {myStreamKey || currentUser.username}
+
+                <div className="flex items-center justify-between font-mono text-xs sm:text-sm text-amber-200 font-bold bg-black/60 px-3.5 py-2.5 rounded-xl border border-amber-500/20 select-all">
+                  <span className="tracking-widest">
+                    {showStreamKey ? (streamKeyValue || myStreamKey || currentUser.username) : '••••••••••••••••••••'}
+                  </span>
+                  <span className="text-[10px] text-amber-400/70 font-sans font-medium shrink-0 ml-2">
+                    {showStreamKey ? '🔓 Đang hiển thị' : '🔒 Đã che bảo mật'}
+                  </span>
                 </div>
+
                 <p className="text-[11px] text-amber-400/80 leading-relaxed">
                   Dùng mã này để cấu hình phần mềm OBS Studio, vMix hoặc phát trực tiếp từ Studio máy ảnh trên điện thoại.
                 </p>
