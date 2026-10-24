@@ -37,7 +37,7 @@ export default function LiveStudioModal({
   isOpen, 
   onClose, 
   streamKeys = [], 
-  currentStreamKey = 'tiendev',
+  currentStreamKey = 'thanhtrung01',
   onStreamStarted,
   user,
   sessions = []
@@ -213,7 +213,7 @@ export default function LiveStudioModal({
       try {
         newStream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: currentMode === 'environment' ? { exact: 'environment' } : 'user',
+            facingMode: { ideal: currentMode },
             width: { ideal: dims.width },
             height: { ideal: dims.height },
             aspectRatio: { ideal: dims.aspectRatio },
@@ -223,13 +223,7 @@ export default function LiveStudioModal({
         });
       } catch (err) {
         newStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: currentMode,
-            width: { ideal: dims.width },
-            height: { ideal: dims.height },
-            aspectRatio: { ideal: dims.aspectRatio },
-            frameRate: { ideal: 30 }
-          },
+          video: true,
           audio: false
         });
       }
@@ -295,30 +289,59 @@ export default function LiveStudioModal({
       if (type === 'camera') {
         const dims = getDims(resolution, orientation);
         const videoConstraints = {
-          facingMode: mode === 'environment' ? { exact: 'environment' } : 'user',
+          facingMode: { ideal: mode },
           width: { ideal: dims.width },
           height: { ideal: dims.height },
           aspectRatio: { ideal: dims.aspectRatio },
           frameRate: { ideal: 30 }
         };
 
+        const audioConstraints = {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        };
+
+        // 1. Thu nhận tín hiệu Video
+        let videoStream = null;
         try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: videoConstraints,
-            audio: true
+          videoStream = await navigator.mediaDevices.getUserMedia({
+            video: videoConstraints
           });
-        } catch (facingErr) {
-          console.warn('Lỗi chọn exact facingMode, thử lại chế độ ideal:', facingErr);
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: mode,
-              width: { ideal: dims.width },
-              height: { ideal: dims.height },
-              aspectRatio: { ideal: dims.aspectRatio },
-              frameRate: { ideal: 30 }
-            },
-            audio: true
+        } catch (vErr) {
+          console.warn('[CAMERA] Thử cấu hình camera linh hoạt:', vErr);
+          try {
+            videoStream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: { ideal: mode } }
+            });
+          } catch {
+            videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          }
+        }
+
+        // 2. Thu nhận tín hiệu Micro độc lập (tránh trường hợp lỗi mic làm sập cả camera)
+        let audioStream = null;
+        try {
+          audioStream = await navigator.mediaDevices.getUserMedia({
+            audio: audioConstraints
           });
+          console.log('[MIC] Đã kết nối Micro thành công');
+        } catch (aErr) {
+          console.warn('[MIC] Chưa thể mở Micro tự động:', aErr);
+        }
+
+        // 3. Kết hợp các luồng vào stream chuẩn
+        stream = new MediaStream();
+        if (videoStream) {
+          videoStream.getVideoTracks().forEach((track) => stream.addTrack(track));
+          setIsCameraOn(true);
+        }
+
+        if (audioStream && audioStream.getAudioTracks().length > 0) {
+          audioStream.getAudioTracks().forEach((track) => stream.addTrack(track));
+          setIsMicOn(true);
+        } else {
+          setIsMicOn(false);
         }
       } else {
         // Chia sẻ màn hình
@@ -332,20 +355,23 @@ export default function LiveStudioModal({
           setSourceType('camera');
           initMediaStream('camera', facingMode);
         };
+
+        setIsCameraOn(true);
+        setIsMicOn(stream.getAudioTracks().length > 0);
       }
 
       mediaStreamRef.current = stream;
       if (previewVideoRef.current) {
         previewVideoRef.current.srcObject = stream;
       }
-      setIsCameraOn(true);
-      setIsMicOn(true);
     } catch (err) {
       console.error('Lỗi truy cập thiết bị thu hình:', err);
-      if (err.name === 'NotAllowedError') {
-        setErrorMessage('Bạn đã từ chối cấp quyền truy cập Camera/Microphone trên trình duyệt.');
-      } else if (err.name === 'NotFoundError') {
-        setErrorMessage('Không tìm thấy thiết bị Camera hoặc Microphone.');
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setErrorMessage('Trình duyệt đã chặn quyền Camera/Micro. Vui lòng bấm vào biểu tượng Ổ khóa 🔒 (hoặc Cài đặt trang web) trên thanh địa chỉ, chọn "Cho phép" Camera và Micro, sau đó bấm Thử Lại.');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setErrorMessage('Không tìm thấy thiết bị Camera hoặc Microphone trên máy tính của bạn.');
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        setErrorMessage('Camera hoặc Micro đang bị ứng dụng khác sử dụng (ví dụ: OBS, Zoom, Teams, Zalo).');
       } else {
         setErrorMessage(err.message || 'Lỗi khi mở thiết bị thu hình.');
       }
@@ -379,7 +405,7 @@ export default function LiveStudioModal({
       try {
         newStream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: nextFacing === 'environment' ? { exact: 'environment' } : 'user',
+            facingMode: { ideal: nextFacing },
             width: { ideal: dims.width },
             height: { ideal: dims.height },
             aspectRatio: { ideal: dims.aspectRatio }
@@ -388,12 +414,7 @@ export default function LiveStudioModal({
         });
       } catch (err) {
         newStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: nextFacing,
-            width: { ideal: dims.width },
-            height: { ideal: dims.height },
-            aspectRatio: { ideal: dims.aspectRatio }
-          },
+          video: true,
           audio: false
         });
       }
@@ -436,14 +457,63 @@ export default function LiveStudioModal({
     }
   };
 
-  // Bật/tắt micro
-  const toggleMic = () => {
+  // Bật/tắt micro (Tự động xin cấp quyền và kết nối thiết bị nếu chưa có track)
+  const toggleMic = async () => {
     if (!mediaStreamRef.current) return;
-    const audioTrack = mediaStreamRef.current.getAudioTracks()[0];
-    if (audioTrack) {
-      audioTrack.enabled = !audioTrack.enabled;
-      setIsMicOn(audioTrack.enabled);
+    
+    let audioTrack = mediaStreamRef.current.getAudioTracks()[0];
+    
+    // Nếu chưa có Audio Track hoặc track đã dừng -> Yêu cầu quyền và thu Micro
+    if (!audioTrack || audioTrack.readyState === 'ended') {
+      try {
+        console.log('[MIC] Đang kích hoạt Micro...');
+        const newAudioStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+        const newTrack = newAudioStream.getAudioTracks()[0];
+        if (newTrack) {
+          mediaStreamRef.current.addTrack(newTrack);
+          setIsMicOn(true);
+          setErrorMessage('');
+          console.log('[MIC] Đã kết nối Micro thành công:', newTrack.label);
+
+          // Nếu đang live WebRTC, gắn Audio Track vào đường truyền đang phát
+          if (peerConnRef.current) {
+            const audioSender = peerConnRef.current.getSenders().find(
+              (s) => s.track && s.track.kind === 'audio'
+            );
+            if (audioSender) {
+              await audioSender.replaceTrack(newTrack);
+              console.log('[WEBRTC] Đã cập nhật Audio Track vào Sender đang phát.');
+            } else {
+              peerConnRef.current.addTrack(newTrack, mediaStreamRef.current);
+              console.log('[WEBRTC] Đã thêm Audio Track mới vào bộ phát.');
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Không thể bật micro:', err);
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          setErrorMessage('Trình duyệt đang chặn Micro. Vui lòng bấm vào Ổ khóa 🔒 trên thanh địa chỉ, Cho phép Micro rồi bấm thử lại.');
+        } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+          setErrorMessage('Không tìm thấy thiết bị Microphone trên máy tính/điện thoại.');
+        } else {
+          setErrorMessage('Lỗi khi mở Micro: ' + (err.message || 'Thiết bị bận.'));
+        }
+        setIsMicOn(false);
+      }
+      return;
     }
+
+    // Nếu đã có Audio Track sẵn -> bật/tắt (mute/unmute)
+    const nextState = !audioTrack.enabled;
+    audioTrack.enabled = nextState;
+    setIsMicOn(nextState);
+    console.log(`[MIC] Đã ${nextState ? 'BẬT' : 'TẮT'} tiếng Micro`);
   };
 
   // Đổi nguồn thu: Webcam <-> Màn hình
@@ -472,14 +542,44 @@ export default function LiveStudioModal({
     setErrorMessage('');
 
     try {
+      // Đảm bảo có Audio Track trước khi bắt đầu live nếu streamer muốn có tiếng
+      if (mediaStreamRef.current.getAudioTracks().length === 0) {
+        try {
+          console.log('[WEBRTC] Kiểm tra Micro trước khi live...');
+          const aStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+          });
+          const aTrack = aStream.getAudioTracks()[0];
+          if (aTrack) {
+            mediaStreamRef.current.addTrack(aTrack);
+            setIsMicOn(true);
+            console.log('[WEBRTC] Đã tự động kích hoạt Micro chuẩn bị phát sóng');
+          }
+        } catch (aErr) {
+          console.warn('[WEBRTC] Không thể kích hoạt Micro trước khi live, phát ở chế độ không tiếng:', aErr);
+        }
+      }
+
       const pc = new RTCPeerConnection({
         iceServers: []
       });
       peerConnRef.current = pc;
 
-      mediaStreamRef.current.getTracks().forEach((track) => {
-        pc.addTrack(track, mediaStreamRef.current);
-      });
+      // Đảm bảo khai báo transceiver sendonly cho cả audio và video để SRS tạo đúng cấu hình luồng
+      const audioTrack = mediaStreamRef.current.getAudioTracks()[0];
+      const videoTrack = mediaStreamRef.current.getVideoTracks()[0];
+
+      if (audioTrack) {
+        pc.addTrack(audioTrack, mediaStreamRef.current);
+      } else {
+        pc.addTransceiver('audio', { direction: 'sendonly' });
+      }
+
+      if (videoTrack) {
+        pc.addTrack(videoTrack, mediaStreamRef.current);
+      } else {
+        pc.addTransceiver('video', { direction: 'sendonly' });
+      }
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
@@ -966,7 +1066,7 @@ export default function LiveStudioModal({
                       </option>
                     ))}
                     {streamKeys.length === 0 && (
-                      <option value="tiendev">Kênh phát chính</option>
+                      <option value="thanhtrung01">Kênh phát chính (Thành Trung 01)</option>
                     )}
                   </select>
                 </div>

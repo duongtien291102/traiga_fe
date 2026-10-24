@@ -20,7 +20,7 @@ import { getHlsBaseUrl } from '../config';
  * Component LivePlayer phát luồng HLS trực tiếp từ Nginx-RTMP Media Server
  * @param {string} streamKey - Mã Stream Key (OBS gửi lên)
  */
-export default function LivePlayer({ streamKey = 'tiendev' }) {
+export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const hlsRef = useRef(null);
@@ -40,19 +40,40 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
     const video = videoRef.current;
     if (!video || !streamKey) return;
 
+    // 1. Thăm dò trước qua SRS HTTP API để kiểm tra luồng active mà không gây lỗi 404 đỏ trong DevTools console
+    let isSrsChecked = false;
+    try {
+      const srsRes = await fetch('/srs-api/v1/streams/', { cache: 'no-store' });
+      if (srsRes.ok) {
+        const srsData = await srsRes.json();
+        const normKey = streamKey.trim().toLowerCase();
+        const isLiveActive = Array.isArray(srsData?.streams) && srsData.streams.some(
+          (s) => s.name?.trim().toLowerCase() === normKey && s.publish?.active
+        );
+        isSrsChecked = true;
+        if (!isLiveActive) {
+          setStreamStatus('offline');
+          return;
+        }
+      }
+    } catch {
+      // Bỏ qua nếu endpoint /srs-api không khả dụng
+    }
+
     const loadUrl = `${streamUrl}?_t=${Date.now()}`;
 
-    // Kiểm tra nhanh xem luồng .m3u8 đã online chưa trước khi khởi tạo Hls Worker
-    // (Tránh việc hls.js retry 6 lần liên tục gây giật lag video màn hình chờ)
-    try {
-      const checkRes = await fetch(loadUrl, { method: 'GET', cache: 'no-store' });
-      if (!checkRes.ok) {
+    // 2. Nếu chưa kiểm tra được qua SRS API, thăm dò file m3u8
+    if (!isSrsChecked) {
+      try {
+        const checkRes = await fetch(loadUrl, { method: 'GET', cache: 'no-store' });
+        if (!checkRes.ok) {
+          setStreamStatus('offline');
+          return;
+        }
+      } catch (e) {
         setStreamStatus('offline');
         return;
       }
-    } catch (e) {
-      setStreamStatus('offline');
-      return;
     }
 
     setErrorMessage('');
@@ -63,30 +84,63 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
       hlsRef.current = null;
     }
 
+    // Hàm gọi play() an toàn chống AbortError
+    const safePlay = async () => {
+      if (!video) return;
+      try {
+        await video.play();
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          // Bị ngắt bởi thao tác tải mới hoặc pause, hành vi bình thường của trình duyệt
+          return;
+        }
+        if (err.name === 'NotAllowedError') {
+          // Trình duyệt chặn autoplay có tiếng -> chuyển sang muted và phát tiếp
+          console.warn('Autoplay có tiếng bị chặn, thử phát ở chế độ tắt tiếng (muted):', err);
+          try {
+            video.muted = true;
+            setIsMuted(true);
+            await video.play();
+          } catch (muteErr) {
+            if (muteErr.name !== 'AbortError') {
+              console.warn('Không thể tự động phát:', muteErr);
+            }
+          }
+          return;
+        }
+        console.warn('Lỗi khi phát video:', err);
+      }
+    };
+
     // Trường hợp 1: Trình duyệt hỗ trợ MediaSource Extensions (MSE) và hls.js
     if (Hls.isSupported()) {
       let mediaRecoveryCount = 0;
 
       // Cấu hình mức độ trễ dựa trên thiết lập kênh (Siêu nhanh / Cân bằng / Ổn định cao)
       const delayMode = (typeof window !== 'undefined' && localStorage.getItem('traiga_stream_delay_mode')) || 'normal';
-      const syncCount = delayMode === 'low' ? 2 : delayMode === 'safe' ? 5 : 3;
-      const maxLatency = delayMode === 'low' ? 4 : delayMode === 'safe' ? 10 : 6;
-      const bufferLen = delayMode === 'low' ? 10 : delayMode === 'safe' ? 30 : 20;
+      const syncCount = delayMode === 'low' ? 3 : delayMode === 'safe' ? 5 : 4;
+      const maxLatency = delayMode === 'low' ? 6 : delayMode === 'safe' ? 12 : 8;
+      const bufferLen = delayMode === 'low' ? 15 : delayMode === 'safe' ? 30 : 20;
 
       const hls = new Hls({
         enableWorker: true,
         // QUAN TRỌNG: Tắt lowLatencyMode vì WebRTC-to-HLS có độ lệch PTS/DTS nhỏ,
         // lowLatencyMode sẽ gây ra bufferAppendError và giật/đứng hình trên Chrome
         lowLatencyMode: false,
-        backBufferLength: 10,
+        backBufferLength: 30,
         maxBufferLength: bufferLen,
-        maxMaxBufferLength: 40,
+        maxMaxBufferLength: 60,
         liveSyncDurationCount: syncCount,
         liveMaxLatencyDurationCount: maxLatency,
-        manifestLoadingMaxRetry: 2,
+        liveDurationInfinity: true,
+        highBufferWatchdogPeriod: 2,
+        nudgeOffset: 0.1,
+        nudgeMaxRetry: 5,
+        maxBufferHole: 0.5,
+        manifestLoadingMaxRetry: 3,
         manifestLoadingRetryDelay: 1000,
         manifestLoadingTimeOut: 10000,
-        fragLoadingMaxRetry: 4,
+        fragLoadingMaxRetry: 5,
         fragLoadingRetryDelay: 1000,
         fragLoadingTimeOut: 15000,
         xhrSetup: (xhr, url) => {
@@ -109,13 +163,7 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
       // Sự kiện: Phân tích thành công playlist m3u8
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         setStreamStatus('playing');
-        video.play().catch((err) => {
-          // Trình duyệt chặn autoplay có tiếng -> giữ mute và thử lại
-          console.warn('Autoplay prevented, retrying muted:', err);
-          video.muted = true;
-          setIsMuted(true);
-          video.play().catch(() => {});
-        });
+        safePlay();
       });
 
       // Sự kiện: Bắt đầu phát các phân đoạn video
@@ -125,65 +173,51 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
 
       // Xử lý các sự kiện lỗi từ luồng
       hls.on(Hls.Events.ERROR, (event, data) => {
-        console.warn('[Hls Error Event]:', data);
-
-        // 1. Phục hồi buffer khi có jitter hoặc stall
-        if (data.details === 'bufferAppendError' || data.details === 'bufferStalledError') {
-          console.log(`Phát hiện lỗi buffer (${data.details}), thử recoverMediaError...`);
-          hls.recoverMediaError();
+        // Lưu ý quan trọng: Với các lỗi không nghiêm trọng (fatal === false) như
+        // bufferStalledError, bufferSeekOverHole, fragLoadError (lỡ phân đoạn cũ):
+        // Hls.js tự động xử lý đệm thêm hoặc bỏ qua lỗ hổng. TUYỆT ĐỐI KHÔNG gọi
+        // hls.recoverMediaError() ở đây vì sẽ làm hủy kết nối media và gây loop giật lag.
+        if (!data.fatal) {
           return;
         }
 
-        // 2. Phân đoạn TS bị lỗi tải (ví dụ 404 do trượt khỏi sliding window 60s)
-        // Đây KHÔNG PHẢI lỗi luồng offline! Chỉ cần tiếp tục tải phân đoạn mới
-        if (data.details === 'fragLoadError') {
-          console.warn('Phân đoạn video cũ bị lỡ (fragLoadError), tự động tải phân đoạn kế tiếp...');
-          hls.startLoad();
-          return;
-        }
+        console.warn('[Hls Fatal Error Event]:', data);
 
-        // 3. Xử lý các lỗi nghiêm trọng (fatal)
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              // Nếu file m3u8 không tồn tại (chưa phát sóng, 404, hoặc 502 khi SRS chưa có luồng)
-              console.warn('Lỗi mạng HLS (Network Error / Luồng chưa phát)...');
-              if (data.details === 'manifestLoadError' || data.response?.code === 404 || data.response?.code === 502) {
-                setStreamStatus('offline');
-                setErrorMessage('Chủ trại chưa lên sóng (Đang chờ luồng phát)...');
-                setTimeout(() => {
-                  if (hlsRef.current) {
-                    hlsRef.current.startLoad();
-                  }
-                }, 5000);
-              } else {
-                hls.startLoad();
-              }
-              break;
-
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              if (mediaRecoveryCount === 0) {
-                mediaRecoveryCount++;
-                console.log('Thử phục hồi Media lần 1...');
-                hls.recoverMediaError();
-              } else if (mediaRecoveryCount === 1) {
-                mediaRecoveryCount++;
-                console.log('Thử đổi codec audio và phục hồi Media lần 2...');
-                hls.swapAudioCodec();
-                hls.recoverMediaError();
-              } else {
-                console.warn('Lỗi Media nghiêm trọng, tải lại luồng...');
-                mediaRecoveryCount = 0;
-                setRetryCount(prev => prev + 1);
-              }
-              break;
-
-            default:
+        // Xử lý các lỗi nghiêm trọng (fatal: true)
+        switch (data.type) {
+          case Hls.ErrorTypes.NETWORK_ERROR:
+            // Nếu file m3u8 không tồn tại (chưa phát sóng, 404, hoặc 502 khi SRS chưa có luồng)
+            console.warn('Lỗi mạng HLS fatal (Network Error)...');
+            if (data.details === 'manifestLoadError' || data.response?.code === 404 || data.response?.code === 502) {
               setStreamStatus('offline');
-              setErrorMessage('Không thể phát luồng trực tiếp này.');
-              hls.destroy();
-              break;
-          }
+              setErrorMessage('Chủ trại chưa lên sóng (Đang chờ luồng phát)...');
+              setTimeout(() => {
+                if (hlsRef.current) {
+                  hlsRef.current.startLoad();
+                }
+              }, 4000);
+            } else {
+              hls.startLoad();
+            }
+            break;
+
+          case Hls.ErrorTypes.MEDIA_ERROR:
+            if (mediaRecoveryCount <= 1) {
+              mediaRecoveryCount++;
+              console.log(`[HLS] Thử phục hồi Media lần ${mediaRecoveryCount}...`);
+              hls.recoverMediaError();
+            } else {
+              console.warn('[HLS] Lỗi Media nghiêm trọng, khởi tạo lại luồng...');
+              mediaRecoveryCount = 0;
+              setRetryCount((prev) => prev + 1);
+            }
+            break;
+
+          default:
+            setStreamStatus('offline');
+            setErrorMessage('Không thể phát luồng trực tiếp này.');
+            hls.destroy();
+            break;
         }
       });
     } 
@@ -192,7 +226,7 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
       video.src = `${streamUrl}?_t=${Date.now()}`;
       video.addEventListener('loadedmetadata', () => {
         setStreamStatus('playing');
-        video.play().catch(() => {});
+        safePlay();
       });
       video.addEventListener('error', () => {
         setStreamStatus('offline');
@@ -233,6 +267,9 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
     if (!videoRef.current) return;
     const nextMuted = !videoRef.current.muted;
     videoRef.current.muted = nextMuted;
+    if (!nextMuted) {
+      videoRef.current.volume = 1;
+    }
     setIsMuted(nextMuted);
   };
 
@@ -270,8 +307,20 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
         controls={false}
         onClick={() => {
           if (videoRef.current) {
-            if (isPlaying) videoRef.current.pause();
-            else videoRef.current.play();
+            if (isPlaying) {
+              videoRef.current.pause();
+            } else {
+              videoRef.current.muted = false;
+              videoRef.current.volume = 1;
+              setIsMuted(false);
+              videoRef.current.play().catch(() => {
+                if (videoRef.current) {
+                  videoRef.current.muted = true;
+                  setIsMuted(true);
+                  videoRef.current.play().catch(() => {});
+                }
+              });
+            }
           }
         }}
         onPlay={() => setIsPlaying(true)}
@@ -281,9 +330,22 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
       {/* NÚT PLAY TRUNG TÂM NẾU TRÌNH DUYỆT CHẶN AUTOPLAY HOẶC ĐANG TẠM DỪNG */}
       {streamStatus === 'playing' && !isPlaying && (
         <button
-          onClick={() => videoRef.current?.play()}
+          onClick={() => {
+            if (videoRef.current) {
+              videoRef.current.muted = false;
+              videoRef.current.volume = 1;
+              setIsMuted(false);
+              videoRef.current.play().catch(() => {
+                if (videoRef.current) {
+                  videoRef.current.muted = true;
+                  setIsMuted(true);
+                  videoRef.current.play().catch(() => {});
+                }
+              });
+            }
+          }}
           className="absolute inset-0 z-10 m-auto w-20 h-20 rounded-full bg-rose-600/90 hover:bg-rose-500 text-white flex items-center justify-center shadow-2xl backdrop-blur-md transition-all transform hover:scale-110 active:scale-95 cursor-pointer border border-rose-400/30"
-          title="Bấm để phát trực tiếp"
+          title="Bấm để phát trực tiếp có âm thanh"
         >
           <Play className="w-9 h-9 fill-white translate-x-0.5" />
         </button>
@@ -338,7 +400,7 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
             onClick={() => {
               if (videoRef.current) {
                 if (isPlaying) videoRef.current.pause();
-                else videoRef.current.play();
+                else videoRef.current.play().catch(() => {});
               }
             }}
             className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition backdrop-blur-sm text-white"

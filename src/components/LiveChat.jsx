@@ -19,7 +19,7 @@ import { getWsUrl } from '../config';
 
 const QUICK_EMOJIS = ['❤️', '🔥', '👏', '🎉', '💯', '😂', '⭐', '🚀'];
 
-export default function LiveChat({ streamKey = 'tiendev', user = null, onOpenAuth = null }) {
+export default function LiveChat({ streamKey = 'thanhtrung01', user = null, onOpenAuth = null }) {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [viewerCount, setViewerCount] = useState(1);
@@ -292,8 +292,17 @@ export default function LiveChat({ streamKey = 'tiendev', user = null, onOpenAut
                     : ''
                 }`}
               >
-                {/* HUY HIỆU LEVEL CÁ KHỊA TV + TÊN + DẤU CHECK + NỘI DUNG INLINE */}
+                {/* HUY HIỆU LEVEL CÁ KHỊA TV + AVATAR + TÊN + DẤU CHECK + NỘI DUNG INLINE */}
                 <span className="inline-flex items-center gap-1 mr-1.5 align-baseline">
+                  {/* Avatar người dùng nếu có */}
+                  {msg.avatar && (
+                    <img
+                      src={msg.avatar}
+                      alt={displayName}
+                      className="w-3.5 h-3.5 rounded-full object-cover inline-block shrink-0 ring-1 ring-white/20 mr-0.5"
+                    />
+                  )}
+
                   {/* Badge Level kiểu Cakhia */}
                   <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold border ${badge.color}`}>
                     {badge.isStaff ? (
@@ -397,6 +406,20 @@ export default function LiveChat({ streamKey = 'tiendev', user = null, onOpenAut
           onSubmit={handleSendMessage}
           className="p-2.5 bg-slate-950 border-t border-slate-800 flex items-center gap-2"
         >
+          {user?.avatar ? (
+            <img
+              src={user.avatar}
+              alt={user.username}
+              className="w-7 h-7 rounded-full object-cover shrink-0 ring-1 ring-amber-400/40"
+            />
+          ) : (
+            <div className={`w-7 h-7 rounded-full text-white font-bold text-xs flex items-center justify-center uppercase shrink-0 ${
+              user?.role === 'systemadmin' ? 'bg-purple-600' : user?.role === 'admin' ? 'bg-amber-500 text-slate-950' : 'bg-rose-600'
+            }`}>
+              {user?.username?.substring(0, 1) || 'U'}
+            </div>
+          )}
+
           <div className="relative flex-1">
             <input
               type="text"

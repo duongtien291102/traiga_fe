@@ -8,6 +8,7 @@ import SystemAdminDashboard from './components/SystemAdminDashboard';
 import PostChickenModal from './components/PostChickenModal';
 import ChickenDetailModal from './components/ChickenDetailModal';
 import ChickenMarketplace from './components/ChickenMarketplace';
+import UserProfileModal from './components/UserProfileModal';
 import {
   Radio,
   Search,
@@ -51,8 +52,8 @@ import {
 import { getApiBaseUrl, getHlsBaseUrl, getRtmpBaseUrl, getHost } from './config';
 
 export default function App() {
-  const [streamKey, setStreamKey] = useState('tiendev');
-  const [inputKey, setInputKey] = useState('tiendev');
+  const [streamKey, setStreamKey] = useState('thanhtrung01');
+  const [inputKey, setInputKey] = useState('thanhtrung01');
   const [copiedField, setCopiedField] = useState(null);
 
   // Trạng thái xác thực & Người dùng
@@ -63,11 +64,13 @@ export default function App() {
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
   const [isSystemAdminOpen, setIsSystemAdminOpen] = useState(false);
   const [isLiveStudioOpen, setIsLiveStudioOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [activeRightTab, setActiveRightTab] = useState('chat'); // 'chat' | 'obs' | 'info'
   const [liveCamera, setLiveCamera] = useState('cam1'); // 'cam1' (toàn cảnh) | 'cam2' (soi chân vảy)
   const [liveAudioTrack, setLiveAudioTrack] = useState('blv'); // 'blv' (BLV Thành Trung) | 'arena' (Sới gốc)
   const [liveTab, setLiveTab] = useState('chat'); // 'chat' | 'info' | 'h2h' | 'market' | 'shipping'
   const [showAllRooms, setShowAllRooms] = useState(false); // false: chỉ hiện phòng đang live thực tế, true: hiện tất cả kênh đăng ký
+  const [previewSelectedChannel, setPreviewSelectedChannel] = useState(null); // Kênh người dùng chủ động chọn xem khi không có live tự động
   const [themeMode, setThemeMode] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -155,7 +158,7 @@ export default function App() {
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [selectedChickenForConnect, setSelectedChickenForConnect] = useState({
     title: 'MS 101: Gà Ô Chân Trắng Điểm Mực',
-    farm: 'Trại Gà Ba Bình Định'
+    farm: 'Trại Gà Thành Trung 01'
   });
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -204,6 +207,7 @@ export default function App() {
     setCurrentUser(null);
     setAuthToken('');
     setMyStreamKey('');
+    setIsProfileModalOpen(false);
     setIsAdminPanelOpen(false);
     setIsSystemAdminOpen(false);
     setIsLiveStudioOpen(false);
@@ -391,6 +395,11 @@ export default function App() {
     fetchKeysAndSessions();
   };
 
+  const handleProfileUpdated = (updatedUser) => {
+    setCurrentUser(updatedUser);
+    localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+  };
+
   const handleLogout = () => {
     if (authToken) {
       fetch(`${getApiBaseUrl()}/api/auth/logout`, {
@@ -404,6 +413,7 @@ export default function App() {
     setCurrentUser(null);
     setAuthToken('');
     setMyStreamKey('');
+    setIsProfileModalOpen(false);
   };
 
   // Mở modal liên hệ chủ trại (Bắt buộc đăng nhập tài khoản trước khi liên hệ / mua / gửi lời nhắn)
@@ -444,12 +454,12 @@ export default function App() {
   const currentRoomInfo = matchedPublicRoom || {
     id: streamKey,
     key: streamKey,
-    ms: matchedDbKey?.ms || '',
-    title: matchedDbKey?.title || 'Phòng Live ' + streamKey,
-    farm: matchedDbKey?.streamer ? `Trại Gà ${matchedDbKey.streamer}` : 'Trại Gà',
-    streamer: matchedDbKey?.streamer || 'Chủ Trại',
-    chang: matchedDbKey?.chang || '',
-    loi: matchedDbKey?.loi || '',
+    ms: matchedDbKey?.ms || 'MS 101',
+    title: matchedDbKey?.title || 'Trực Tiếp Giao Lưu Chiến Kê',
+    farm: matchedDbKey?.streamer ? `Trại Gà ${matchedDbKey.streamer}` : 'Trại Gà Thành Trung 01',
+    streamer: matchedDbKey?.streamer || 'Thành Trung 01',
+    chang: matchedDbKey?.chang || '2.95 kg',
+    loi: matchedDbKey?.loi || 'Lối ôm đấm kiềng hầu, đá mé giáp lưng',
     viewers: 0
   };
 
@@ -469,36 +479,75 @@ export default function App() {
     .map((s) => s.name?.trim().toLowerCase())
     .filter(Boolean);
 
-  // CHỈ COI LÀ LIVE THỰC TẾ KHI SRS ĐANG CÓ PUBLISHER PHÁT SÓNG
-  // (Tránh trường hợp DB còn session cũ làm màn hình chính hiện bảng đen offline lỗi UI)
-  const isRealLive = activeSrsKeys.length > 0;
-  const realLiveKeys = isRealLive ? activeSrsKeys : [];
+  // 2. Luồng active từ publicRooms (từ MongoDB backend sessions)
+  const activeRoomKeys = publicRooms
+    .filter((r) => r.is_live)
+    .map((r) => (r.key || r.id || '').trim().toLowerCase())
+    .filter(Boolean);
+
+  // 3. Luồng active từ sessions
+  const activeSessionKeys = sessions
+    .filter((s) => s.status === 'live')
+    .map((s) => (s.stream_key || '').trim().toLowerCase())
+    .filter(Boolean);
+
+  // Hợp nhất toàn bộ các nguồn kiểm tra live để đảm bảo khi chỉ có 1 mình live vẫn nhận diện 100%
+  const allLiveKeys = Array.from(new Set([...activeSrsKeys, ...activeRoomKeys, ...activeSessionKeys]));
+  const isRealLive = allLiveKeys.length > 0;
+  const realLiveKeys = isRealLive ? allLiveKeys : [];
   const effectiveIsLive = forceLivePreview !== null ? forceLivePreview : isRealLive;
+
+  // Lọc ra các phòng live thực tế
+  const actualLiveRooms = liveRooms.filter((r) => {
+    const k = (r.id || r.key || '').trim().toLowerCase();
+    return allLiveKeys.includes(k) || Boolean(r.is_live);
+  });
+  const hasAnyLive = actualLiveRooms.length > 0;
+
+  // Tự động chuyển streamKey sang kênh đang phát nếu có kênh đang live
+  useEffect(() => {
+    if (actualLiveRooms.length > 0) {
+      const isCurrentKeyLive = actualLiveRooms.some(r => (r.id || r.key || '').toLowerCase() === streamKey.toLowerCase());
+      if (!isCurrentKeyLive) {
+        setStreamKey(actualLiveRooms[0].id || actualLiveRooms[0].key);
+      }
+    }
+  }, [actualLiveRooms.length]);
 
   // Xác định phòng live nhiều người xem nhất (Top 1 Live Room để chiếu lên Hero Banner)
   let topLiveRoom = null;
-  if (effectiveIsLive) {
-    const candidateKeys = realLiveKeys.length > 0 ? realLiveKeys : ['supersecret', 'caolanh', 'tiendev'];
+  if (effectiveIsLive && actualLiveRooms.length > 0) {
+    topLiveRoom = actualLiveRooms[0];
+  } else if (effectiveIsLive) {
+    const candidateKeys = realLiveKeys.length > 0 ? realLiveKeys : ['thanhtrung01', 'thanhtrung02', 'thanhtrung03'];
     const candidates = candidateKeys.map((key) => {
       const room = liveRooms.find((r) => r.id.toLowerCase() === key);
       if (room) return room;
       const dbK = dbKeys.find((d) => d.key.toLowerCase() === key);
       return {
         id: key,
-        ms: 'MS TOP 1',
-        title: dbK?.title || 'Phòng Live Xổ Gà Trực Tiếp',
-        farm: dbK?.streamer ? `Trại Gà ${dbK.streamer}` : 'Trại Gà Trực Tiếp',
-        streamer: dbK?.streamer || 'Chủ Trại',
-        chang: '2.90 kg',
-        loi: 'Lối đá đòn chuẩn dòng kê ba miền',
+        ms: 'MS 101',
+        title: dbK?.title || 'Trực Tiếp Giao Lưu Chiến Kê',
+        farm: dbK?.streamer ? `Trại Gà ${dbK.streamer}` : 'Trại Gà Thành Trung 01',
+        streamer: dbK?.streamer || 'Thành Trung 01',
+        chang: '2.95 kg',
+        loi: 'Lối ôm đấm kiềng hầu, đá mé giáp lưng',
         viewers: '2.5k',
         thumb: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=500&auto=format&fit=crop'
       };
     });
     candidates.sort((a, b) => parseViewers(b.viewers) - parseViewers(a.viewers));
-    topLiveRoom = candidates[0] || liveRooms[2];
+    topLiveRoom = candidates[0] || liveRooms[0];
   } else {
-    topLiveRoom = liveRooms[0];
+    topLiveRoom = liveRooms[0] || {
+      id: 'thanhtrung01',
+      title: 'Trại Gà Thành Trung 01 — Trực Tiếp Giao Lưu Chiến Kê',
+      farm: 'Trại Gà Thành Trung 01',
+      streamer: 'Thành Trung 01',
+      chang: '2.95 kg',
+      loi: 'Lối ôm đấm kiềng hầu, đá mé giáp lưng',
+      viewers: 0
+    };
   }
 
   // Component hiển thị danh sách Video Xem Lại (Google Drive / SRS DVR) dùng chung cho Trang Chủ & Phòng Live
@@ -841,16 +890,29 @@ export default function App() {
                   </>
                 )}
 
-                {/* User avatar & role/name (Ẩn trên điện thoại nhỏ để tránh tràn thanh Header) */}
-                <div className="hidden sm:flex items-center gap-1.5 bg-[#16171f] border border-white/10 rounded-full py-1 px-2.5 shrink-0">
-                  <div className={`w-5 h-5 rounded-full text-white font-bold text-[11px] flex items-center justify-center uppercase ${currentUser.role === 'systemadmin' ? 'bg-purple-600' : currentUser.role === 'admin' ? 'bg-amber-500 text-slate-950' : 'bg-rose-600'
-                    }`}>
-                    {currentUser.username.substring(0, 1)}
-                  </div>
-                  <span className="text-xs font-semibold text-gray-200 hidden md:inline whitespace-nowrap">
+                {/* User avatar & profile button: Click để mở hồ sơ & đổi avatar lưu DB */}
+                <button
+                  type="button"
+                  onClick={() => setIsProfileModalOpen(true)}
+                  className="flex items-center gap-1.5 bg-[#16171f] hover:bg-[#20222f] border border-white/10 hover:border-amber-400/50 rounded-full py-1 px-2 sm:px-2.5 shrink-0 transition-all cursor-pointer group shadow-sm active:scale-95"
+                  title="Nhấn để xem thông tin cá nhân và cài đặt ảnh đại diện (Lưu vào Database)"
+                >
+                  {currentUser.avatar ? (
+                    <img
+                      src={currentUser.avatar}
+                      alt={currentUser.username}
+                      className="w-5 h-5 rounded-full object-cover ring-1 ring-amber-400/60 shrink-0"
+                    />
+                  ) : (
+                    <div className={`w-5 h-5 rounded-full text-white font-bold text-[11px] flex items-center justify-center uppercase shrink-0 ${currentUser.role === 'systemadmin' ? 'bg-purple-600' : currentUser.role === 'admin' ? 'bg-amber-500 text-slate-950' : 'bg-rose-600'
+                      }`}>
+                      {currentUser.username.substring(0, 1)}
+                    </div>
+                  )}
+                  <span className="text-xs font-semibold text-gray-200 group-hover:text-amber-300 hidden sm:inline whitespace-nowrap transition-colors">
                     {currentUser.role === 'admin' ? 'Admin' : currentUser.role === 'systemadmin' ? 'SysAdmin' : (currentUser.full_name || currentUser.username).split(' ')[0]}
                   </span>
-                </div>
+                </button>
 
                 {/* Logout Button */}
                 <button
@@ -1062,7 +1124,7 @@ export default function App() {
                   themeMode === 'light' ? 'border-slate-200' : 'border-white/10'
                 }`}>
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
+                    <span className={`w-2.5 h-2.5 rounded-full ${actualLiveRooms.length > 0 ? 'bg-rose-500 animate-pulse' : 'bg-gray-500'}`}></span>
                     <h3 className={`text-xs sm:text-sm font-black uppercase tracking-wider ${
                       themeMode === 'light' ? 'text-slate-900' : 'text-white'
                     }`}>
@@ -1073,47 +1135,60 @@ export default function App() {
                     onClick={() => { setActiveNavTab('live'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                     className="text-xs text-rose-600 font-bold cursor-pointer hover:underline"
                   >
-                    {displayKeys.length} Kênh
+                    {actualLiveRooms.length > 0 ? `${actualLiveRooms.length} Kênh Live` : '0 Kênh Live'}
                   </span>
                 </div>
 
                 {/* List of active channels */}
                 <div className="space-y-2.5 my-3 overflow-y-auto max-h-[260px] pr-1">
-                  {displayKeys.map((item) => (
-                    <div
-                      key={item.key}
-                      onClick={() => changeChannel(item.key, true)}
-                      className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
-                        streamKey === item.key
-                          ? (themeMode === 'light' ? 'bg-rose-50 border-rose-300 shadow-sm' : 'bg-rose-950/40 border-rose-500/60 shadow-md')
-                          : (themeMode === 'light' ? 'bg-slate-50 hover:bg-slate-100 border-slate-200' : 'bg-[#111217] hover:bg-white/5 border-white/5')
-                      }`}
-                    >
-                      <div className="flex items-center justify-between text-[11px] mb-1">
-                        <span className={`flex items-center gap-1.5 font-bold truncate max-w-[170px] ${
-                          themeMode === 'light' ? 'text-slate-900' : 'text-gray-300'
-                        }`}>
-                          🐓 {item.title || item.streamer || 'Phòng Live Trại Gà'}
-                        </span>
-                        <span className="text-rose-600 font-bold flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
-                          {item.is_active ? 'LIVE' : 'OFFLINE'}
-                        </span>
+                  {displayKeys.map((item) => {
+                    const itemKey = (item.key || item.id || '').trim().toLowerCase();
+                    const isItemLive = allLiveKeys.includes(itemKey) || Boolean(item.is_live);
+                    return (
+                      <div
+                        key={item.key || item.id}
+                        onClick={() => {
+                          setPreviewSelectedChannel(item.key || item.id);
+                          changeChannel(item.key || item.id, true);
+                        }}
+                        className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
+                          streamKey === (item.key || item.id)
+                            ? (themeMode === 'light' ? 'bg-rose-50 border-rose-300 shadow-sm' : 'bg-rose-950/40 border-rose-500/60 shadow-md')
+                            : (themeMode === 'light' ? 'bg-slate-50 hover:bg-slate-100 border-slate-200' : 'bg-[#111217] hover:bg-white/5 border-white/5')
+                        }`}
+                      >
+                        <div className="flex items-center justify-between text-[11px] mb-1">
+                          <span className={`flex items-center gap-1.5 font-bold truncate max-w-[170px] ${
+                            themeMode === 'light' ? 'text-slate-900' : 'text-gray-300'
+                          }`}>
+                            🐓 {item.title || item.streamer || 'Phòng Live Trại Gà'}
+                          </span>
+                          {isItemLive ? (
+                            <span className="text-rose-600 font-bold flex items-center gap-1 text-[11px]">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                              LIVE
+                            </span>
+                          ) : (
+                            <span className="text-gray-500 font-medium text-[10px]">
+                              Chờ lên sóng
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className={`text-[11px] ${themeMode === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
+                            Chủ kê: {item.streamer || 'Trại Gà Thành Trung'}
+                          </span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                            streamKey === (item.key || item.id)
+                              ? 'bg-rose-600 text-white'
+                              : (themeMode === 'light' ? 'bg-slate-200 text-slate-700' : 'bg-white/10 text-gray-300')
+                          }`}>
+                            {isItemLive ? 'Xem luồng' : 'Vào kênh'}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className={`text-[11px] ${themeMode === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
-                          Chủ kê: {item.streamer || 'Trại Gà Thành Trung'}
-                        </span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                          streamKey === item.key
-                            ? 'bg-rose-600 text-white'
-                            : (themeMode === 'light' ? 'bg-slate-200 text-slate-700' : 'bg-white/10 text-gray-300')
-                        }`}>
-                          Xem luồng
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div
@@ -1317,20 +1392,20 @@ export default function App() {
               )}
             </section>
 
-            {/* ==================== CÁC TRẠI GIAO LƯU THƯỜNG XUYÊN (ĐƠN GIẢN) ==================== */}
+            {/* ==================== CÁC CƠ SỞ TRẠI GÀ THÀNH TRUNG ==================== */}
             <section id="farms" className="space-y-3">
               <h2 className="text-lg font-bold text-white">
-                Các Trại Giao Lưu Thường Xuyên
+                Các Cơ Sở Trại Gà Thành Trung
               </h2>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {[
-                  { key: 'thanh-trung', name: 'Trại Thành Trung', loc: 'Long Biên - Hà Nội' },
-                  { key: 'tiendev', name: 'Ba Bình Định', loc: 'Gà đòn Tây Sơn' },
-                  { key: 'test', name: 'Sáu Khải', loc: 'Tân Châu An Giang' },
-                  { key: 'supersecret', name: 'Anh Ba', loc: 'Chợ Lách Bến Tre' },
-                  { key: 'dongtao', name: 'Bác Tiến', loc: 'Khoái Châu Hưng Yên' },
-                  { key: 'caolanh', name: 'Út Lớn', loc: 'Cao Lãnh Đồng Tháp' }
+                  { key: 'thanhtrung01', name: 'Trại Gà Thành Trung 01', loc: 'Cơ Sở 1 - Long Biên' },
+                  { key: 'thanhtrung02', name: 'Trại Gà Thành Trung 02', loc: 'Cơ Sở 2 - Gia Lâm' },
+                  { key: 'thanhtrung03', name: 'Trại Gà Thành Trung 03', loc: 'Cơ Sở 3 - Đông Anh' },
+                  { key: 'thanhtrung04', name: 'Trại Gà Thành Trung 04', loc: 'Cơ Sở 4 - Sóc Sơn' },
+                  { key: 'thanhtrung05', name: 'Trại Gà Thành Trung 05', loc: 'Cơ Sở 5 - Thường Tín' },
+                  { key: 'thanhtrung06', name: 'Trại Gà Thành Trung 06', loc: 'Cơ Sở 6 - Sơn Tây' }
                 ].map((f) => (
                   <div
                     key={f.key}
@@ -1348,13 +1423,53 @@ export default function App() {
         )}
 
         {/* ======================================================== */}
-        {/* VIEW 2: PHÒNG LIVE XỔ GÀ (DEDICATED LIVE THEATER VIEW)    */}
+        {/* VIEW 2: PHÒNG LIVE TRỰC TIẾP (DEDICATED LIVE THEATER VIEW) */}
         {/* ======================================================== */}
         {activeNavTab === 'live' && (
-          <div className="space-y-8 animate-fadeIn">
+          <div className="space-y-6 animate-fadeIn">
+
+            {/* Breadcrumb & Navigation Bar */}
+            <div className="flex items-center justify-between gap-2 bg-[#14151c] border border-white/10 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-xl">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <button
+                  onClick={() => {
+                    setActiveNavTab('home');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs font-bold transition flex items-center gap-1 border border-white/10 cursor-pointer shrink-0"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Về Trang Chủ</span>
+                </button>
+                <div className="h-4 w-px bg-white/15 hidden sm:block"></div>
+                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                  <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-rose-500 animate-pulse shrink-0"></span>
+                  <h1 className="text-xs sm:text-lg font-black uppercase text-white tracking-wide truncate">
+                    <span className="hidden sm:inline">Phòng Live: </span>
+                    <span className="text-amber-400">{currentRoomInfo.farm}</span>
+                  </h1>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => {
+                    const shareUrl = `${window.location.origin}/?tab=live&key=${streamKey}`;
+                    copyToClipboard(shareUrl, 'shareChannel');
+                  }}
+                  className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#1b1c25] hover:bg-white/10 text-gray-300 hover:text-white text-[11px] sm:text-xs font-semibold border border-white/10 transition cursor-pointer"
+                  title="Sao chép link trực tiếp phòng live này để gửi anh em xem"
+                >
+                  {copiedField === 'shareChannel' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-cyan-400" />}
+                  <span>{copiedField === 'shareChannel' ? 'Đã sao chép!' : 'Chia sẻ'}</span>
+                </button>
+              </div>
+            </div>
 
             {/* ==================== CAKHIATV LIVE THEATER: PLAYER & INTERACTION ==================== */}
-            <section ref={playerSectionRef} id="main-player-section" className="space-y-4 pt-1">
+            {/* CHỈ HIỂN THỊ KHI CÓ NGƯỜI ĐANG LIVE (ẢNH 1-2) HOẶC NGƯỜI DÙNG BẤM CHỌN KÊNH XEM */}
+            {(hasAnyLive || previewSelectedChannel) && (
+              <section ref={playerSectionRef} id="main-player-section" className="space-y-4 pt-1">
 
               {/* KHUNG MAIN VIDEO VÀ LIVE CHAT (Desktop 8-4 cols, Mobile full-stack) */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
@@ -1738,31 +1853,13 @@ export default function App() {
               </div>
 
             </section>
+            )}
 
-            {/* ==================== CATEGORY FILTER TABS IN LIVE THEATER ==================== */}
-            <div className="pt-2">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="w-1.5 h-5 bg-rose-500 rounded-full"></span>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-white">Lọc Theo Chạng Gà Lên Sóng</h3>
-              </div>
-              {renderCategoryTabs()}
-            </div>
-
-            {/* ==================== SECTION 1: CÁC PHÒNG LIVE XỔ GÀ ==================== */}
+            {/* ==================== SECTION 1: CÁC PHÒNG LIVE XỔ GÀ (ẢNH 3 KHI CHƯA CÓ AI LIVE) ==================== */}
             <section id="live-section" className="space-y-4">
               {(() => {
-                const actualLiveRooms = liveRooms.filter((r) =>
-                  Boolean(r.is_live || (activeSrsKeys && activeSrsKeys.includes((r.id || r.key || '').toLowerCase())))
-                );
                 const candidateRooms = showAllRooms ? liveRooms : actualLiveRooms;
-                const displayedRooms = candidateRooms.filter((room) => {
-                  if (activeCategory === 'all') return true;
-                  if (activeCategory === 'don') return room.title.toLowerCase().includes('đòn') || room.loi.toLowerCase().includes('đòn') || room.farm.toLowerCase().includes('bình định') || room.id === 'tiendev';
-                  if (activeCategory === 'tre') return room.title.toLowerCase().includes('tre') || room.farm.toLowerCase().includes('tân châu') || room.id === 'test';
-                  if (activeCategory === 'noi') return room.title.toLowerCase().includes('nòi') || room.title.toLowerCase().includes('asil') || room.id === 'supersecret' || room.id === 'caolanh';
-                  if (activeCategory === 'dongtao') return room.title.toLowerCase().includes('đông tảo') || room.id === 'dongtao';
-                  return true;
-                });
+                const displayedRooms = candidateRooms;
 
                 return (
                   <>
@@ -1824,14 +1921,17 @@ export default function App() {
                     ) : (
                       <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-3.5">
                         {displayedRooms.map((room) => {
-                          const isRoomLive = Boolean(room.is_live || (activeSrsKeys && activeSrsKeys.includes((room.id || '').toLowerCase())));
+                          const isRoomLive = allLiveKeys.includes((room.id || room.key || '').toLowerCase()) || Boolean(room.is_live);
                           const defaultThumb = 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=500&auto=format&fit=crop';
                           const thumbUrl = (room.thumb && room.thumb.trim()) ? room.thumb.trim() : defaultThumb;
 
                           return (
                             <div
                               key={room.id}
-                              onClick={() => changeChannel(room.id, true)}
+                              onClick={() => {
+                                setPreviewSelectedChannel(room.id);
+                                changeChannel(room.id, true);
+                              }}
                               className={`bg-[#16171d] rounded-2xl border transition-all duration-300 overflow-hidden cursor-pointer group shadow-xl flex flex-col justify-between ${streamKey === room.id ? 'border-rose-500 ring-2 ring-rose-500/30' : 'border-white/10 hover:border-rose-500/60'
                                 }`}
                             >
@@ -2366,6 +2466,16 @@ export default function App() {
         onClose={() => setIsPostChickenModalOpen(false)}
         onAddChicken={handleAddChicken}
         currentUser={currentUser}
+      />
+
+      {/* ==================== USER PROFILE & AVATAR MODAL ==================== */}
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        currentUser={currentUser}
+        authToken={authToken}
+        myStreamKey={myStreamKey}
+        onProfileUpdated={handleProfileUpdated}
       />
 
     </div>

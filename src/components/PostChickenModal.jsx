@@ -43,11 +43,11 @@ export default function PostChickenModal({ isOpen, onClose, onAddChicken, curren
   const [datNuoc, setDatNuoc] = useState('Đã dạt 1 nước');
   const [isNegotiable, setIsNegotiable] = useState(false);
   const [price, setPrice] = useState('');
-  const [farm, setFarm] = useState(currentUser?.fullName || currentUser?.username || 'Trại Gà Ba Miền');
-  const [sellerName, setSellerName] = useState(currentUser?.fullName || currentUser?.username || 'Chủ Trại');
+  const [farm, setFarm] = useState(currentUser?.fullName || currentUser?.username || 'Trại Gà Thành Trung 01');
+  const [sellerName, setSellerName] = useState(currentUser?.fullName || currentUser?.username || 'Thành Trung 01');
   const [phone, setPhone] = useState('');
   const [zalo, setZalo] = useState('');
-  const [location, setLocation] = useState('Bình Định');
+  const [location, setLocation] = useState('Hà Nội');
   const [imageUrl, setImageUrl] = useState(SAMPLE_CHICKEN_IMAGES[0].url);
   const [videoUrl, setVideoUrl] = useState('');
   const [note, setNote] = useState('Đầy đủ vắc xin, bao kiểm tra thể trạng khi nhận gà từ xe khách.');
@@ -81,12 +81,12 @@ export default function PostChickenModal({ isOpen, onClose, onAddChicken, curren
       : `${numericPrice.toLocaleString('vi-VN')} đ`;
 
     const breedNames = {
-      don: 'Gà Đòn Bình Định',
-      noi: 'Gà Nòi Cựa Bến Tre',
-      tre: 'Gà Tre Tân Châu',
-      dongtao: 'Gà Đông Tảo Hưng Yên',
+      don: 'Gà Đòn Long Biên Tuyển Chọn',
+      noi: 'Gà Nòi Cựa Tuyển Chọn',
+      tre: 'Gà Tre Cảnh',
+      dongtao: 'Gà Đông Tảo Chuẩn F1',
       asil: 'Gà Asil / Mỹ Lai',
-      caolanh: 'Gà Nòi Cao Lãnh'
+      caolanh: 'Gà Nòi Tuyển Chọn'
     };
 
     const newChicken = {
@@ -181,11 +181,11 @@ export default function PostChickenModal({ isOpen, onClose, onAddChicken, curren
                   onChange={(e) => setBreed(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-lg bg-[#151722] border border-slate-700 text-white text-xs focus:outline-none focus:border-amber-400 cursor-pointer"
                 >
-                  <option value="don">Gà Đòn (Bình Định / Miền Bắc)</option>
-                  <option value="noi">Gà Nòi Cựa (Bến Tre / Chợ Lách)</option>
-                  <option value="tre">Gà Tre Tân Châu Cảnh</option>
-                  <option value="dongtao">Gà Đông Tảo Chuẩn F1 (Khoái Châu)</option>
-                  <option value="caolanh">Gà Nòi Cao Lãnh Đồng Tháp</option>
+                  <option value="don">Gà Đòn Long Biên Tuyển Chọn</option>
+                  <option value="noi">Gà Nòi Cựa Tuyển Chọn</option>
+                  <option value="tre">Gà Tre Cảnh</option>
+                  <option value="dongtao">Gà Đông Tảo Chuẩn F1</option>
+                  <option value="caolanh">Gà Nòi Tuyển Chọn</option>
                   <option value="asil">Gà Asil / Mỹ Lai Cựa</option>
                 </select>
               </div>
