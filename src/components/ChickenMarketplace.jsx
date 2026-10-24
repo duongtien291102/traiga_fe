@@ -5,7 +5,8 @@ import {
   Phone, 
   MessageSquare, 
   MapPin, 
-  Truck
+  Truck,
+  ShoppingBag
 } from 'lucide-react';
 
 export default function ChickenMarketplace({ 
@@ -284,6 +285,14 @@ export default function ChickenMarketplace({
               </div>
             </div>
           ))}
+        </div>
+      ) : chickens.length === 0 ? (
+        <div className="bg-[#14151c] rounded-xl border border-white/10 p-12 text-center space-y-3">
+          <ShoppingBag className="w-12 h-12 text-gray-600 mx-auto" />
+          <h3 className="text-lg font-bold text-white">Chưa có chiến kê nào trên sàn giao dịch</h3>
+          <p className="text-sm text-gray-400">
+            Chủ trại và Quản trị viên có thể nhấn nút &ldquo;Đăng Bán Gà&rdquo; ở trên để đưa chiến kê lên chợ.
+          </p>
         </div>
       ) : (
         <div className="bg-[#14151c] rounded-xl border border-white/10 p-10 text-center space-y-3">

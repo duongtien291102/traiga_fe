@@ -45,8 +45,8 @@ export default function PostChickenModal({ isOpen, onClose, onAddChicken, curren
   const [price, setPrice] = useState('');
   const [farm, setFarm] = useState(currentUser?.fullName || currentUser?.username || 'Trại Gà Ba Miền');
   const [sellerName, setSellerName] = useState(currentUser?.fullName || currentUser?.username || 'Chủ Trại');
-  const [phone, setPhone] = useState('0988.888.xxx');
-  const [zalo, setZalo] = useState('0988.888.xxx');
+  const [phone, setPhone] = useState('');
+  const [zalo, setZalo] = useState('');
   const [location, setLocation] = useState('Bình Định');
   const [imageUrl, setImageUrl] = useState(SAMPLE_CHICKEN_IMAGES[0].url);
   const [videoUrl, setVideoUrl] = useState('');

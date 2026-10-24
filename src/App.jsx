@@ -39,157 +39,16 @@ import {
   ShieldCheck,
   Sun,
   Moon,
-  Play
+  Play,
+  Swords,
+  Camera,
+  Headphones,
+  History,
+  BarChart3,
+  Eye,
+  Volume2
 } from 'lucide-react';
 import { getApiBaseUrl, getHlsBaseUrl, getRtmpBaseUrl, getHost } from './config';
-
-// Dữ liệu chiến kê thực tế tại Trại Gà Thành Trung & các trại giao lưu
-const INITIAL_CHICKENS = [
-  {
-    id: 'ck_0',
-    ms: 'MS 101',
-    title: 'Ô Chân Trắng Điểm Mực 2K95 Bo Đá Cực Chắc, Ôm Đấm Đòn Lưng',
-    breed: 'don',
-    breedName: 'Gà Đòn Long Biên',
-    chang: '2.95 kg',
-    age: '11 tháng tơ',
-    canVay: 'Huyền trâm đóng đúng chậu, chân vuông sừng',
-    loi: 'Lối ôm đấm kiềng hầu, đá mé giáp lưng',
-    datNuoc: 'Đã dạt 2 nước chuẩn',
-    price: 3500000,
-    priceText: '3.500.000 đ',
-    farm: 'Trại Gà Thành Trung',
-    sellerName: 'Thành Trung Long Biên',
-    phone: '0988.888.xxx',
-    zalo: '0988.888.xxx',
-    location: 'Long Biên, Hà Nội',
-    image: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=800&auto=format&fit=crop',
-    videoUrl: '',
-    note: 'Chiến kê đúc trực tiếp tại trại Long Biên. Khách qua xem trực tiếp tại chuồng hoặc gọi Zalo xem video.',
-    status: 'available',
-    createdAt: '2026-10-23T08:00:00Z'
-  },
-  {
-    id: 'ck_1',
-    ms: 'MS 201',
-    title: 'Chuối Lửa Chân Xanh 2K9 Đã Dạt 2 Nước Bo Đá Chắc Chắn',
-    breed: 'don',
-    breedName: 'Gà Đòn Bình Định',
-    chang: '2.90 kg',
-    age: '11 tháng',
-    canVay: 'Giáp thới, huyền trâm sát chậu',
-    loi: 'Ôm đấm kiềng hầu, đá mé xỏ ngang',
-    datNuoc: 'Đã dạt 2 nước',
-    price: 3200000,
-    priceText: '3.200.000 đ',
-    farm: 'Trại Gà Đòn Ninh Thuận',
-    sellerName: 'Anh Bảy Ninh Thuận',
-    phone: '0988.888.101',
-    zalo: '0988.888.101',
-    location: 'Ninh Thuận',
-    image: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=800&auto=format&fit=crop',
-    videoUrl: '',
-    note: 'Đã tiêm phòng 100% vắc xin. Hỗ trợ gửi xe khách các tỉnh miền Trung & miền Nam.',
-    status: 'available',
-    createdAt: '2026-10-22T08:00:00Z'
-  },
-  {
-    id: 'ck_2',
-    ms: 'MS 202',
-    title: 'Tre Chuối Tuyết Bờm Trắng Đuôi Phụng 68cm Chuẩn Dáng Cảnh',
-    breed: 'tre',
-    breedName: 'Gà Tre Tân Châu',
-    chang: '850 gram',
-    age: '10 tháng',
-    canVay: 'Cán tròn hai hàng trơn, vảy mỏng sát thịt',
-    loi: 'Gà cảnh dạn người, gáy tiếng thanh vang',
-    datNuoc: 'Chuẩn dáng cảnh',
-    price: 1800000,
-    priceText: '1.800.000 đ',
-    farm: 'Trại Gà Tre Sáu Khải',
-    sellerName: 'Sáu Khải Tân Châu',
-    phone: '0988.888.102',
-    zalo: '0988.888.102',
-    location: 'Bến Tre',
-    image: 'https://images.unsplash.com/photo-1612170153139-6f881ff067e0?q=80&w=800&auto=format&fit=crop',
-    videoUrl: '',
-    note: 'Đuôi xòe 3 lớp chạm đất, bờm phủ vai tuyệt đẹp. Ship toàn quốc.',
-    status: 'available',
-    createdAt: '2026-10-22T09:30:00Z'
-  },
-  {
-    id: 'ck_3',
-    ms: 'MS 203',
-    title: 'Tía Chân Xanh Án Thiên 1 Đòn Mé Xỏ Ngang Giáp Lưng Dạt Sườn',
-    breed: 'don',
-    breedName: 'Gà Đòn Bình Định',
-    chang: '3.15 kg',
-    age: '12 tháng',
-    canVay: 'Án Thiên 1 sát đầu gối, chân vuông sắc',
-    loi: 'Lối mé xỏ ngang, đánh giáp lưng dạt sườn',
-    datNuoc: 'Đã dạt 3 nước cứng',
-    price: 4500000,
-    priceText: '4.500.000 đ',
-    farm: 'Trại Gà Ba Bình Định',
-    sellerName: 'Ba Bình Định',
-    phone: '0988.888.103',
-    zalo: '0988.888.103',
-    location: 'Bình Định',
-    image: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=800&auto=format&fit=crop',
-    videoUrl: '',
-    note: 'Gà đòn gốc Tây Sơn Bình Định. Đòn đấm uy lực, bao thử chân trực tiếp.',
-    status: 'available',
-    createdAt: '2026-10-22T10:15:00Z'
-  },
-  {
-    id: 'ck_4',
-    ms: 'MS 204',
-    title: 'Đông Tảo Tiến Vua Chân Khủng F1 Thuần Chủng Vảy Thịt Đỏ Au',
-    breed: 'dongtao',
-    breedName: 'Gà Đông Tảo Hưng Yên',
-    chang: '4.60 kg',
-    age: '14 tháng',
-    canVay: 'Chân xù to vảy thịt đỏ au, ngón ngắn vạm vỡ',
-    loi: 'Trống thuần chủng làm giống hoặc biếu tặng',
-    datNuoc: 'Giống chuẩn F1',
-    price: 0,
-    priceText: 'Thỏa thuận',
-    farm: 'Trại Gà Tiến Khoái Châu',
-    sellerName: 'Bác Tiến Khoái Châu',
-    phone: '0988.888.104',
-    zalo: '0988.888.104',
-    location: 'Hưng Yên',
-    image: '/img/rooster_dongtao.jpg',
-    videoUrl: '',
-    note: 'Gà giống Khoái Châu Hưng Yên tuyển chọn. Vận chuyển chuồng gỗ xe khách an toàn.',
-    status: 'available',
-    createdAt: '2026-10-22T11:00:00Z'
-  },
-  {
-    id: 'ck_5',
-    ms: 'MS 205',
-    title: 'Asil Lai Mỹ Xám Chuối Nạp Chân Sâu Bo Đá Nhanh Gọn Bo Bén',
-    breed: 'asil',
-    breedName: 'Gà Asil / Mỹ Lai',
-    chang: '2.60 kg',
-    age: '10 tháng',
-    canVay: 'Tam tài sát gối, vảy sạch bo bén',
-    loi: 'Nhanh nhẹn, tốc độ cao, nạp chân sâu',
-    datNuoc: 'Đã dạt 2 nước',
-    price: 2800000,
-    priceText: '2.800.000 đ',
-    farm: 'Trại Gà Ba Tri Bến Tre',
-    sellerName: 'Tuấn Ba Tri',
-    phone: '0988.888.105',
-    zalo: '0988.888.105',
-    location: 'Bến Tre',
-    image: '/img/rooster_asil.jpg',
-    videoUrl: '',
-    note: 'Bo đá tốc độ, nhanh nhẹn. Gửi xe khách bến xe Miền Tây trong ngày.',
-    status: 'available',
-    createdAt: '2026-10-22T14:20:00Z'
-  }
-];
 
 export default function App() {
   const [streamKey, setStreamKey] = useState('tiendev');
@@ -205,6 +64,9 @@ export default function App() {
   const [isSystemAdminOpen, setIsSystemAdminOpen] = useState(false);
   const [isLiveStudioOpen, setIsLiveStudioOpen] = useState(false);
   const [activeRightTab, setActiveRightTab] = useState('chat'); // 'chat' | 'obs' | 'info'
+  const [liveCamera, setLiveCamera] = useState('cam1'); // 'cam1' (toàn cảnh) | 'cam2' (soi chân vảy)
+  const [liveAudioTrack, setLiveAudioTrack] = useState('blv'); // 'blv' (BLV Thành Trung) | 'arena' (Sới gốc)
+  const [liveTab, setLiveTab] = useState('chat'); // 'chat' | 'info' | 'h2h' | 'market' | 'shipping'
   const [themeMode, setThemeMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('traiga_theme') || 'light';
@@ -229,45 +91,29 @@ export default function App() {
     setThemeMode((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  // Quản lý Đăng Bán Gà & Chợ Kê
-  const [chickensList, setChickensList] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('market_chickens');
-        if (saved) {
-          const list = JSON.parse(saved);
-          return list.map((c) => {
-            if (c.image && c.image.includes('photo-1516467508483-a7212febe31a')) {
-              return { ...c, image: '/img/rooster_asil.jpg' };
-            }
-            if (c.image && c.image.includes('photo-1563281577-a7be47e20db9')) {
-              return { ...c, image: '/img/rooster_dongtao.jpg' };
-            }
-            return c;
-          });
-        }
-      } catch (e) { }
-    }
-    return INITIAL_CHICKENS;
-  });
+  // Quản lý Đăng Bán Gà & Chợ Kê (100% dữ liệu thật từ MongoDB)
+  const [chickensList, setChickensList] = useState([]);
   const [isPostChickenModalOpen, setIsPostChickenModalOpen] = useState(false);
   const [selectedMarketChicken, setSelectedMarketChicken] = useState(null);
+
+  // Tải danh sách gà thật từ MongoDB
+  const fetchChickens = () => {
+    fetch(`${getApiBaseUrl()}/api/chickens`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setChickensList(data);
+        }
+      })
+      .catch(() => {});
+  };
 
   const handleAddChicken = (newChicken) => {
     if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'systemadmin')) {
       return;
     }
-    setChickensList((prev) => {
-      const updated = [newChicken, ...prev];
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem('market_chickens', JSON.stringify(updated));
-        } catch (e) { }
-      }
-      return updated;
-    });
 
-    // Gửi lên server backend nếu có
+    // Gửi lưu trực tiếp vào MongoDB
     fetch(`${getApiBaseUrl()}/api/chickens`, {
       method: 'POST',
       headers: {
@@ -275,7 +121,18 @@ export default function App() {
         ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
       },
       body: JSON.stringify(newChicken)
-    }).catch(() => { });
+    })
+      .then((res) => res.json())
+      .then((saved) => {
+        if (saved && saved.id) {
+          setChickensList((prev) => [saved, ...prev]);
+        } else {
+          fetchChickens();
+        }
+      })
+      .catch(() => {
+        fetchChickens();
+      });
 
     // Chuyển sang tab Chợ Gà và cuộn lên đầu trang
     setActiveNavTab('market');
@@ -295,6 +152,7 @@ export default function App() {
 
   // Danh sách key từ MongoDB & danh sách Video Xem Lại (Replays)
   const [dbKeys, setDbKeys] = useState([]);
+  const [publicRooms, setPublicRooms] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [srsStreams, setSrsStreams] = useState([]);
   const [replays, setReplays] = useState([]);
@@ -413,12 +271,28 @@ export default function App() {
       .catch(() => {});
   };
 
+  // Tải danh sách các phòng live công khai từ MongoDB
+  const fetchPublicRooms = () => {
+    fetch(`${getApiBaseUrl()}/api/rooms`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setPublicRooms(data);
+        }
+      })
+      .catch(() => {});
+  };
+
   useEffect(() => {
     fetchKeysAndSessions();
+    fetchPublicRooms();
+    fetchChickens();
     fetchSrsStreams();
     fetchReplays();
     const interval = setInterval(() => {
       fetchKeysAndSessions();
+      fetchPublicRooms();
+      fetchChickens();
       fetchSrsStreams();
       fetchReplays();
     }, 5000);
@@ -546,84 +420,25 @@ export default function App() {
     setIsPostChickenModalOpen(true);
   };
 
-  // Danh sách kênh mặc định nếu MongoDB chưa có dữ liệu
-  const displayKeys = dbKeys.length > 0
-    ? dbKeys
-    : [
-      { key: 'tiendev', title: 'Trại Ba Bình Định', streamer: 'Ba Bình Định', is_active: true },
-      { key: 'test', title: 'Trại Sáu Khải Tân Châu', streamer: 'Sáu Khải', is_active: true },
-      { key: 'supersecret', title: 'Trại Anh Ba Chợ Lách', streamer: 'Anh Ba', is_active: true }
-    ];
+  // Danh sách kênh lấy từ MongoDB (không dùng mock data)
+  const displayKeys = dbKeys.length > 0 ? dbKeys : publicRooms;
 
-  // Danh sách chiến kê đặc sắc lên sóng
-  const liveRooms = [
-    {
-      id: 'tiendev',
-      ms: 'MS 101',
-      title: 'Gà Ô Chân Trắng Điểm Mực',
-      farm: 'Trại Gà Ba Bình Định',
-      streamer: 'Ba Bình Định',
-      chang: '2.85 kg',
-      loi: 'Lối kiềng hầu, đá mé xỏ ngang',
-      viewers: '1.4k',
-      thumb: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=500&auto=format&fit=crop'
-    },
-    {
-      id: 'test',
-      ms: 'MS 102',
-      title: 'Tre Tân Châu Khét Đỏ Bờm Dài',
-      farm: 'Trại Gà Tre Sáu Khải',
-      streamer: 'Sáu Khải Tân Châu',
-      chang: '850 g',
-      loi: 'Trống tơ 9 tháng, đuôi phụng 68cm',
-      viewers: '950',
-      thumb: 'https://images.unsplash.com/photo-1612170153139-6f881ff067e0?q=80&w=500&auto=format&fit=crop'
-    },
-    {
-      id: 'supersecret',
-      ms: 'MS 103',
-      title: 'Asil Lai Mỹ Xám Chuối',
-      farm: 'Trại Gà Ba Tri Bến Tre',
-      streamer: 'Tuấn Ba Tri',
-      chang: '2.60 kg',
-      loi: 'Nhanh nhẹn, nạp chân sâu',
-      viewers: '2.1k',
-      thumb: '/img/rooster_asil.jpg'
-    },
-    {
-      id: 'dongtao',
-      ms: 'MS 104',
-      title: 'Đông Tảo Tiến Vua Chân Khủng',
-      farm: 'Trại Gà Tiến Khoái Châu',
-      streamer: 'Bác Tiến Khoái Châu',
-      chang: '4.50 kg',
-      loi: 'Chân xù vảy thịt đỏ, F1 thuần chủng',
-      viewers: '1.1k',
-      thumb: '/img/rooster_dongtao.jpg'
-    },
-    {
-      id: 'caolanh',
-      ms: 'MS 105',
-      title: 'Gà Nòi Tía Vàng 8 Móng',
-      farm: 'Trại Kê Cao Lãnh',
-      streamer: 'Út Lớn Cao Lãnh',
-      chang: '3.00 kg',
-      loi: 'Vảy đại giáp, lối đá đấm lưng',
-      viewers: '1.8k',
-      thumb: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=500&auto=format&fit=crop'
-    }
-  ];
+  // Danh sách phòng live lấy trực tiếp từ MongoDB (không dùng mock data)
+  const liveRooms = publicRooms.length > 0 ? publicRooms : dbKeys;
 
-  // Tìm thông tin con gà gắn với streamKey hiện tại
+  // Tìm thông tin phòng gắn với streamKey hiện tại từ MongoDB
   const matchedDbKey = dbKeys.find((d) => d.key === streamKey);
-  const currentRoomInfo = liveRooms.find(r => r.id === streamKey) || {
-    ms: 'MS KÊ',
-    title: matchedDbKey?.title || 'Phòng Live Xổ Gà Trực Tiếp',
-    farm: matchedDbKey?.streamer ? `Trại Gà ${matchedDbKey.streamer}` : 'Trại Gà Thành Trung',
+  const matchedPublicRoom = publicRooms.find((r) => r.key === streamKey || r.id === streamKey);
+  const currentRoomInfo = matchedPublicRoom || {
+    id: streamKey,
+    key: streamKey,
+    ms: matchedDbKey?.ms || '',
+    title: matchedDbKey?.title || 'Phòng Live ' + streamKey,
+    farm: matchedDbKey?.streamer ? `Trại Gà ${matchedDbKey.streamer}` : 'Trại Gà',
     streamer: matchedDbKey?.streamer || 'Chủ Trại',
-    chang: 'Chạng chuẩn',
-    loi: 'Lối đòn chuẩn dòng kê',
-    viewers: 'Đang live'
+    chang: matchedDbKey?.chang || '',
+    loi: matchedDbKey?.loi || '',
+    viewers: 0
   };
 
   // Chuyển đổi số người xem để so sánh: ví dụ '2.1k' -> 2100, '950' -> 950
@@ -1160,28 +975,42 @@ export default function App() {
                   </div>
                 ) : (
                   /* TRƯỜNG HỢP HIỆN TẠI CHƯA CÓ LIVE: BANNER LỊCH XỔ GÀ TRẠI THÀNH TRUNG */
-                  <div className="relative w-full h-full min-h-[280px] sm:min-h-[340px] flex flex-col justify-end p-5 sm:p-8">
+                  <div className={`relative w-full h-full min-h-[280px] sm:min-h-[340px] flex flex-col justify-end p-5 sm:p-8 rounded-2xl overflow-hidden ${
+                    themeMode === 'light' ? 'bg-white border border-slate-200 shadow-sm' : 'bg-slate-900'
+                  }`}>
                     <div
-                      className="absolute inset-0 bg-cover bg-center opacity-30 pointer-events-none"
+                      className={`absolute inset-0 bg-cover bg-center pointer-events-none ${
+                        themeMode === 'light' ? 'opacity-20' : 'opacity-30'
+                      }`}
                       style={{ backgroundImage: `url('https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1200&auto=format&fit=crop')` }}
                     ></div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0e1017] via-[#0e1017]/80 to-transparent"></div>
+                    <div className={`absolute inset-0 ${
+                      themeMode === 'light'
+                        ? 'bg-gradient-to-r from-white via-white/95 to-white/60'
+                        : 'bg-gradient-to-t from-[#0e1017] via-[#0e1017]/80 to-transparent'
+                    }`}></div>
 
                     <div className="relative z-10 space-y-3">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="bg-red-700 text-white text-[11px] font-bold uppercase px-2.5 py-0.5 rounded tracking-wide">
+                        <span className="bg-rose-600 text-white text-[11px] font-black uppercase px-2.5 py-0.5 rounded tracking-wide shadow-sm">
                           LỊCH XỔ GÀ HÔM NAY
                         </span>
-                        <span className="text-xs text-amber-400 font-semibold">
+                        <span className={`text-xs font-bold ${
+                          themeMode === 'light' ? 'text-amber-800' : 'text-amber-400'
+                        }`}>
                           Trại Gà Thành Trung • Long Biên, Hà Nội
                         </span>
                       </div>
 
-                      <h2 className="text-lg sm:text-3xl font-black text-white tracking-tight leading-snug">
-                        SỔ THỬ ĐÒN DÀN GÀ TƠ CHẠNG 2K8 - 3K2 &amp; <span className="text-amber-400">SOI CÁN VẢY TRỰC TIẾP</span>
+                      <h2 className={`text-lg sm:text-3xl font-black tracking-tight leading-snug ${
+                        themeMode === 'light' ? 'text-slate-950' : 'text-white'
+                      }`}>
+                        SỔ THỬ ĐÒN DÀN GÀ TƠ CHẠNG 2K8 - 3K2 &amp; <span className={themeMode === 'light' ? 'text-rose-600' : 'text-amber-400'}>SOI CÁN VẢY TRỰC TIẾP</span>
                       </h2>
 
-                      <p className="text-xs sm:text-sm text-slate-300 max-w-xl line-clamp-2">
+                      <p className={`text-xs sm:text-sm max-w-xl line-clamp-2 ${
+                        themeMode === 'light' ? 'text-slate-700 font-medium' : 'text-slate-300'
+                      }`}>
                         Trại Gà Thành Trung chuyên gà đòn, gà nòi tuyển chọn. Lịch xổ đòn vào 14h00 &amp; 19h30 hàng ngày. Anh em có thể xem video thực tế hoặc qua trực tiếp chuồng trại tại Long Biên giao lưu.
                       </p>
 
@@ -1191,16 +1020,20 @@ export default function App() {
                             if (activeNavTab !== 'market') setActiveNavTab('market');
                             window.scrollTo({ top: 0, behavior: 'smooth' });
                           }}
-                          className="w-full sm:w-auto justify-center bg-red-700 hover:bg-red-600 text-white text-xs sm:text-sm font-bold py-2.5 px-5 rounded-lg flex items-center gap-2 transition cursor-pointer"
+                          className="w-full sm:w-auto justify-center bg-rose-600 hover:bg-rose-500 text-white text-xs sm:text-sm font-bold py-2.5 px-5 rounded-lg flex items-center gap-2 transition cursor-pointer shadow-md"
                         >
                           <ShoppingBag className="w-4 h-4" />
                           XEM DÀN GÀ ĐANG CÓ SẴN
                         </button>
                         <button
                           onClick={() => openConnectWithFarm('Dàn Gà Tơ Trại Thành Trung', 'Trại Gà Thành Trung Long Biên')}
-                          className="w-full sm:w-auto justify-center bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 text-xs sm:text-sm font-bold py-2.5 px-4 rounded-lg transition flex items-center gap-1.5 cursor-pointer"
+                          className={`w-full sm:w-auto justify-center text-xs sm:text-sm font-bold py-2.5 px-4 rounded-lg transition flex items-center gap-1.5 cursor-pointer border ${
+                            themeMode === 'light'
+                              ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300'
+                              : 'bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border-amber-500/40'
+                          }`}
                         >
-                          <Phone className="w-3.5 h-3.5 text-amber-400" />
+                          <Phone className={`w-3.5 h-3.5 ${themeMode === 'light' ? 'text-amber-700' : 'text-amber-400'}`} />
                           LIÊN HỆ XEM CLIP ZALO
                         </button>
                       </div>
@@ -1210,15 +1043,23 @@ export default function App() {
               </div>
 
               {/* Right: Active Live Channels Widget (4 cols) */}
-              <div className="lg:col-span-4 bg-[#16171d] rounded-2xl border border-white/10 p-4 flex flex-col justify-between shadow-xl">
-                <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className={`lg:col-span-4 rounded-2xl border p-4 flex flex-col justify-between shadow-xl ${
+                themeMode === 'light' ? 'bg-white border-slate-200' : 'bg-[#16171d] border-white/10'
+              }`}>
+                <div className={`flex items-center justify-between pb-3 border-b ${
+                  themeMode === 'light' ? 'border-slate-200' : 'border-white/10'
+                }`}>
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
-                    <h3 className="text-xs sm:text-sm font-black uppercase text-white tracking-wider">Đang Xổ &amp; Lên Sóng</h3>
+                    <h3 className={`text-xs sm:text-sm font-black uppercase tracking-wider ${
+                      themeMode === 'light' ? 'text-slate-900' : 'text-white'
+                    }`}>
+                      Đang Xổ &amp; Lên Sóng
+                    </h3>
                   </div>
                   <span
                     onClick={() => { setActiveNavTab('live'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                    className="text-xs text-rose-400 font-semibold cursor-pointer hover:underline"
+                    className="text-xs text-rose-600 font-bold cursor-pointer hover:underline"
                   >
                     {displayKeys.length} Kênh
                   </span>
@@ -1230,24 +1071,32 @@ export default function App() {
                     <div
                       key={item.key}
                       onClick={() => changeChannel(item.key, true)}
-                      className={`p-2.5 rounded-xl border cursor-pointer transition-all ${streamKey === item.key
-                          ? 'bg-rose-950/40 border-rose-500/60 shadow-md'
-                          : 'bg-[#111217] hover:bg-white/5 border-white/5'
-                        }`}
+                      className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
+                        streamKey === item.key
+                          ? (themeMode === 'light' ? 'bg-rose-50 border-rose-300 shadow-sm' : 'bg-rose-950/40 border-rose-500/60 shadow-md')
+                          : (themeMode === 'light' ? 'bg-slate-50 hover:bg-slate-100 border-slate-200' : 'bg-[#111217] hover:bg-white/5 border-white/5')
+                      }`}
                     >
-                      <div className="flex items-center justify-between text-[11px] text-gray-400 mb-1">
-                        <span className="flex items-center gap-1.5 text-gray-300 font-bold truncate max-w-[170px]">
+                      <div className="flex items-center justify-between text-[11px] mb-1">
+                        <span className={`flex items-center gap-1.5 font-bold truncate max-w-[170px] ${
+                          themeMode === 'light' ? 'text-slate-900' : 'text-gray-300'
+                        }`}>
                           🐓 {item.title || item.streamer || 'Phòng Live Trại Gà'}
                         </span>
-                        <span className="text-rose-400 font-bold flex items-center gap-1">
+                        <span className="text-rose-600 font-bold flex items-center gap-1">
                           <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
                           {item.is_active ? 'LIVE' : 'OFFLINE'}
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-gray-400 text-[11px]">Chủ kê: {item.streamer || 'Trại Gà Thành Trung'}</span>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${streamKey === item.key ? 'bg-rose-500 text-white' : 'bg-white/10 text-gray-300'
-                          }`}>
+                        <span className={`text-[11px] ${themeMode === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
+                          Chủ kê: {item.streamer || 'Trại Gà Thành Trung'}
+                        </span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                          streamKey === item.key
+                            ? 'bg-rose-600 text-white'
+                            : (themeMode === 'light' ? 'bg-slate-200 text-slate-700' : 'bg-white/10 text-gray-300')
+                        }`}>
                           Xem luồng
                         </span>
                       </div>
@@ -1257,7 +1106,9 @@ export default function App() {
 
                 <div
                   onClick={() => { setActiveNavTab('live'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                  className="pt-2 text-center text-[11px] text-rose-400 hover:text-rose-300 cursor-pointer font-semibold border-t border-white/10 flex items-center justify-center gap-1"
+                  className={`pt-2 text-center text-[11px] font-bold cursor-pointer border-t flex items-center justify-center gap-1 ${
+                    themeMode === 'light' ? 'border-slate-200 text-rose-600 hover:text-rose-700' : 'border-white/10 text-rose-400 hover:text-rose-300'
+                  }`}
                 >
                   <span>📺 Vào Phòng Live Xổ Gà xem đầy đủ &gt;</span>
                 </div>
@@ -1271,7 +1122,9 @@ export default function App() {
             {/* ==================== DANH SÁCH GÀ ĐANG BÁN (CÓ ẢNH RÕ RÀNG, BẤM XEM CHI TIẾT) ==================== */}
             <section id="featured-chickens" className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white">
+                <h2 className={`text-xl sm:text-2xl font-black ${
+                  themeMode === 'light' ? 'text-slate-900' : 'text-white'
+                }`}>
                   Gà Đang Bán Tại Trại &amp; Giao Lưu
                 </h2>
                 <button
@@ -1280,7 +1133,9 @@ export default function App() {
                     setActiveNavTab('market');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="text-sm font-bold text-amber-400 hover:underline cursor-pointer"
+                  className={`text-sm font-bold hover:underline cursor-pointer ${
+                    themeMode === 'light' ? 'text-rose-600' : 'text-amber-400'
+                  }`}
                 >
                   Xem tất cả ({chickensList.length}) &gt;
                 </button>
@@ -1290,7 +1145,11 @@ export default function App() {
                 {chickensList.slice(0, 6).map((item) => (
                   <div
                     key={item.id}
-                    className="bg-[#16171d] rounded-xl border border-white/10 hover:border-amber-500/50 transition overflow-hidden flex flex-col justify-between"
+                    className={`rounded-2xl border transition overflow-hidden flex flex-col justify-between shadow-sm ${
+                      themeMode === 'light'
+                        ? 'bg-white border-slate-200 hover:border-rose-400 hover:shadow-md'
+                        : 'bg-[#16171d] border-white/10 hover:border-amber-500/50'
+                    }`}
                   >
                     <div
                       onClick={() => {
@@ -1303,7 +1162,7 @@ export default function App() {
                       <img
                         src={item.image}
                         alt={item.title}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                       />
                       <div className="absolute top-3 left-3 flex items-center gap-2">
                         <span className="bg-black/80 text-amber-400 text-xs font-bold px-2.5 py-1 rounded">
@@ -1318,10 +1177,16 @@ export default function App() {
                     <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
                       <div className="space-y-1.5">
                         <div className="flex items-baseline justify-between gap-2">
-                          <span className="text-lg font-bold text-amber-400">
+                          <span className={`text-lg font-black ${
+                            themeMode === 'light' ? 'text-rose-600' : 'text-amber-400'
+                          }`}>
                             {item.priceText || (item.price ? `${item.price.toLocaleString('vi-VN')} đ` : 'Giá thỏa thuận')}
                           </span>
-                          <span className="text-xs text-gray-400">{item.location}</span>
+                          <span className={`text-xs ${
+                            themeMode === 'light' ? 'text-slate-500 font-medium' : 'text-gray-400'
+                          }`}>
+                            {item.location}
+                          </span>
                         </div>
                         <h3
                           onClick={() => {
@@ -1329,30 +1194,40 @@ export default function App() {
                             setActiveNavTab('market');
                             window.scrollTo({ top: 0, behavior: 'smooth' });
                           }}
-                          className="font-bold text-base text-white line-clamp-2 hover:text-amber-400 cursor-pointer leading-snug"
+                          className={`font-bold text-base line-clamp-2 hover:text-rose-600 cursor-pointer leading-snug ${
+                            themeMode === 'light' ? 'text-slate-900' : 'text-white'
+                          }`}
                         >
                           {item.title}
                         </h3>
-                        <p className="text-sm text-gray-400 truncate">
+                        <p className={`text-sm ${
+                          themeMode === 'light' ? 'text-slate-600' : 'text-gray-400'
+                        } line-clamp-2 leading-relaxed`}>
                           {item.farm} • {item.canVay}
                         </p>
                       </div>
 
-                      <div className="pt-3 border-t border-white/10 grid grid-cols-2 gap-2.5">
+                      <div className={`pt-3 border-t grid grid-cols-2 gap-2.5 ${
+                        themeMode === 'light' ? 'border-slate-100' : 'border-white/10'
+                      }`}>
                         <button
                           onClick={() => {
                             setSelectedMarketChicken(item);
                             setActiveNavTab('market');
                             window.scrollTo({ top: 0, behavior: 'smooth' });
                           }}
-                          className="py-2 px-3 rounded-lg bg-[#0e0f14] hover:bg-white/10 text-white border border-white/10 text-sm font-semibold transition cursor-pointer"
+                          className={`py-2 px-3 rounded-lg border text-sm font-bold transition cursor-pointer text-center ${
+                            themeMode === 'light'
+                              ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-200'
+                              : 'bg-[#0e0f14] hover:bg-white/10 text-white border-white/10'
+                          }`}
                         >
                           Xem Chi Tiết
                         </button>
                         {currentUser ? (
                           <a
                             href={`tel:${item.phone?.replace(/\D/g, '') || '0988888888'}`}
-                            className="py-2 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-bold transition flex items-center justify-center gap-1.5"
+                            className="py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition flex items-center justify-center gap-1.5 shadow-sm"
                           >
                             <Phone className="w-4 h-4" />
                             <span>Gọi Điện</span>
@@ -1361,7 +1236,7 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => openConnectWithFarm(item.title, item.farm)}
-                            className="py-2 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                            className="py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                           >
                             <Phone className="w-4 h-4" />
                             <span>Gọi Điện</span>
@@ -1410,51 +1285,14 @@ export default function App() {
         {activeNavTab === 'live' && (
           <div className="space-y-8 animate-fadeIn">
 
-            {/* Breadcrumb & Navigation Bar */}
-            <div className="flex items-center justify-between gap-2 bg-[#14151c] border border-white/10 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-xl">
-              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                <button
-                  onClick={() => {
-                    setActiveNavTab('home');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs font-bold transition flex items-center gap-1 border border-white/10 cursor-pointer shrink-0"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Về Trang Chủ</span>
-                </button>
-                <div className="h-4 w-px bg-white/15 hidden sm:block"></div>
-                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                  <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-rose-500 animate-pulse shrink-0"></span>
-                  <h1 className="text-xs sm:text-lg font-black uppercase text-white tracking-wide truncate">
-                    <span className="hidden sm:inline">Phòng Live Xổ Gà: </span>
-                    <span className="text-amber-400">{currentRoomInfo.farm}</span>
-                  </h1>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => {
-                    const shareUrl = `${window.location.origin}/?tab=live`;
-                    copyToClipboard(shareUrl, 'shareChannel');
-                  }}
-                  className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#1b1c25] hover:bg-white/10 text-gray-300 hover:text-white text-[11px] sm:text-xs font-semibold border border-white/10 transition cursor-pointer"
-                  title="Sao chép link trực tiếp phòng live này để gửi anh em xem"
-                >
-                  {copiedField === 'shareChannel' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-cyan-400" />}
-                  <span>{copiedField === 'shareChannel' ? 'Đã sao chép!' : 'Chia sẻ'}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* ==================== CENTRAL LIVE PLAYER & REAL LIVECHAT SECTION ==================== */}
+            {/* ==================== CAKHIATV LIVE THEATER: PLAYER & INTERACTION ==================== */}
             <section ref={playerSectionRef} id="main-player-section" className="space-y-4 pt-1">
 
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* KHUNG MAIN VIDEO VÀ LIVE CHAT (Desktop 8-4 cols, Mobile full-stack) */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
-                {/* Cột trái: LivePlayer & Pinned Chicken Info (8 cols) */}
-                <div className="lg:col-span-8 flex flex-col gap-4">
+                {/* Cột trái: LivePlayer + CakhiaTV Controls & Icon Tab Bar (8 cols) */}
+                <div className="lg:col-span-8 flex flex-col gap-3">
 
                   {/* VIDEO PLAYER COMPONENT (HLS Stream) */}
                   <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-[#13141b] shadow-2xl">
@@ -1493,40 +1331,188 @@ export default function App() {
                     </div>
                   </div>
 
-                </div>
-
-                {/* Cột phải: LiveChat & Thông tin chiến kê (4 cols) */}
-                <div className="lg:col-span-4 flex flex-col gap-3">
-
-                  {/* Tab Selector */}
-                  <div className="flex items-center p-1.5 rounded-2xl bg-[#16171d] border border-white/10">
-                    <button
-                      onClick={() => setActiveRightTab('chat')}
-                      className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${activeRightTab === 'chat'
-                          ? 'bg-rose-600 text-white shadow-md'
-                          : 'text-gray-400 hover:text-white hover:bg-white/5'
-                        }`}
-                    >
-                      <MessageSquare className="w-3.5 h-3.5" />
-                      <span>Trò chuyện</span>
-                    </button>
-
-                    <button
-                      onClick={() => setActiveRightTab('info')}
-                      className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${activeRightTab === 'info'
-                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-md'
-                          : 'text-gray-400 hover:text-white hover:bg-white/5'
-                        }`}
-                      title="Thông tin đòn vảy"
-                    >
-                      <FileText className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Thông tin gà</span>
-                    </button>
+                  {/* THANH TAB TÍNH NĂNG KIỂU CAKHIATV NGAY DƯỚI VIDEO (Icon Tab Bar) */}
+                  <div className="flex items-center gap-1 sm:gap-2 p-1.5 rounded-2xl bg-[#16171d] border border-white/10 overflow-x-auto scrollbar-none">
+                    {[
+                      { key: 'chat', label: 'Bình luận', icon: MessageSquare },
+                      { key: 'info', label: 'Soi đòn vảy', icon: Swords },
+                      { key: 'h2h', label: 'Đối đầu (H2H)', icon: History },
+                      { key: 'market', label: 'Chợ cùng chạng', icon: ShoppingBag },
+                      { key: 'shipping', label: 'Bến xe gửi gà', icon: Truck },
+                    ].map((tab) => {
+                      const IconComp = tab.icon;
+                      const isActive = liveTab === tab.key;
+                      return (
+                        <button
+                          key={tab.key}
+                          type="button"
+                          onClick={() => {
+                            setLiveTab(tab.key);
+                            setActiveRightTab(tab.key === 'chat' ? 'chat' : 'info');
+                          }}
+                          className={`flex-1 min-w-[90px] sm:min-w-0 py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                            isActive
+                              ? 'bg-rose-600 text-white shadow-md'
+                              : 'text-gray-400 hover:text-white hover:bg-white/5'
+                          }`}
+                        >
+                          <IconComp className="w-3.5 h-3.5" />
+                          <span>{tab.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
 
-                  {/* TAB 1: REAL LIVE CHAT COMPONENT */}
-                  {activeRightTab === 'chat' && (
-                    <div className="h-[380px] sm:h-[460px] lg:h-[530px] w-full rounded-2xl overflow-hidden border border-white/10 bg-[#16171d] shadow-xl">
+                  {/* NỘI DUNG HIỂN THỊ THEO TAB TRÊN MOBILE (VÀ DƯỚI VIDEO) */}
+                  <div className="block lg:hidden">
+                    {liveTab === 'chat' && (
+                      <div className="h-[430px] w-full rounded-2xl overflow-hidden border border-white/10 bg-[#16171d] shadow-xl">
+                        <LiveChat
+                          streamKey={streamKey}
+                          user={currentUser}
+                          onOpenAuth={() => setIsAuthModalOpen(true)}
+                        />
+                      </div>
+                    )}
+
+                    {liveTab === 'info' && (
+                      <div className="p-4 rounded-2xl bg-[#16171d] border border-white/10 space-y-4 text-xs shadow-xl">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                          <span className="font-extrabold uppercase text-amber-400 flex items-center gap-1.5">
+                            <Swords className="w-4 h-4" /> Soi Đòn Vảy &amp; Thông Tin Chiến Kê
+                          </span>
+                          <span className="text-[10px] text-gray-400 font-mono">Dữ liệu thực tế</span>
+                        </div>
+
+                        {/* Bảng thông tin chiến kê */}
+                        <div className="p-3.5 rounded-xl bg-rose-500/5 border border-rose-500/20 space-y-2">
+                          <div className="font-black text-rose-400 uppercase text-xs pb-1 border-b border-rose-500/20 flex items-center justify-between">
+                            <span>CHIẾN KÊ LÊN SÓNG: {currentRoomInfo.title}</span>
+                            <span className="font-mono text-white">{currentRoomInfo.ms || 'MS KÊ'}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 pt-1 text-gray-300">
+                            <p><span className="text-gray-500">Chạng cân:</span> <b className="text-amber-400">{currentRoomInfo.chang || 'Tiêu chuẩn'}</b></p>
+                            <p><span className="text-gray-500">Lối đá:</span> <span className="text-white">{currentRoomInfo.loi || 'Chuẩn lối'}</span></p>
+                            <p><span className="text-gray-500">Cán vảy:</span> <span className="text-white">{currentRoomInfo.can_vay || 'Chuẩn sừng'}</span></p>
+                            <p><span className="text-gray-500">Trại chủ:</span> <span className="text-emerald-400">{currentRoomInfo.farm || currentRoomInfo.streamer}</span></p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {liveTab === 'h2h' && (
+                      <div className="p-4 rounded-2xl bg-[#16171d] border border-white/10 space-y-3 text-xs shadow-xl">
+                        <div className="font-extrabold uppercase text-amber-400 flex items-center gap-1.5 pb-2 border-b border-white/10">
+                          <History className="w-4 h-4" /> Lịch Sử Các Phiên Phát Sóng Trước Đây
+                        </div>
+
+                        {sessions.filter((s) => s.stream_key === streamKey && s.status === 'ended').length > 0 ? (
+                          sessions
+                            .filter((s) => s.stream_key === streamKey && s.status === 'ended')
+                            .slice(0, 5)
+                            .map((s, idx) => (
+                              <div key={s.id || idx} className="p-3 rounded-xl bg-[#0e0f14] border border-white/10 flex flex-col gap-1.5">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[11px] text-gray-400 font-mono">
+                                    {s.started_at ? new Date(s.started_at).toLocaleString('vi-VN') : 'Gần đây'}
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-black border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                                    {s.duration_seconds > 0 ? `${Math.floor(s.duration_seconds / 60)} phút` : 'Hoàn thành'}
+                                  </span>
+                                </div>
+                                <div className="text-white font-bold text-xs pt-1">
+                                  Streamer: <span className="text-rose-400">{s.streamer || streamKey}</span>
+                                </div>
+                              </div>
+                            ))
+                        ) : (
+                          <div className="p-6 text-center text-gray-400 text-xs space-y-2">
+                            <History className="w-8 h-8 mx-auto text-gray-600 mb-2" />
+                            <p>Chưa có dữ liệu các phiên phát sóng trước đây của kênh này.</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {liveTab === 'market' && (
+                      <div className="p-4 rounded-2xl bg-[#16171d] border border-white/10 space-y-3 text-xs shadow-xl">
+                        <div className="font-extrabold uppercase text-amber-400 flex items-center justify-between pb-2 border-b border-white/10">
+                          <span className="flex items-center gap-1.5">
+                            <ShoppingBag className="w-4 h-4" /> Chiến Kê Cùng Chạng (2.8kg - 3.0kg) Mở Bán
+                          </span>
+                          <button
+                            onClick={() => {
+                              setActiveNavTab('market');
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className="text-[11px] text-rose-400 hover:underline font-bold"
+                          >
+                            Xem tất cả &rarr;
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {chickensList.slice(0, 2).map((ck) => (
+                            <div key={ck.id} className="p-3 rounded-xl bg-[#0e0f14] border border-white/10 flex gap-3 items-center">
+                              <img src={ck.image} alt={ck.title} className="w-16 h-16 rounded-lg object-cover border border-white/10 shrink-0" />
+                              <div className="min-w-0 flex-1">
+                                <div className="font-bold text-white text-xs truncate">{ck.ms}: {ck.title}</div>
+                                <div className="text-[11px] text-amber-400 font-bold mt-0.5">{ck.priceText}</div>
+                                <div className="text-[10px] text-gray-400">Chạng {ck.chang} • {ck.breedName}</div>
+                                <button
+                                  onClick={() => setSelectedMarketChicken(ck)}
+                                  className="mt-1.5 px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] cursor-pointer"
+                                >
+                                  Xem chi tiết
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {liveTab === 'shipping' && (
+                      <div className="p-4 rounded-2xl bg-[#16171d] border border-white/10 space-y-3 text-xs shadow-xl">
+                        <div className="font-extrabold uppercase text-amber-400 flex items-center gap-1.5 pb-2 border-b border-white/10">
+                          <Truck className="w-4 h-4" /> Tuyến Xe Gửi Gà An Toàn Từ Long Biên (Hà Nội)
+                        </div>
+
+                        <div className="space-y-2.5 text-gray-300">
+                          <div className="p-2.5 rounded-xl bg-[#0e0f14] border border-white/10">
+                            <b className="text-white text-xs flex items-center gap-1.5 text-rose-400">
+                              🚌 Tuyến Bến Xe Gia Lâm &rarr; Miền Bắc:
+                            </b>
+                            <p className="text-[11px] text-gray-300 mt-1">
+                              Hải Phòng, Quảng Ninh, Bắc Giang, Lạng Sơn, Thái Nguyên, Phú Thọ. Xe chạy liên tục 30 phút/chuyến. Nhận gà sau 2 - 4 tiếng.
+                            </p>
+                          </div>
+
+                          <div className="p-2.5 rounded-xl bg-[#0e0f14] border border-white/10">
+                            <b className="text-white text-xs flex items-center gap-1.5 text-cyan-400">
+                              🚌 Tuyến Bến Nước Ngầm &amp; Giáp Bát &rarr; Miền Trung &amp; Nam:
+                            </b>
+                            <p className="text-[11px] text-gray-300 mt-1">
+                              Thanh Hóa, Nghệ An, Hà Tĩnh, Huế, Đà Nẵng, Bình Định, TP. Hồ Chí Minh. Gửi xe giường nằm khoang máy lạnh, lồng xốp khoét lỗ thoáng khí kèm ngô nước đầy đủ.
+                            </p>
+                          </div>
+
+                          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px]">
+                            ⭐ <b>Cam kết Trại Thành Trung:</b> Bảo hiểm sống khỏe 100% đến tận tay anh em. Quay video cân gà và đóng thùng trước khi xe lăn bánh!
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+
+                {/* Cột phải (Desktop 4 cols): CakhiaTV Dynamic Tab Display */}
+                <div className="hidden lg:flex lg:col-span-4 flex-col gap-3">
+
+                  {/* TAB 1: PHÒNG CHAT TRỰC TIẾP (Mặc định khi xem live) */}
+                  {liveTab === 'chat' && (
+                    <div className="h-[560px] w-full rounded-2xl overflow-hidden border border-white/10 bg-[#16171d] shadow-xl">
                       <LiveChat
                         streamKey={streamKey}
                         user={currentUser}
@@ -1535,39 +1521,135 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* TAB 2: THÔNG TIN CHI TIẾT CHIẾN KÊ HIỆN TẠI */}
-                  {activeRightTab === 'info' && (
-                    <div className="h-[380px] sm:h-[460px] lg:h-[530px] w-full rounded-2xl overflow-y-auto border border-white/10 bg-[#16171d] p-4 sm:p-5 space-y-4 text-xs shadow-xl">
-                      <div className="text-amber-400 font-bold text-sm uppercase flex items-center gap-2">
-                        <Sparkles className="w-4 h-4" />
-                        <span>Hồ Sơ Chiến Kê Trên Sóng</span>
+                  {/* TAB 2: SOI ĐÒN VẢY CHI TIẾT */}
+                  {liveTab === 'info' && (
+                    <div className="h-[560px] w-full rounded-2xl overflow-y-auto border border-white/10 bg-[#16171d] p-5 space-y-4 text-xs shadow-xl">
+                      <div className="text-amber-400 font-bold text-sm uppercase flex items-center gap-2 border-b border-white/10 pb-3">
+                        <Swords className="w-4 h-4" />
+                        <span>Soi Kỹ Đòn Vảy &amp; Tông Dòng</span>
                       </div>
 
-                      <div className="space-y-3 font-mono bg-[#0e0f14] p-3.5 rounded-xl border border-white/10">
-                        <div className="flex justify-between">
-                          <span className="text-gray-400 font-sans">Mã số:</span>
-                          <span className="font-bold text-white">{currentRoomInfo.ms}</span>
+                      {/* Thông tin Chiến Kê Thực Tế */}
+                      <div className="p-3.5 rounded-xl bg-rose-500/5 border border-rose-500/20 space-y-2">
+                        <div className="font-black text-rose-400 text-xs pb-1 border-b border-rose-500/20 flex items-center justify-between">
+                          <span>CHIẾN KÊ: {currentRoomInfo.title}</span>
+                          <span className="font-mono text-white">{currentRoomInfo.ms || 'MS KÊ'}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-400 font-sans">Chạng cân:</span>
-                          <span className="font-bold text-amber-300">{currentRoomInfo.chang}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-400 font-sans">Lối đá:</span>
-                          <span className="font-bold text-emerald-400">{currentRoomInfo.loi}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-400 font-sans">Chủ trại:</span>
-                          <span className="font-bold text-rose-400">{currentRoomInfo.farm}</span>
+                        <div className="space-y-1.5 text-gray-300 font-mono">
+                          <p><span className="text-gray-500 font-sans">Chạng:</span> <b className="text-amber-300">{currentRoomInfo.chang || 'Tiêu chuẩn'}</b></p>
+                          <p><span className="text-gray-500 font-sans">Lối đá:</span> <span className="text-emerald-400 font-sans">{currentRoomInfo.loi || 'Chuẩn lối'}</span></p>
+                          <p><span className="text-gray-500 font-sans">Cán vảy:</span> <span className="text-white font-sans">{currentRoomInfo.can_vay || 'Chuẩn sừng'}</span></p>
+                          <p><span className="text-gray-500 font-sans">Trại chủ:</span> <span className="text-rose-400 font-sans">{currentRoomInfo.farm || currentRoomInfo.streamer}</span></p>
                         </div>
                       </div>
 
                       <button
                         onClick={() => openConnectWithFarm(currentRoomInfo.title, currentRoomInfo.farm)}
-                        className="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-2.5 rounded-xl transition text-center shadow-md uppercase cursor-pointer"
+                        className="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-2.5 rounded-xl transition text-center shadow-md uppercase cursor-pointer flex items-center justify-center gap-1.5"
                       >
-                        Gửi Yêu Cầu Kết Nối Với Chủ Trại
+                        <Phone className="w-4 h-4" />
+                        <span>Liên Hệ Trực Tiếp Chủ Trại</span>
                       </button>
+                    </div>
+                  )}
+
+                  {/* TAB 3: LỊCH SỬ CÁC PHIÊN LIVE TRƯỚC ĐÓ TỪ MONGODB */}
+                  {liveTab === 'h2h' && (
+                    <div className="h-[560px] w-full rounded-2xl overflow-y-auto border border-white/10 bg-[#16171d] p-5 space-y-3.5 text-xs shadow-xl">
+                      <div className="text-amber-400 font-bold text-sm uppercase flex items-center gap-2 border-b border-white/10 pb-3">
+                        <History className="w-4 h-4" />
+                        <span>Lịch Sử Các Phiên Phát Sóng Trước Đây</span>
+                      </div>
+
+                      {sessions.filter((s) => s.stream_key === streamKey && s.status === 'ended').length > 0 ? (
+                        sessions
+                          .filter((s) => s.stream_key === streamKey && s.status === 'ended')
+                          .slice(0, 10)
+                          .map((s, idx) => (
+                            <div key={s.id || idx} className="p-3.5 rounded-xl bg-[#0e0f14] border border-white/10 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[11px] text-gray-400 font-mono">
+                                  {s.started_at ? new Date(s.started_at).toLocaleString('vi-VN') : 'Gần đây'}
+                                </span>
+                                <span className="px-2 py-0.5 rounded text-[10px] font-black border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                                  {s.duration_seconds > 0 ? `${Math.floor(s.duration_seconds / 60)} phút` : 'Hoàn tất'}
+                                </span>
+                              </div>
+                              <div className="text-xs font-bold text-white">
+                                Streamer: <span className="text-rose-400">{s.streamer || streamKey}</span>
+                              </div>
+                            </div>
+                          ))
+                      ) : (
+                        <div className="p-8 text-center text-gray-400 text-xs space-y-2">
+                          <History className="w-8 h-8 mx-auto text-gray-600 mb-2" />
+                          <p>Chưa có lịch sử các phiên live trước đây của kênh này.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* TAB 4: CHỢ GÀ CÙNG CHẠNG */}
+                  {liveTab === 'market' && (
+                    <div className="h-[560px] w-full rounded-2xl overflow-y-auto border border-white/10 bg-[#16171d] p-5 space-y-3.5 text-xs shadow-xl">
+                      <div className="text-amber-400 font-bold text-sm uppercase flex items-center justify-between border-b border-white/10 pb-3">
+                        <span className="flex items-center gap-1.5">
+                          <ShoppingBag className="w-4 h-4" /> Kê Cùng Chạng (2.8kg - 3.0kg)
+                        </span>
+                      </div>
+
+                      <div className="space-y-3">
+                        {chickensList.slice(0, 3).map((ck) => (
+                          <div key={ck.id} className="p-3 rounded-xl bg-[#0e0f14] border border-white/10 flex gap-3 items-center">
+                            <img src={ck.image} alt={ck.title} className="w-16 h-16 rounded-lg object-cover border border-white/10 shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <div className="font-bold text-white text-xs truncate">{ck.ms}: {ck.title}</div>
+                              <div className="text-[11px] text-amber-400 font-bold mt-0.5">{ck.priceText}</div>
+                              <div className="text-[10px] text-gray-400">Chạng {ck.chang} • {ck.breedName}</div>
+                              <button
+                                onClick={() => setSelectedMarketChicken(ck)}
+                                className="mt-2 px-3 py-1 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] cursor-pointer"
+                              >
+                                Xem chi tiết &amp; Đặt cọc
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 5: BẾN XE GỬI GÀ */}
+                  {liveTab === 'shipping' && (
+                    <div className="h-[560px] w-full rounded-2xl overflow-y-auto border border-white/10 bg-[#16171d] p-5 space-y-3.5 text-xs shadow-xl">
+                      <div className="text-amber-400 font-bold text-sm uppercase flex items-center gap-2 border-b border-white/10 pb-3">
+                        <Truck className="w-4 h-4" />
+                        <span>Bến Xe &amp; Hậu Cần Gửi Gà</span>
+                      </div>
+
+                      <div className="space-y-3 text-gray-300">
+                        <div className="p-3 rounded-xl bg-[#0e0f14] border border-white/10">
+                          <b className="text-white text-xs flex items-center gap-1.5 text-rose-400">
+                            🚌 Tuyến Bến Xe Gia Lâm &rarr; Miền Bắc:
+                          </b>
+                          <p className="text-[11px] text-gray-300 mt-1 leading-relaxed">
+                            Hải Phòng, Quảng Ninh, Bắc Giang, Lạng Sơn, Thái Nguyên, Phú Thọ. Xe chạy liên tục 30 phút/chuyến. Nhận gà sau 2 - 4 tiếng.
+                          </p>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-[#0e0f14] border border-white/10">
+                          <b className="text-white text-xs flex items-center gap-1.5 text-cyan-400">
+                            🚌 Tuyến Bến Nước Ngầm &amp; Giáp Bát &rarr; Miền Trung &amp; Nam:
+                          </b>
+                          <p className="text-[11px] text-gray-300 mt-1 leading-relaxed">
+                            Thanh Hóa, Nghệ An, Hà Tĩnh, Huế, Đà Nẵng, Bình Định, TP. Hồ Chí Minh. Gửi xe giường nằm khoang máy lạnh, lồng xốp khoét lỗ thoáng khí kèm ngô nước đầy đủ.
+                          </p>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] leading-relaxed">
+                          ⭐ <b>Cam kết Trại Thành Trung:</b> Bảo hiểm sống khỏe 100% đến tận tay anh em. Quay video cân gà và đóng thùng trước khi xe lăn bánh!
+                        </div>
+                      </div>
                     </div>
                   )}
 
