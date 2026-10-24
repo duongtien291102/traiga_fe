@@ -229,7 +229,20 @@ export default function LiveStudioModal({
                 chatScrollRef.current?.scrollIntoView({ behavior: 'smooth' });
               }, 100);
             } else if (data.type === 'chat' && data.data) {
-              setStudioMessages((prev) => [...prev, data.data]);
+              setStudioMessages((prev) => {
+                const incoming = data.data;
+                // Nếu tin nhắn từ chính mình vừa thêm optimistic thì thay thế
+                const existingIndex = prev.findIndex((m) => 
+                  m.id === incoming.id || 
+                  (String(m.id).startsWith('local_') && m.message === incoming.message && m.username === incoming.username)
+                );
+                if (existingIndex !== -1) {
+                  const updated = [...prev];
+                  updated[existingIndex] = incoming;
+                  return updated;
+                }
+                return [...prev, incoming];
+              });
               setTimeout(() => {
                 chatScrollRef.current?.scrollIntoView({ behavior: 'smooth' });
               }, 50);
@@ -339,21 +352,40 @@ export default function LiveStudioModal({
     const text = studioChatInput.trim();
     if (!text) return;
 
+    const streamerName = userRef.current?.full_name || userRef.current?.username || 'Chủ Trại (Live)';
+    const token = !tokenFailedRef.current ? (localStorage.getItem('auth_token') || localStorage.getItem('token') || '') : '';
+
     if (!studioWsRef.current || studioWsRef.current.readyState !== WebSocket.OPEN) {
       connectChat();
       return;
     }
     
-    const token = !tokenFailedRef.current ? (localStorage.getItem('auth_token') || localStorage.getItem('token') || '') : '';
-    const streamerName = userRef.current?.full_name || userRef.current?.username || 'Chủ Trại (Live)';
     const payload = {
       type: 'chat',
       message: text,
       token: token,
-      sender: streamerName
+      sender: streamerName,
+      role: userRef.current?.role || 'admin'
     };
-    studioWsRef.current.send(JSON.stringify(payload));
-    setStudioChatInput('');
+
+    try {
+      studioWsRef.current.send(JSON.stringify(payload));
+      // Tối ưu hiển thị tức thì (optimistic update)
+      const optimisticMsg = {
+        id: 'local_' + Date.now(),
+        username: streamerName,
+        message: text,
+        role: userRef.current?.role || 'admin',
+        created_at: new Date().toISOString()
+      };
+      setStudioMessages((prev) => [...prev, optimisticMsg]);
+      setStudioChatInput('');
+      setTimeout(() => {
+        chatScrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+    } catch (err) {
+      console.warn('Lỗi gửi tin nhắn studio:', err);
+    }
   };
 
   // Tính kích thước và tỉ lệ khung hình chuẩn theo độ phân giải & hướng quay
@@ -1250,18 +1282,35 @@ export default function LiveStudioModal({
                 </div>
 
                 {/* Form gõ phản hồi nhanh cho khán giả */}
-                <form onSubmit={handleSendStudioChat} className="flex items-center gap-1.5 pt-2 border-t border-white/10 mt-2">
+                <form 
+                  onSubmit={handleSendStudioChat} 
+                  className="flex items-center gap-1.5 pt-2 border-t border-white/10 mt-2 relative z-20"
+                >
                   <input
                     type="text"
                     value={studioChatInput}
                     onChange={(e) => setStudioChatInput(e.target.value)}
-                    placeholder="Gõ trả lời khán giả..."
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSendStudioChat(e);
+                      }
+                    }}
+                    placeholder={isChatConnected ? "Gõ trả lời khán giả..." : "Đang kết nối lại phòng chat..."}
                     className="flex-1 bg-black/50 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-rose-500"
                   />
                   <button
                     type="submit"
                     disabled={!studioChatInput.trim()}
-                    className="p-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white disabled:opacity-40 transition"
+                    onClick={handleSendStudioChat}
+                    onTouchEnd={(e) => {
+                      if (studioChatInput.trim()) {
+                        e.preventDefault();
+                        handleSendStudioChat(e);
+                      }
+                    }}
+                    className="p-2 rounded-xl bg-rose-600 hover:bg-rose-500 active:scale-95 text-white disabled:opacity-40 transition cursor-pointer shrink-0"
+                    title="Gửi phản hồi"
                   >
                     <Send className="w-3.5 h-3.5" />
                   </button>
