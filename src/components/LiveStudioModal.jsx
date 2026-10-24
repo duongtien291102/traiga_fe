@@ -74,6 +74,7 @@ export default function LiveStudioModal({
   // Trạng thái Chat trực tiếp trong Studio cho Streamer
   const [studioMessages, setStudioMessages] = useState([]);
   const [studioChatInput, setStudioChatInput] = useState('');
+  const [studioChatError, setStudioChatError] = useState('');
   const [viewerCount, setViewerCount] = useState(1);
   const [floatingEmojis, setFloatingEmojis] = useState([]);
   const [isChatConnected, setIsChatConnected] = useState(false);
@@ -190,7 +191,7 @@ export default function LiveStudioModal({
 
       ws.onopen = () => {
         if (!isMountedRef.current) return;
-        setIsChatConnected(true);
+        setIsChatConnected(false);
         reconnectAttemptsRef.current = 0;
 
         if (rawToken && !tokenFailedRef.current) {
@@ -260,9 +261,14 @@ export default function LiveStudioModal({
             } else if (data.type === 'auth_login_result') {
               if (data.success) {
                 setIsChatConnected(true);
+                setStudioChatError('');
+              } else {
+                setIsChatConnected(false);
+                setStudioChatError(data.error || 'Không thể xác thực phòng chat.');
               }
             } else if (data.type === 'error') {
               const errStr = String(data.error || '');
+              setIsChatConnected(false);
               if (errStr.includes('Token') || errStr.includes('hết hạn') || errStr.includes('thu hồi') || errStr.includes('xác thực')) {
                 console.warn('[Studio Chat] Token auth rejected by backend, falling back to guest mode:', errStr);
                 tokenFailedRef.current = true;
@@ -270,6 +276,8 @@ export default function LiveStudioModal({
                 try {
                   ws.send(JSON.stringify({ type: 'auth_guest', guest_name: streamerName }));
                 } catch (e) {}
+              } else {
+                setStudioChatError(errStr || 'Gửi bình luận thất bại.');
               }
             }
           }
@@ -301,6 +309,7 @@ export default function LiveStudioModal({
     isPageHiddenRef.current = false;
     setStudioMessages([]);
     setIsChatConnected(false);
+    setStudioChatError('');
 
     connectChat();
 
@@ -358,7 +367,8 @@ export default function LiveStudioModal({
     const streamerName = userRef.current?.full_name || userRef.current?.username || 'Chủ Trại (Live)';
     const token = !tokenFailedRef.current ? (localStorage.getItem('auth_token') || localStorage.getItem('token') || '') : '';
 
-    if (!studioWsRef.current || studioWsRef.current.readyState !== WebSocket.OPEN) {
+    if (!isChatConnected || !studioWsRef.current || studioWsRef.current.readyState !== WebSocket.OPEN) {
+      setStudioChatError('Phòng chat đang xác thực kết nối. Tin nhắn chưa được gửi, vui lòng thử lại sau giây lát.');
       connectChat();
       return;
     }
@@ -373,6 +383,7 @@ export default function LiveStudioModal({
 
     try {
       studioWsRef.current.send(JSON.stringify(payload));
+      setStudioChatError('');
       // Tối ưu hiển thị tức thì (optimistic update)
       const optimisticMsg = {
         id: 'local_' + Date.now(),
@@ -910,7 +921,7 @@ export default function LiveStudioModal({
 
   if (!user || user.role !== 'admin') {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+      <div className="min-h-[100dvh] flex items-center justify-center p-4 bg-slate-950">
         <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 text-center">
           <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto mb-4">
             <AlertCircle className="w-6 h-6" />
@@ -931,8 +942,8 @@ export default function LiveStudioModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/90 backdrop-blur-md">
-      <div className={`relative w-full ${isCamMaximized ? 'max-w-6xl' : 'max-w-4xl'} bg-[#111218] border-0 sm:border border-white/10 rounded-none sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col h-[100dvh] sm:h-auto sm:max-h-[96vh] transition-all duration-300`}>
+    <div className="min-h-[100dvh] w-full bg-[#0c0d11]">
+      <div className={`relative mx-auto w-full ${isCamMaximized ? 'max-w-[1800px]' : 'max-w-[1600px]'} bg-[#111218] border-0 sm:border-x border-white/10 shadow-2xl overflow-hidden flex flex-col min-h-[100dvh] transition-all duration-300`}>
         
         {/* ================= HEADER MODAL ================= */}
         <div className="flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3 border-b border-white/10 bg-[#161720]">
@@ -1336,12 +1347,12 @@ export default function LiveStudioModal({
                         handleSendStudioChat(e);
                       }
                     }}
-                    placeholder={isChatConnected ? "Gõ trả lời khán giả..." : "Đang kết nối lại phòng chat..."}
+                    placeholder={isChatConnected ? "Gõ trả lời khán giả..." : "Đang xác thực/kết nối phòng chat..."}
                     className="flex-1 bg-black/50 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-rose-500"
                   />
                   <button
                     type="submit"
-                    disabled={!studioChatInput.trim()}
+                    disabled={!studioChatInput.trim() || !isChatConnected}
                     onClick={handleSendStudioChat}
                     onTouchEnd={(e) => {
                       if (studioChatInput.trim()) {
@@ -1355,6 +1366,9 @@ export default function LiveStudioModal({
                     <Send className="w-3.5 h-3.5" />
                   </button>
                 </form>
+                {studioChatError && (
+                  <p className="pt-1 text-[10px] text-amber-300" role="status">{studioChatError}</p>
+                )}
 
               </div>
             )}

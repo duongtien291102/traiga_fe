@@ -99,7 +99,7 @@ export default function LiveChat({ streamKey = 'thanhtrung01', user = null, onOp
 
         ws.onopen = () => {
           if (!isMountedRef.current) return;
-          setIsConnected(true);
+          setIsConnected(false);
           const activeToken = !tokenFailedRef.current ? (localStorage.getItem('auth_token') || localStorage.getItem('token') || '') : '';
           if (activeToken) {
             ws.send(JSON.stringify({ type: 'auth_token', token: activeToken }));
@@ -117,6 +117,10 @@ export default function LiveChat({ streamKey = 'thanhtrung01', user = null, onOp
               const data = JSON.parse(line);
 
               switch (data.type) {
+                case 'auth_login_result':
+                  setIsConnected(Boolean(data.success));
+                  break;
+
                 case 'history':
                   if (Array.isArray(data.history)) {
                     setMessages(data.history);
