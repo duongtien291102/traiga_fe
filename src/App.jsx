@@ -803,7 +803,7 @@ export default function App() {
                   }`}
               >
                 <span className="w-2 h-2 rounded-full bg-red-600"></span>
-                <span>Xem Trực Tiếp</span>
+                <span>Trực Tiếp</span>
               </button>
 
               <button
@@ -817,7 +817,7 @@ export default function App() {
                     : 'text-gray-300 hover:text-white hover:bg-white/5'
                   }`}
               >
-                <span>Chợ Gà Đang Bán ({chickensList.length})</span>
+                <span>Chợ Gà</span>
               </button>
 
               <button
@@ -993,7 +993,7 @@ export default function App() {
           className={`py-1.5 px-1 rounded-lg text-center truncate transition-colors cursor-pointer ${activeNavTab === 'market' ? 'bg-amber-500 text-black font-extrabold shadow-sm' : 'text-gray-400 hover:text-white bg-white/5'
             }`}
         >
-          Chợ Gà ({chickensList.length})
+          Chợ Gà
         </button>
         <button
           onClick={() => setIsPolicyModalOpen(true)}
@@ -2145,7 +2145,7 @@ export default function App() {
                     className="hover:text-amber-400 transition-colors cursor-pointer text-left flex items-center gap-1.5"
                   >
                     <Tag className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Chợ Gà Đang Bán</span>
+                    <span>Chợ Gà</span>
                   </button>
                 </li>
               </ul>
@@ -2214,7 +2214,7 @@ export default function App() {
             <Radio className="w-4 h-4 mb-0.5" />
             <span className="absolute -top-0.5 -right-1 w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
           </div>
-          <span className="text-[10px]">Xem Live</span>
+          <span className="text-[10px]">Trực Tiếp</span>
         </button>
 
         <button
@@ -2228,7 +2228,7 @@ export default function App() {
           }`}
         >
           <ShoppingBag className="w-4 h-4 mb-0.5" />
-          <span className="text-[10px]">Chợ Gà ({chickensList.length})</span>
+          <span className="text-[10px]">Chợ Gà</span>
         </button>
 
         {currentUser?.role === 'admin' ? (
