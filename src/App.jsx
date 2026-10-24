@@ -67,19 +67,27 @@ export default function App() {
   const [liveCamera, setLiveCamera] = useState('cam1'); // 'cam1' (toàn cảnh) | 'cam2' (soi chân vảy)
   const [liveAudioTrack, setLiveAudioTrack] = useState('blv'); // 'blv' (BLV Thành Trung) | 'arena' (Sới gốc)
   const [liveTab, setLiveTab] = useState('chat'); // 'chat' | 'info' | 'h2h' | 'market' | 'shipping'
+  const [showAllRooms, setShowAllRooms] = useState(false); // false: chỉ hiện phòng đang live thực tế, true: hiện tất cả kênh đăng ký
   const [themeMode, setThemeMode] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('traiga_theme') || 'light';
+      try {
+        const saved = localStorage.getItem('traiga_theme');
+        if (saved === 'light' || saved === 'dark') {
+          return saved;
+        }
+      } catch (e) {}
     }
-    return 'light';
+    return 'dark'; // Dark Mode là mặc định theo thiết kế
   });
 
   useEffect(() => {
     if (typeof document !== 'undefined') {
       if (themeMode === 'light') {
         document.documentElement.classList.add('light-mode');
+        document.documentElement.classList.remove('dark');
       } else {
         document.documentElement.classList.remove('light-mode');
+        document.documentElement.classList.add('dark');
       }
       try {
         localStorage.setItem('traiga_theme', themeMode);
@@ -93,6 +101,7 @@ export default function App() {
 
   // Quản lý Đăng Bán Gà & Chợ Kê (100% dữ liệu thật từ MongoDB)
   const [chickensList, setChickensList] = useState([]);
+  const [isChickensLoading, setIsChickensLoading] = useState(true);
   const [isPostChickenModalOpen, setIsPostChickenModalOpen] = useState(false);
   const [selectedMarketChicken, setSelectedMarketChicken] = useState(null);
 
@@ -105,7 +114,10 @@ export default function App() {
           setChickensList(data);
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        setIsChickensLoading(false);
+      });
   };
 
   const handleAddChicken = (newChicken) => {
@@ -974,20 +986,20 @@ export default function App() {
                     </div>
                   </div>
                 ) : (
-                  /* TRƯỜNG HỢP HIỆN TẠI CHƯA CÓ LIVE: BANNER LỊCH XỔ GÀ TRẠI THÀNH TRUNG */
+                  /* TRƯỜNG HỢP HIỆN TẠI CHƯA CÓ LIVE: BANNER LỊCH XỔ GÀ */
                   <div className={`relative w-full h-full min-h-[280px] sm:min-h-[340px] flex flex-col justify-end p-5 sm:p-8 rounded-2xl overflow-hidden ${
-                    themeMode === 'light' ? 'bg-white border border-slate-200 shadow-sm' : 'bg-slate-900'
+                    themeMode === 'light' ? 'bg-gradient-to-br from-white to-amber-50/30 border border-slate-200 shadow-sm' : 'bg-slate-900 border border-white/10'
                   }`}>
                     <div
                       className={`absolute inset-0 bg-cover bg-center pointer-events-none ${
-                        themeMode === 'light' ? 'opacity-20' : 'opacity-30'
+                        themeMode === 'light' ? 'opacity-30' : 'opacity-40'
                       }`}
                       style={{ backgroundImage: `url('https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1200&auto=format&fit=crop')` }}
                     ></div>
                     <div className={`absolute inset-0 ${
                       themeMode === 'light'
-                        ? 'bg-gradient-to-r from-white via-white/95 to-white/60'
-                        : 'bg-gradient-to-t from-[#0e1017] via-[#0e1017]/80 to-transparent'
+                        ? 'bg-gradient-to-r from-white/95 via-white/80 to-white/40'
+                        : 'bg-gradient-to-t from-[#0e1017] via-[#0e1017]/85 to-transparent'
                     }`}></div>
 
                     <div className="relative z-10 space-y-3">
@@ -998,20 +1010,20 @@ export default function App() {
                         <span className={`text-xs font-bold ${
                           themeMode === 'light' ? 'text-amber-800' : 'text-amber-400'
                         }`}>
-                          Trại Gà Thành Trung • Long Biên, Hà Nội
+                          {currentRoomInfo.farm || 'Trại Gà Thành Trung'} • {currentRoomInfo.streamer || 'Long Biên, Hà Nội'}
                         </span>
                       </div>
 
                       <h2 className={`text-lg sm:text-3xl font-black tracking-tight leading-snug ${
                         themeMode === 'light' ? 'text-slate-950' : 'text-white'
                       }`}>
-                        SỔ THỬ ĐÒN DÀN GÀ TƠ CHẠNG 2K8 - 3K2 &amp; <span className={themeMode === 'light' ? 'text-rose-600' : 'text-amber-400'}>SOI CÁN VẢY TRỰC TIẾP</span>
+                        XỔ THỬ ĐÒN DÀN GÀ TƠ CHẠNG {currentRoomInfo.chang || '2K8 - 3K2'} &amp; <span className={themeMode === 'light' ? 'text-rose-600' : 'text-amber-400'}>SOI CÁN VẢY TRỰC TIẾP</span>
                       </h2>
 
-                      <p className={`text-xs sm:text-sm max-w-xl line-clamp-2 ${
+                      <p className={`text-xs sm:text-sm max-w-xl leading-relaxed ${
                         themeMode === 'light' ? 'text-slate-700 font-medium' : 'text-slate-300'
                       }`}>
-                        Trại Gà Thành Trung chuyên gà đòn, gà nòi tuyển chọn. Lịch xổ đòn vào 14h00 &amp; 19h30 hàng ngày. Anh em có thể xem video thực tế hoặc qua trực tiếp chuồng trại tại Long Biên giao lưu.
+                        {currentRoomInfo.farm || 'Trại Gà'} phát trực tiếp xổ đòn thử chân, soi cán vảy và giao lưu chiến kê tuyển chọn. Lịch xổ đòn vào 14h00 &amp; 19h30 hàng ngày. Anh em có thể xem video thực tế hoặc qua trực tiếp chuồng trại giao lưu.
                       </p>
 
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 pt-2">
@@ -1026,7 +1038,7 @@ export default function App() {
                           XEM DÀN GÀ ĐANG CÓ SẴN
                         </button>
                         <button
-                          onClick={() => openConnectWithFarm('Dàn Gà Tơ Trại Thành Trung', 'Trại Gà Thành Trung Long Biên')}
+                          onClick={() => openConnectWithFarm(currentRoomInfo.title || 'Dàn Gà Tơ', currentRoomInfo.farm || 'Trại Gà')}
                           className={`w-full sm:w-auto justify-center text-xs sm:text-sm font-bold py-2.5 px-4 rounded-lg transition flex items-center gap-1.5 cursor-pointer border ${
                             themeMode === 'light'
                               ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300'
@@ -1127,126 +1139,182 @@ export default function App() {
                 }`}>
                   Gà Đang Bán Tại Trại &amp; Giao Lưu
                 </h2>
-                <button
-                  onClick={() => {
-                    setSelectedMarketChicken(null);
-                    setActiveNavTab('market');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className={`text-sm font-bold hover:underline cursor-pointer ${
-                    themeMode === 'light' ? 'text-rose-600' : 'text-amber-400'
-                  }`}
-                >
-                  Xem tất cả ({chickensList.length}) &gt;
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {chickensList.slice(0, 6).map((item) => (
-                  <div
-                    key={item.id}
-                    className={`rounded-2xl border transition overflow-hidden flex flex-col justify-between shadow-sm ${
-                      themeMode === 'light'
-                        ? 'bg-white border-slate-200 hover:border-rose-400 hover:shadow-md'
-                        : 'bg-[#16171d] border-white/10 hover:border-amber-500/50'
+                {chickensList.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setSelectedMarketChicken(null);
+                      setActiveNavTab('market');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className={`text-sm font-bold hover:underline cursor-pointer ${
+                      themeMode === 'light' ? 'text-rose-600' : 'text-amber-400'
                     }`}
                   >
-                    <div
-                      onClick={() => {
-                        setSelectedMarketChicken(item);
-                        setActiveNavTab('market');
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className="relative h-52 bg-black overflow-hidden cursor-pointer"
-                    >
-                      <img
-                        src={item.image}
-                        alt={item.title}
-                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute top-3 left-3 flex items-center gap-2">
-                        <span className="bg-black/80 text-amber-400 text-xs font-bold px-2.5 py-1 rounded">
-                          {item.ms}
-                        </span>
-                        <span className="bg-black/80 text-white text-xs font-bold px-2.5 py-1 rounded">
-                          Chạng: {item.chang}
-                        </span>
-                      </div>
-                    </div>
+                    Xem tất cả ({chickensList.length}) &gt;
+                  </button>
+                )}
+              </div>
 
-                    <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
-                      <div className="space-y-1.5">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <span className={`text-lg font-black ${
-                            themeMode === 'light' ? 'text-rose-600' : 'text-amber-400'
-                          }`}>
-                            {item.priceText || (item.price ? `${item.price.toLocaleString('vi-VN')} đ` : 'Giá thỏa thuận')}
+              {isChickensLoading ? (
+                /* Skeleton Loading State */
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className={`rounded-2xl border p-4 animate-pulse space-y-3.5 ${
+                        themeMode === 'light' ? 'bg-white border-slate-200' : 'bg-[#16171d] border-white/10'
+                      }`}
+                    >
+                      <div className={`h-48 rounded-xl ${themeMode === 'light' ? 'bg-slate-200' : 'bg-white/5'}`}></div>
+                      <div className="space-y-2">
+                        <div className={`h-5 w-2/3 rounded ${themeMode === 'light' ? 'bg-slate-200' : 'bg-white/5'}`}></div>
+                        <div className={`h-4 w-full rounded ${themeMode === 'light' ? 'bg-slate-200' : 'bg-white/5'}`}></div>
+                      </div>
+                      <div className={`h-9 w-full rounded-lg ${themeMode === 'light' ? 'bg-slate-200' : 'bg-white/5'}`}></div>
+                    </div>
+                  ))}
+                </div>
+              ) : chickensList.length === 0 ? (
+                /* Empty state when no chickens in DB */
+                <div className={`rounded-2xl border p-8 sm:p-10 text-center space-y-4 shadow-sm ${
+                  themeMode === 'light' ? 'bg-white border-slate-200' : 'bg-[#16171d] border-white/10'
+                }`}>
+                  <div className="w-14 h-14 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto text-2xl font-bold">
+                    🐓
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className={`font-bold text-base sm:text-lg ${themeMode === 'light' ? 'text-slate-900' : 'text-white'}`}>
+                      Chưa có chiến kê nào trong danh mục
+                    </h3>
+                    <p className={`text-xs sm:text-sm ${themeMode === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
+                      Các chiến kê giao lưu đang được đồng bộ trực tiếp từ cơ sở chuồng trại.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                    <button
+                      onClick={fetchChickens}
+                      className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold transition cursor-pointer shadow-md"
+                    >
+                      Tải lại danh sách gà
+                    </button>
+                    {currentUser && (currentUser.role === 'admin' || currentUser.role === 'systemadmin') && (
+                      <button
+                        onClick={() => setIsPostChickenModalOpen(true)}
+                        className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-black rounded-lg text-xs font-bold transition cursor-pointer font-bold shadow-md"
+                      >
+                        + Đăng Bán Chiến Kê Mới
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {chickensList.slice(0, 6).map((item) => (
+                    <div
+                      key={item.id}
+                      className={`rounded-2xl border transition overflow-hidden flex flex-col justify-between shadow-sm ${
+                        themeMode === 'light'
+                          ? 'bg-white border-slate-200 hover:border-rose-400 hover:shadow-md'
+                          : 'bg-[#16171d] border-white/10 hover:border-amber-500/50'
+                      }`}
+                    >
+                      <div
+                        onClick={() => {
+                          setSelectedMarketChicken(item);
+                          setActiveNavTab('market');
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="relative h-52 bg-black overflow-hidden cursor-pointer"
+                      >
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute top-3 left-3 flex items-center gap-2">
+                          <span className="bg-black/80 text-amber-400 text-xs font-bold px-2.5 py-1 rounded">
+                            {item.ms}
                           </span>
-                          <span className={`text-xs ${
-                            themeMode === 'light' ? 'text-slate-500 font-medium' : 'text-gray-400'
-                          }`}>
-                            {item.location}
+                          <span className="bg-black/80 text-white text-xs font-bold px-2.5 py-1 rounded">
+                            Chạng: {item.chang}
                           </span>
                         </div>
-                        <h3
-                          onClick={() => {
-                            setSelectedMarketChicken(item);
-                            setActiveNavTab('market');
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }}
-                          className={`font-bold text-base line-clamp-2 hover:text-rose-600 cursor-pointer leading-snug ${
-                            themeMode === 'light' ? 'text-slate-900' : 'text-white'
-                          }`}
-                        >
-                          {item.title}
-                        </h3>
-                        <p className={`text-sm ${
-                          themeMode === 'light' ? 'text-slate-600' : 'text-gray-400'
-                        } line-clamp-2 leading-relaxed`}>
-                          {item.farm} • {item.canVay}
-                        </p>
                       </div>
 
-                      <div className={`pt-3 border-t grid grid-cols-2 gap-2.5 ${
-                        themeMode === 'light' ? 'border-slate-100' : 'border-white/10'
-                      }`}>
-                        <button
-                          onClick={() => {
-                            setSelectedMarketChicken(item);
-                            setActiveNavTab('market');
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }}
-                          className={`py-2 px-3 rounded-lg border text-sm font-bold transition cursor-pointer text-center ${
-                            themeMode === 'light'
-                              ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-200'
-                              : 'bg-[#0e0f14] hover:bg-white/10 text-white border-white/10'
-                          }`}
-                        >
-                          Xem Chi Tiết
-                        </button>
-                        {currentUser ? (
-                          <a
-                            href={`tel:${item.phone?.replace(/\D/g, '') || '0988888888'}`}
-                            className="py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition flex items-center justify-center gap-1.5 shadow-sm"
+                      <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                        <div className="space-y-1.5">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span className={`text-lg font-black ${
+                              themeMode === 'light' ? 'text-rose-600' : 'text-amber-400'
+                            }`}>
+                              {item.priceText || (item.price ? `${item.price.toLocaleString('vi-VN')} đ` : 'Giá thỏa thuận')}
+                            </span>
+                            <span className={`text-xs ${
+                              themeMode === 'light' ? 'text-slate-500 font-medium' : 'text-gray-400'
+                            }`}>
+                              {item.location}
+                            </span>
+                          </div>
+                          <h3
+                            onClick={() => {
+                              setSelectedMarketChicken(item);
+                              setActiveNavTab('market');
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className={`font-bold text-base line-clamp-2 hover:text-rose-600 cursor-pointer leading-snug ${
+                              themeMode === 'light' ? 'text-slate-900' : 'text-white'
+                            }`}
                           >
-                            <Phone className="w-4 h-4" />
-                            <span>Gọi Điện</span>
-                          </a>
-                        ) : (
+                            {item.title}
+                          </h3>
+                          <p className={`text-sm ${
+                            themeMode === 'light' ? 'text-slate-600' : 'text-gray-400'
+                          } line-clamp-2 leading-relaxed`}>
+                            {item.farm} • {item.canVay}
+                          </p>
+                        </div>
+
+                        <div className={`pt-3 border-t grid grid-cols-2 gap-2.5 ${
+                          themeMode === 'light' ? 'border-slate-100' : 'border-white/10'
+                        }`}>
                           <button
-                            type="button"
-                            onClick={() => openConnectWithFarm(item.title, item.farm)}
-                            className="py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                            onClick={() => {
+                              setSelectedMarketChicken(item);
+                              setActiveNavTab('market');
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className={`py-2 px-3 rounded-lg border text-sm font-bold transition cursor-pointer text-center ${
+                              themeMode === 'light'
+                                ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-200'
+                                : 'bg-[#0e0f14] hover:bg-white/10 text-white border-white/10'
+                            }`}
                           >
-                            <Phone className="w-4 h-4" />
-                            <span>Gọi Điện</span>
+                            Xem Chi Tiết
                           </button>
-                        )}
+                          {currentUser ? (
+                            <a
+                              href={`tel:${item.phone?.replace(/\D/g, '') || '0988888888'}`}
+                              className="py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition flex items-center justify-center gap-1.5 shadow-sm"
+                            >
+                              <Phone className="w-4 h-4" />
+                              <span>Gọi Điện</span>
+                            </a>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => openConnectWithFarm(item.title, item.farm)}
+                              className="py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                            >
+                              <Phone className="w-4 h-4" />
+                              <span>Gọi Điện</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </section>
 
             {/* ==================== CÁC TRẠI GIAO LƯU THƯỜNG XUYÊN (ĐƠN GIẢN) ==================== */}
@@ -1451,24 +1519,30 @@ export default function App() {
                           </button>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {chickensList.slice(0, 2).map((ck) => (
-                            <div key={ck.id} className="p-3 rounded-xl bg-[#0e0f14] border border-white/10 flex gap-3 items-center">
-                              <img src={ck.image} alt={ck.title} className="w-16 h-16 rounded-lg object-cover border border-white/10 shrink-0" />
-                              <div className="min-w-0 flex-1">
-                                <div className="font-bold text-white text-xs truncate">{ck.ms}: {ck.title}</div>
-                                <div className="text-[11px] text-amber-400 font-bold mt-0.5">{ck.priceText}</div>
-                                <div className="text-[10px] text-gray-400">Chạng {ck.chang} • {ck.breedName}</div>
-                                <button
-                                  onClick={() => setSelectedMarketChicken(ck)}
-                                  className="mt-1.5 px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] cursor-pointer"
-                                >
-                                  Xem chi tiết
-                                </button>
+                        {chickensList.length > 0 ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {chickensList.slice(0, 2).map((ck) => (
+                              <div key={ck.id} className="p-3 rounded-xl bg-[#0e0f14] border border-white/10 flex gap-3 items-center">
+                                <img src={ck.image} alt={ck.title} className="w-16 h-16 rounded-lg object-cover border border-white/10 shrink-0" />
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-bold text-white text-xs truncate">{ck.ms ? `${ck.ms}: ` : ''}{ck.title}</div>
+                                  <div className="text-[11px] text-amber-400 font-bold mt-0.5">{ck.priceText}</div>
+                                  <div className="text-[10px] text-gray-400">Chạng {ck.chang} • {ck.breedName}</div>
+                                  <button
+                                    onClick={() => setSelectedMarketChicken(ck)}
+                                    className="mt-1.5 px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] cursor-pointer"
+                                  >
+                                    Xem chi tiết
+                                  </button>
+                                </div>
                               </div>
-                            </div>
-                          ))}
-                        </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-5 text-xs text-gray-400 bg-[#0e0f14] rounded-xl border border-white/5">
+                            Đang cập nhật chiến kê giao lưu...
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -1599,22 +1673,28 @@ export default function App() {
                       </div>
 
                       <div className="space-y-3">
-                        {chickensList.slice(0, 3).map((ck) => (
-                          <div key={ck.id} className="p-3 rounded-xl bg-[#0e0f14] border border-white/10 flex gap-3 items-center">
-                            <img src={ck.image} alt={ck.title} className="w-16 h-16 rounded-lg object-cover border border-white/10 shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <div className="font-bold text-white text-xs truncate">{ck.ms}: {ck.title}</div>
-                              <div className="text-[11px] text-amber-400 font-bold mt-0.5">{ck.priceText}</div>
-                              <div className="text-[10px] text-gray-400">Chạng {ck.chang} • {ck.breedName}</div>
-                              <button
-                                onClick={() => setSelectedMarketChicken(ck)}
-                                className="mt-2 px-3 py-1 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] cursor-pointer"
-                              >
-                                Xem chi tiết &amp; Đặt cọc
-                              </button>
+                        {chickensList.length > 0 ? (
+                          chickensList.slice(0, 3).map((ck) => (
+                            <div key={ck.id} className="p-3 rounded-xl bg-[#0e0f14] border border-white/10 flex gap-3 items-center">
+                              <img src={ck.image} alt={ck.title} className="w-16 h-16 rounded-lg object-cover border border-white/10 shrink-0" />
+                              <div className="min-w-0 flex-1">
+                                <div className="font-bold text-white text-xs truncate">{ck.ms ? `${ck.ms}: ` : ''}{ck.title}</div>
+                                <div className="text-[11px] text-amber-400 font-bold mt-0.5">{ck.priceText}</div>
+                                <div className="text-[10px] text-gray-400">Chạng {ck.chang} • {ck.breedName}</div>
+                                <button
+                                  onClick={() => setSelectedMarketChicken(ck)}
+                                  className="mt-2 px-3 py-1 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] cursor-pointer"
+                                >
+                                  Xem chi tiết &amp; Đặt cọc
+                                </button>
+                              </div>
                             </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-8 text-xs text-gray-400 bg-[#0e0f14] rounded-xl border border-white/5">
+                            Đang cập nhật chiến kê cùng chạng...
                           </div>
-                        ))}
+                        )}
                       </div>
                     </div>
                   )}
@@ -1668,80 +1748,165 @@ export default function App() {
               {renderCategoryTabs()}
             </div>
 
-            {/* ==================== SECTION 1: CÁC PHÒNG LIVE XỔ GÀ ĐANG LÊN SÓNG ==================== */}
+            {/* ==================== SECTION 1: CÁC PHÒNG LIVE XỔ GÀ ==================== */}
             <section id="live-section" className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-1.5 h-6 bg-rose-500 rounded-full shrink-0"></div>
-                  <h2 className="text-base sm:text-xl font-extrabold tracking-tight text-white uppercase">
-                    Danh Sách Các Phòng Live Đang Xổ &amp; Lên Sóng
-                  </h2>
-                </div>
-                <span className="text-[11px] sm:text-xs text-gray-400 font-medium pl-4 sm:pl-0">
-                  Bấm vào phòng để tải luồng vào màn hình phát
-                </span>
-              </div>
+              {(() => {
+                const actualLiveRooms = liveRooms.filter((r) =>
+                  Boolean(r.is_live || (activeSrsKeys && activeSrsKeys.includes((r.id || r.key || '').toLowerCase())))
+                );
+                const candidateRooms = showAllRooms ? liveRooms : actualLiveRooms;
+                const displayedRooms = candidateRooms.filter((room) => {
+                  if (activeCategory === 'all') return true;
+                  if (activeCategory === 'don') return room.title.toLowerCase().includes('đòn') || room.loi.toLowerCase().includes('đòn') || room.farm.toLowerCase().includes('bình định') || room.id === 'tiendev';
+                  if (activeCategory === 'tre') return room.title.toLowerCase().includes('tre') || room.farm.toLowerCase().includes('tân châu') || room.id === 'test';
+                  if (activeCategory === 'noi') return room.title.toLowerCase().includes('nòi') || room.title.toLowerCase().includes('asil') || room.id === 'supersecret' || room.id === 'caolanh';
+                  if (activeCategory === 'dongtao') return room.title.toLowerCase().includes('đông tảo') || room.id === 'dongtao';
+                  return true;
+                });
 
-              <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-3.5">
-                {liveRooms
-                  .filter((room) => {
-                    if (activeCategory === 'all') return true;
-                    if (activeCategory === 'don') return room.title.toLowerCase().includes('đòn') || room.loi.toLowerCase().includes('đòn') || room.farm.toLowerCase().includes('bình định') || room.id === 'tiendev';
-                    if (activeCategory === 'tre') return room.title.toLowerCase().includes('tre') || room.farm.toLowerCase().includes('tân châu') || room.id === 'test';
-                    if (activeCategory === 'noi') return room.title.toLowerCase().includes('nòi') || room.title.toLowerCase().includes('asil') || room.id === 'supersecret' || room.id === 'caolanh';
-                    if (activeCategory === 'dongtao') return room.title.toLowerCase().includes('đông tảo') || room.id === 'dongtao';
-                    return true;
-                  })
-                  .map((room) => (
-                    <div
-                      key={room.id}
-                      onClick={() => changeChannel(room.id, true)}
-                      className={`bg-[#16171d] rounded-2xl border transition-all duration-300 overflow-hidden cursor-pointer group shadow-xl flex flex-col justify-between ${streamKey === room.id ? 'border-rose-500 ring-2 ring-rose-500/30' : 'border-white/10 hover:border-rose-500/60'
-                        }`}
-                    >
-                      <div className="relative h-32 bg-gradient-to-tr from-gray-900 to-gray-800 overflow-hidden">
-                        <img src={room.thumb} className="w-full h-full object-cover opacity-75 group-hover:scale-105 transition-transform duration-500" alt={room.title} />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30"></div>
-
-                        <span className="absolute top-2 right-2 bg-rose-600 text-white text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1 shadow-md">
-                          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> LIVE ({room.viewers})
-                        </span>
-
-                        <div className="absolute top-2 left-2 flex items-center gap-1.5">
-                          <div className="w-6 h-6 rounded-full border border-white/50 bg-black/60 overflow-hidden flex items-center justify-center text-[10px] font-bold text-white">
-                            {room.streamer.substring(0, 1)}
-                          </div>
-                        </div>
-
-                        <div className="absolute bottom-2 left-2 bg-black/80 backdrop-blur-sm px-2 py-0.5 rounded text-[11px] font-bold text-amber-300 border border-amber-500/30">
-                          Chạng: {room.chang}
-                        </div>
+                return (
+                  <>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-1.5 h-6 bg-rose-500 rounded-full shrink-0"></div>
+                        <h2 className="text-base sm:text-xl font-extrabold tracking-tight text-white uppercase">
+                          {showAllRooms ? 'Danh Sách Tất Cả Kênh Phát' : 'Các Phòng Đang Lên Sóng Trực Tiếp'}
+                        </h2>
                       </div>
 
-                      <div className="p-3 space-y-2.5">
-                        <div className="flex items-center gap-1.5 text-[11px] text-gray-400 truncate">
-                          <span className="text-amber-400">★</span>
-                          <span className="truncate">{room.farm}</span>
-                        </div>
-
-                        <div className="space-y-0.5">
-                          <h4 className="font-bold text-xs text-white truncate">{room.ms}: {room.title}</h4>
-                          <p className="text-[11px] text-gray-400 line-clamp-1">{room.loi}</p>
-                        </div>
-
-                        <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px]">
-                          <div className="flex items-center gap-1.5 text-gray-300 font-semibold truncate">
-                            <span className="text-rose-500">🎙️</span>
-                            <span className="truncate">{room.streamer}</span>
-                          </div>
-                          <button className="bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg cursor-pointer">
-                            {streamKey === room.id ? 'Đang xem' : 'Vào xem'}
-                          </button>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setShowAllRooms(false)}
+                          className={`text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 cursor-pointer ${!showAllRooms
+                              ? 'bg-rose-600 text-white shadow-md'
+                              : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+                            }`}
+                        >
+                          <span className={`w-2 h-2 rounded-full ${actualLiveRooms.length > 0 ? 'bg-emerald-400 animate-pulse' : 'bg-gray-400'}`}></span>
+                          Đang Live ({actualLiveRooms.length})
+                        </button>
+                        <button
+                          onClick={() => setShowAllRooms(true)}
+                          className={`text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 cursor-pointer ${showAllRooms
+                              ? 'bg-rose-600 text-white shadow-md'
+                              : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+                            }`}
+                        >
+                          Tất cả kênh ({liveRooms.length})
+                        </button>
                       </div>
                     </div>
-                  ))}
-              </div>
+
+                    {displayedRooms.length === 0 ? (
+                      <div className="text-center py-12 px-4 rounded-2xl bg-[#16171d] border border-white/10 flex flex-col items-center justify-center space-y-3.5 shadow-xl">
+                        <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500">
+                          <Radio className="w-7 h-7" />
+                        </div>
+                        <div className="space-y-1.5 text-center">
+                          <h3 className="text-sm sm:text-base font-bold text-white">
+                            {!showAllRooms ? 'Hiện chưa có phòng nào đang phát sóng trực tiếp' : 'Không có kênh nào phù hợp với danh mục này'}
+                          </h3>
+                          <p className="text-xs text-gray-400 max-w-md mx-auto leading-relaxed">
+                            {!showAllRooms
+                              ? 'Các phiên xổ gà thử chân và giao lưu thường lên sóng vào khung giờ 09:00 – 17:00 hàng ngày. Bạn có thể xem danh sách toàn bộ kênh hoặc theo dõi các video phát lại bên dưới!'
+                              : 'Vui lòng chọn danh mục khác hoặc chuyển về xem tất cả.'}
+                          </p>
+                        </div>
+                        {!showAllRooms && (
+                          <button
+                            onClick={() => setShowAllRooms(true)}
+                            className="mt-1 text-xs font-bold px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white transition cursor-pointer"
+                          >
+                            Xem danh sách {liveRooms.length} kênh trong hệ thống
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-3.5">
+                        {displayedRooms.map((room) => {
+                          const isRoomLive = Boolean(room.is_live || (activeSrsKeys && activeSrsKeys.includes((room.id || '').toLowerCase())));
+                          const defaultThumb = 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=500&auto=format&fit=crop';
+                          const thumbUrl = (room.thumb && room.thumb.trim()) ? room.thumb.trim() : defaultThumb;
+
+                          return (
+                            <div
+                              key={room.id}
+                              onClick={() => changeChannel(room.id, true)}
+                              className={`bg-[#16171d] rounded-2xl border transition-all duration-300 overflow-hidden cursor-pointer group shadow-xl flex flex-col justify-between ${streamKey === room.id ? 'border-rose-500 ring-2 ring-rose-500/30' : 'border-white/10 hover:border-rose-500/60'
+                                }`}
+                            >
+                              <div className="relative h-32 bg-slate-900 overflow-hidden">
+                                <img
+                                  src={thumbUrl}
+                                  onError={(e) => {
+                                    e.currentTarget.onerror = null;
+                                    e.currentTarget.src = defaultThumb;
+                                  }}
+                                  className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500"
+                                  alt=""
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/40"></div>
+
+                                {isRoomLive ? (
+                                  <span className="absolute top-2 right-2 bg-rose-600 text-white text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1 shadow-md">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> LIVE ({room.viewers || 0})
+                                  </span>
+                                ) : (
+                                  <span className="absolute top-2 right-2 bg-slate-900/90 text-slate-300 border border-white/15 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 backdrop-blur-xs">
+                                    Chờ lên sóng
+                                  </span>
+                                )}
+
+                                <div className="absolute top-2 left-2 flex items-center gap-1.5 z-10">
+                                  <div className="w-6 h-6 rounded-full border border-white/40 bg-slate-900/90 overflow-hidden flex items-center justify-center text-[10px] font-bold text-white shadow-sm">
+                                    {(room.streamer || 'T').substring(0, 1).toUpperCase()}
+                                  </div>
+                                </div>
+
+                                {room.chang ? (
+                                  <div className="absolute bottom-2 left-2 bg-black/80 backdrop-blur-sm px-2 py-0.5 rounded text-[11px] font-bold text-amber-300 border border-amber-500/30">
+                                    Chạng: {room.chang}
+                                  </div>
+                                ) : (
+                                  <div className="absolute bottom-2 left-2 bg-black/75 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-medium text-slate-300 border border-white/15">
+                                    {room.streamer || 'Chiến kê tuyển'}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="p-3 space-y-2.5">
+                                <div className="flex items-center gap-1.5 text-[11px] text-gray-400 truncate">
+                                  <span className="text-amber-400">★</span>
+                                  <span className="truncate">{room.farm || 'Trại Gà Thành Trung'}</span>
+                                </div>
+
+                                <div className="space-y-0.5">
+                                  <h4 className="font-bold text-xs text-white truncate">
+                                    {room.ms ? `${room.ms}: ` : ''}{room.title}
+                                  </h4>
+                                  <p className="text-[11px] text-gray-400 line-clamp-1">
+                                    {room.loi || 'Giao lưu xổ đòn & kỹ thuật nuôi dưỡng kê chiến'}
+                                  </p>
+                                </div>
+
+                                <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px]">
+                                  <div className="flex items-center gap-1.5 text-gray-300 font-semibold truncate">
+                                    <span className="text-rose-500">🎙️</span>
+                                    <span className="truncate">{room.streamer || 'Chủ Trại'}</span>
+                                  </div>
+                                  <button className="bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg cursor-pointer">
+                                    {streamKey === room.id ? 'Đang xem' : 'Vào xem'}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </section>
 
             {/* ==================== XEM LẠI CÁC PHIÊN LIVE TRƯỚC ĐÓ ==================== */}
@@ -2088,8 +2253,8 @@ export default function App() {
                     className="p-2.5 rounded-xl bg-[#0e0f14] hover:bg-white/10 cursor-pointer flex justify-between items-center transition"
                   >
                     <div>
-                      <div className="font-bold text-white">{r.ms}: {r.title}</div>
-                      <div className="text-[10px] text-gray-400">{r.farm} • Chạng: {r.chang}</div>
+                      <div className="font-bold text-white">{r.ms ? `${r.ms}: ` : ''}{r.title}</div>
+                      <div className="text-[10px] text-gray-400">{r.farm}{r.chang ? ` • Chạng: ${r.chang}` : ''}</div>
                     </div>
                     <span className="text-rose-500 font-bold text-[10px] bg-rose-500/10 px-2 py-0.5 rounded">
                       LIVE

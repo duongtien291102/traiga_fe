@@ -1,22 +1,91 @@
 @import "tailwindcss";
 
+/* =====================================================================
+   DESIGN TOKENS SYSTEM (THEME SYSTEM)
+   - Dark Mode (Mặc định): Than Xanh Sâu (#080a11) – Ruby Thể Thao – Gold Hoàng Gia
+   - Light Mode: Phong cách CakhiaTV Trắng – Cam Năng Động – Tương Phản Cao
+   ===================================================================== */
+
 :root {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+
+  /* --- DARK MODE (Mặc định) --- */
+  --bg-app: #080a11;
+  --bg-header: #0e111a;
+  --bg-surface: #121522;
+  --bg-card: #151928;
+  --bg-card-sub: #1b2033;
+  --bg-card-hover: #1f253d;
+
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-default: rgba(255, 255, 255, 0.14);
+  --border-accent: rgba(245, 158, 11, 0.35);
+
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #8090a2; /* WCAG AA: Đạt 5.35:1 trên #151928 và 6.04:1 trên #080a11 cho metadata/chữ nhỏ */
+
+  --brand-ruby: #e11d48;
+  --brand-ruby-hover: #f43f5e;
+  --brand-gold: #f59e0b;
+  --brand-gold-text: #fbbf24;
+  --brand-orange: #ea580c;
+  --brand-cyan: #06b6d4;
+  --brand-emerald: #10b981;
 }
 
+html.light-mode {
+  /* --- LIGHT MODE (CakhiaTV High-Contrast Theme) --- */
+  --bg-app: #f4f6f9;
+  --bg-header: #ffffff;
+  --bg-surface: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-sub: #f8fafc;
+  --bg-card-hover: #f1f5f9;
+
+  --border-subtle: #e2e8f0;
+  --border-default: #cbd5e1;
+  --border-accent: #fdba74;
+
+  --text-main: #0f172a;        /* WCAG AAA: Tương phản 17.85:1 trên nền trắng */
+  --text-muted: #334155;       /* WCAG AAA: Tương phản 10.35:1 */
+  --text-dim: #64748b;         /* WCAG AA: Tương phản 4.76:1 */
+
+  --brand-ruby: #b91c1c;       /* Đỏ thể thao đậm nét CakhiaTV (6.47:1) */
+  --brand-ruby-hover: #991b1b;
+  --brand-gold: #ea580c;       /* Điểm nhấn Cam CakhiaTV thể thao */
+  --brand-gold-text: #c2410c;  /* Cam cháy đậm dễ nhìn trên nền trắng (5.18:1) */
+  --brand-orange: #ea580c;
+  --brand-cyan: #0369a1;       /* Xanh dương thể thao đậm (5.93:1) */
+  --brand-emerald: #047857;    /* Xanh lục bảo đậm nét (5.48:1) */
+}
+
+/* =====================================================================
+   BASE & RESET
+   ===================================================================== */
 html,
 body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
   max-width: 100vw;
-  background-color: #030712;
-  color: #f3f4f6;
-  transition: background-color 0.25s ease, color 0.25s ease;
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Hide scrollbars on horizontal pill/tab bars */
+/* Tôn trọng người dùng chọn Giảm chuyển động (Prefers-reduced-motion) */
+@media (prefers-reduced-motion: reduce) {
+  html,
+  body,
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* Hide scrollbars */
 .no-scrollbar::-webkit-scrollbar,
 .scrollbar-none::-webkit-scrollbar {
   display: none;
@@ -27,7 +96,7 @@ body {
   scrollbar-width: none;
 }
 
-/* Prevent iOS Safari auto-zoom when focusing inputs on mobile */
+/* Mobile inputs auto-zoom prevention */
 @media (max-width: 640px) {
   input,
   select,
@@ -36,14 +105,8 @@ body {
   }
 }
 
-/* Safe area padding for iPhone Home Indicator */
 .pb-safe {
   padding-bottom: max(0.375rem, env(safe-area-inset-bottom));
-}
-
-html.light-mode body {
-  background-color: #f1f5f9;
-  color: #0f172a;
 }
 
 /* Custom scrollbars */
@@ -52,25 +115,14 @@ html.light-mode body {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #0b0f19;
+  background: var(--bg-app);
 }
 ::-webkit-scrollbar-thumb {
-  background: #1f2937;
+  background: var(--bg-card-sub);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #374151;
-}
-
-html.light-mode ::-webkit-scrollbar-track {
-  background: #e2e8f0;
-}
-html.light-mode ::-webkit-scrollbar-thumb {
-  background: #94a3b8;
-  border-radius: 4px;
-}
-html.light-mode ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+  background: var(--text-dim);
 }
 
 @keyframes floatUp {
@@ -92,27 +144,41 @@ html.light-mode ::-webkit-scrollbar-thumb:hover {
   animation: floatUp 1.8s ease-out forwards;
 }
 
+/* Chuẩn WCAG 2.1 SC 2.3.3: Hỗ trợ người dùng nhạy cảm với chuyển động */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* =====================================================================
-   LIGHT MODE THEME OVERRIDES
+   TOKEN MAPPING CHO LIGHT MODE (TỰ ĐỘNG CHUẨN HÓA KHÔNG CẦN VIẾT RIÊNG)
    ===================================================================== */
 
-/* 1. Main Page & Section Backgrounds */
-html.light-mode .bg-\[\#0c0d11\] {
-  background-color: #f1f5f9 !important;
-  color: #0f172a !important;
+/* 1. Nền trang chính và khối lớn */
+html.light-mode body,
+html.light-mode .bg-\[\#0c0d11\],
+html.light-mode .bg-\[\#030712\],
+html.light-mode .bg-slate-950 {
+  background-color: var(--bg-app) !important;
+  color: var(--text-main) !important;
 }
 
 html.light-mode .bg-\[\#0e1017\],
-html.light-mode .bg-\[\#0a0b0e\] {
-  background-color: #ffffff !important;
-}
-
+html.light-mode .bg-\[\#12141c\],
 html.light-mode .bg-\[\#12141c\]\/95,
-html.light-mode .bg-\[\#12141c\] {
-  background-color: rgba(255, 255, 255, 0.96) !important;
+html.light-mode .bg-\[\#161720\],
+html.light-mode .bg-\[\#0a0b0e\] {
+  background-color: var(--bg-header) !important;
+  border-color: var(--border-subtle) !important;
 }
 
-/* 2. Cards, Modals & Containers */
+/* 2. Thẻ Card, Panel, Khung chat, Bảng biểu */
 html.light-mode .bg-\[\#14151c\],
 html.light-mode .bg-\[\#16171d\],
 html.light-mode .bg-\[\#16171f\],
@@ -121,142 +187,222 @@ html.light-mode .bg-\[\#151720\],
 html.light-mode .bg-\[\#13141b\],
 html.light-mode .bg-\[\#13141a\],
 html.light-mode .bg-\[\#12131a\],
+html.light-mode .bg-\[\#111218\],
 html.light-mode .bg-slate-900,
 html.light-mode .bg-slate-900\/90,
 html.light-mode .bg-slate-900\/80 {
-  background-color: #ffffff !important;
-  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06) !important;
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-subtle) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05) !important;
 }
 
-/* 3. Inner Spec Boxes, Inputs & Secondary Surfaces */
+/* 3. Khối con, Ô nhập liệu, Sub-card */
 html.light-mode .bg-\[\#0e0f14\],
 html.light-mode .bg-\[\#0f1016\],
 html.light-mode .bg-\[\#111217\],
 html.light-mode .bg-\[\#1b1c25\],
-html.light-mode .bg-slate-950,
+html.light-mode .bg-\[\#151722\],
+html.light-mode .bg-slate-950\/60,
+html.light-mode .bg-slate-950\/70,
 html.light-mode .bg-slate-950\/80,
 html.light-mode .bg-slate-950\/90,
 html.light-mode .bg-slate-900\/40,
 html.light-mode .bg-slate-800 {
-  background-color: #f8fafc !important;
+  background-color: var(--bg-card-sub) !important;
+  border-color: var(--border-subtle) !important;
 }
 
-html.light-mode .bg-white\/5,
-html.light-mode .bg-white\/10,
-html.light-mode .bg-white\/15,
-html.light-mode .bg-black\/60 {
-  background-color: #f8fafc !important;
-}
-
+/* 4. Hover states */
+html.light-mode .hover\:bg-slate-800:hover,
+html.light-mode .hover\:bg-slate-700:hover,
 html.light-mode .hover\:bg-white\/5:hover,
 html.light-mode .hover\:bg-white\/10:hover,
-html.light-mode .hover\:bg-white\/20:hover,
-html.light-mode .hover\:bg-slate-800:hover,
-html.light-mode .hover\:bg-slate-700:hover {
-  background-color: #e2e8f0 !important;
+html.light-mode .hover\:bg-white\/20:hover {
+  background-color: var(--bg-card-hover) !important;
 }
 
-/* 4. Hero & CTA Gradient Banners in Light Mode */
-html.light-mode .from-red-950.via-\[\#181923\].to-amber-950,
-html.light-mode .from-red-950.via-slate-900.to-amber-950 {
-  background-image: linear-gradient(to right, #fff1f2, #fffbeb, #fef3c7) !important;
-  border-color: #fde68a !important;
-}
-
-html.light-mode .from-\[\#0e1017\].via-\[\#0e1017\]\/80 {
-  --tw-gradient-from: #ffffff !important;
-  --tw-gradient-via: rgba(255, 255, 255, 0.88) !important;
-}
-
-html.light-mode .bg-rose-950\/40 {
-  background-color: #ffe4e6 !important;
-}
-
-html.light-mode .from-amber-500\/10.via-\[\#0e0f14\].to-rose-500\/10 {
-  background-image: linear-gradient(to right, #fef3c7, #fffbeb, #ffe4e6) !important;
-}
-
-/* 5. Borders */
+/* 5. Đường viền tinh giản */
 html.light-mode .border-white\/10,
 html.light-mode .border-white\/15,
 html.light-mode .border-white\/20,
+html.light-mode .border-white\/5,
 html.light-mode .border-slate-800,
+html.light-mode .border-slate-800\/80,
 html.light-mode .border-slate-800\/60,
 html.light-mode .border-slate-800\/40,
-html.light-mode .border-slate-700 {
-  border-color: #cbd5e1 !important;
+html.light-mode .border-slate-700,
+html.light-mode .border-slate-700\/60 {
+  border-color: var(--border-subtle) !important;
 }
 
-html.light-mode .border-white\/5 {
-  border-color: #e2e8f0 !important;
+/* 6. Typography & Text Hierarchy chuẩn WCAG AA */
+html.light-mode h1,
+html.light-mode h2,
+html.light-mode h3,
+html.light-mode h4,
+html.light-mode h5,
+html.light-mode h6 {
+  color: var(--text-main) !important;
 }
 
-/* 6. Typography & Text Contrast */
-html.light-mode .text-white:not(
-  .bg-red-700, .bg-red-600, .bg-rose-600, .bg-rose-500,
-  .bg-amber-600, .bg-emerald-600, .bg-emerald-600\/90, .bg-purple-600, .bg-cyan-600, .bg-blue-600,
-  .from-emerald-600, .from-rose-600, .from-amber-500,
-  .bg-black, .bg-black\/75, .bg-black\/80, .bg-black\/60,
-  .bg-black .text-white, .keep-dark .text-white
-) {
-  color: #0f172a !important;
+html.light-mode .text-white {
+  color: var(--text-main) !important;
 }
 
-html.light-mode .text-gray-100,
-html.light-mode .text-gray-200,
-html.light-mode .text-slate-200 {
-  color: #1e293b !important;
+/* =====================================================================
+   7. BẢO TỒN VÙNG TỐI (MEDIA, LIVE VIDEO, BUTTONS CÓ NỀN ĐẬM)
+   ===================================================================== */
+/* Giữ nguyên nền tối đen sâu cho video player, camera studio, rạp chiếu */
+html.light-mode .keep-dark,
+html.light-mode .keep-dark.bg-slate-950,
+html.light-mode .keep-dark .bg-slate-950,
+html.light-mode .keep-dark .bg-slate-900,
+html.light-mode .keep-dark [class*="bg-slate-900/"],
+html.light-mode .keep-dark [class*="bg-slate-950/"] {
+  background-color: #020617 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
-html.light-mode .text-gray-300:not(.bg-black *),
-html.light-mode .text-slate-300:not(.bg-black *) {
-  color: #334155 !important;
-}
-
-html.light-mode .text-gray-400,
-html.light-mode .text-slate-400,
-html.light-mode .text-slate-500 {
-  color: #64748b !important;
-}
-
-/* Keep text inside dark media/photo overlays crisp white */
+/* Giữ nguyên chữ trắng và nhãn cho LivePlayer, camera studio, rạp chiếu */
+html.light-mode .keep-dark .text-white,
 html.light-mode .bg-black .text-white,
-html.light-mode .bg-black\/75.text-white,
-html.light-mode .bg-black\/80.text-white,
-html.light-mode .keep-dark .text-white {
-  color: #ffffff !important;
+html.light-mode [class*="bg-black/"] .text-white,
+html.light-mode .keep-dark p,
+html.light-mode .keep-dark h2,
+html.light-mode .keep-dark h3,
+html.light-mode .keep-dark span:not([class*="text-"]):not([class*="bg-"]) {
+  color: #f8fafc !important;
 }
 
-html.light-mode .bg-black .text-amber-300,
-html.light-mode .bg-black .text-amber-400,
+/* Bảo toàn màu điểm nhấn nguyên bản (vàng/đỏ) cho các nhãn nằm trên nền video tối */
+html.light-mode .keep-dark .text-amber-400,
 html.light-mode .keep-dark .text-amber-300,
-html.light-mode .keep-dark .text-amber-400 {
+html.light-mode .bg-black .text-amber-400,
+html.light-mode .bg-black .text-amber-300,
+html.light-mode [class*="bg-black"] .text-amber-400,
+html.light-mode [class*="bg-black"] .text-amber-300 {
   color: #fbbf24 !important;
 }
 
-/* High-contrast accent colors on light surfaces */
-html.light-mode .text-amber-300:not(.bg-black *),
-html.light-mode .text-amber-400:not(.bg-black *) {
-  color: #b45309 !important;
+html.light-mode .keep-dark .text-rose-400,
+html.light-mode .bg-black .text-rose-400,
+html.light-mode [class*="bg-black"] .text-rose-400 {
+  color: #fb7185 !important;
 }
 
-html.light-mode .text-emerald-400:not(.bg-black *) {
-  color: #047857 !important;
+/* Giữ chữ trắng cho các nút CTA có nền màu đậm */
+html.light-mode button.bg-red-700,
+html.light-mode button.bg-red-600,
+html.light-mode button.bg-rose-600,
+html.light-mode button.bg-rose-500,
+html.light-mode button.bg-amber-600,
+html.light-mode button.bg-emerald-600,
+html.light-mode .bg-rose-600,
+html.light-mode .bg-red-700,
+html.light-mode .bg-red-600,
+html.light-mode button.text-white,
+html.light-mode button.text-white *,
+html.light-mode .bg-rose-600 .text-white,
+html.light-mode .bg-red-700 .text-white,
+html.light-mode .bg-red-600 .text-white,
+html.light-mode .bg-rose-600 *,
+html.light-mode .bg-red-700 *,
+html.light-mode .bg-red-600 * {
+  color: #ffffff !important;
 }
 
-html.light-mode .text-rose-400:not(.bg-black *) {
-  color: #be123c !important;
+/* Các cấp độ chữ xám đọc cực rõ trên nền sáng */
+html.light-mode .text-gray-100,
+html.light-mode .text-gray-200,
+html.light-mode .text-slate-200 {
+  color: var(--text-main) !important;
 }
 
-html.light-mode .text-blue-400:not(.bg-black *) {
-  color: #1d4ed8 !important;
+html.light-mode .text-gray-300,
+html.light-mode .text-slate-300 {
+  color: var(--text-muted) !important;
 }
 
-html.light-mode .text-purple-300:not(.bg-black *),
-html.light-mode .text-purple-400:not(.bg-black *) {
-  color: #6d28d9 !important;
+html.light-mode .text-gray-400,
+html.light-mode .text-slate-400 {
+  color: var(--text-muted) !important;
 }
 
-html.light-mode .text-cyan-400:not(.bg-black *) {
-  color: #0e7490 !important;
+html.light-mode .text-slate-500,
+html.light-mode .text-gray-500 {
+  color: var(--text-dim) !important;
+}
+
+/* Đảm bảo text-slate-500 / text-gray-500 trong Dark Mode đạt chuẩn WCAG AA >= 4.5:1 (5.35:1) cho metadata/chữ nhỏ */
+:root:not(.light-mode) .text-slate-500,
+:root:not(.light-mode) .text-gray-500 {
+  color: var(--text-dim);
+}
+
+/* Màu điểm nhấn Accent trong Light Mode đạt chuẩn WCAG AA >= 4.5:1 */
+html.light-mode .text-amber-300,
+html.light-mode .text-amber-400 {
+  color: var(--brand-gold-text) !important; /* Cam CakhiaTV 5.18:1 */
+}
+
+html.light-mode .text-rose-400,
+html.light-mode .text-rose-500 {
+  color: var(--brand-ruby) !important;      /* Đỏ đậm 5.89:1 trên badge, 6.47:1 trên white */
+}
+
+html.light-mode .text-emerald-400 {
+  color: var(--brand-emerald) !important;   /* Xanh lục 5.48:1 */
+}
+
+html.light-mode .text-cyan-400 {
+  color: var(--brand-cyan) !important;      /* Xanh dương thể thao 5.93:1 */
+}
+
+/* Gradient Hero Banner ở Light Mode */
+html.light-mode .from-red-950.via-\[\#181923\].to-amber-950,
+html.light-mode .from-red-950.via-slate-900.to-amber-950 {
+  background-image: linear-gradient(135deg, #fff1f2 0%, #fff7ed 50%, #ffedd5 100%) !important;
+  border-color: var(--border-accent) !important;
+}
+
+html.light-mode .bg-amber-500\/5,
+html.light-mode .bg-amber-500\/10,
+html.light-mode .bg-amber-500\/20 {
+  background-color: #fff7ed !important;
+  border-color: #ffedd5 !important;
+  color: var(--brand-gold-text) !important;
+}
+
+html.light-mode .bg-rose-950\/40,
+html.light-mode .bg-rose-500\/5,
+html.light-mode .bg-rose-500\/10 {
+  background-color: #fff1f2 !important;
+  border-color: #ffe4e6 !important;
+}
+
+html.light-mode .bg-cyan-500\/5,
+html.light-mode .bg-cyan-500\/10 {
+  background-color: #f0f9ff !important;
+  border-color: #e0f2fe !important;
+}
+
+/* Input & Form Controls */
+html.light-mode input,
+html.light-mode select,
+html.light-mode textarea {
+  background-color: var(--bg-card) !important;
+  color: var(--text-main) !important;
+  border-color: var(--border-default) !important;
+}
+
+html.light-mode input:focus,
+html.light-mode select:focus,
+html.light-mode textarea:focus {
+  border-color: var(--brand-orange) !important;
+  outline: 2px solid rgba(234, 88, 12, 0.2) !important;
+}
+
+html.light-mode input::placeholder,
+html.light-mode textarea::placeholder {
+  color: var(--text-dim) !important;
 }

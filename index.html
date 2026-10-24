@@ -9,8 +9,22 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script>
+      (function() {
+        try {
+          var t = localStorage.getItem('traiga_theme');
+          if (t === 'light') {
+            document.documentElement.classList.add('light-mode');
+            document.documentElement.classList.remove('dark');
+          } else {
+            document.documentElement.classList.remove('light-mode');
+            document.documentElement.classList.add('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
-  <body class="bg-slate-950 text-slate-100 antialiased min-h-screen selection:bg-rose-500 selection:text-white">
+  <body class="antialiased min-h-screen selection:bg-rose-500 selection:text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

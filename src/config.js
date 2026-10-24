@@ -34,17 +34,12 @@ export const getApiBaseUrl = () => {
   return `http://${getHost()}:8000`;
 };
 
-// WebSocket Base URL: Ưu tiên VITE_WS_URL nếu chạy local
+// WebSocket Base URL: Ưu tiên VITE_WS_URL, nếu không kết nối thẳng Azure WebSocket Server
 export const getWsUrl = (streamKey) => {
   if (import.meta.env?.VITE_WS_URL) {
     return `${import.meta.env.VITE_WS_URL}/ws/chat?streamKey=${encodeURIComponent(streamKey)}`;
   }
-  if (isVercel()) {
-    return `${AZURE_WS_URL}/ws/chat?streamKey=${encodeURIComponent(streamKey)}`;
-  }
-  const wsProtocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsHost = typeof window !== 'undefined' && window.location.host ? window.location.host : `${getHost()}:8000`;
-  return `${wsProtocol}//${wsHost}/ws/chat?streamKey=${encodeURIComponent(streamKey)}`;
+  return `${AZURE_WS_URL}/ws/chat?streamKey=${encodeURIComponent(streamKey)}`;
 };
 
 // Địa chỉ VPS chạy SRS Media Server (ngix)

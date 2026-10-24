@@ -652,7 +652,7 @@ export default function LiveStudioModal({
                 : isCamMaximized 
                 ? 'h-[62vh] xs:h-[68vh] sm:h-[480px]' 
                 : 'aspect-video sm:h-[360px]'
-            } bg-black rounded-2xl overflow-hidden border border-white/15 shadow-2xl flex items-center justify-center transition-all duration-300 group`}>
+            } bg-black rounded-2xl overflow-hidden border border-white/15 shadow-2xl flex items-center justify-center transition-all duration-300 group keep-dark`}>
               
               <video
                 ref={previewVideoRef}

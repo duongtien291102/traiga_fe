@@ -51,39 +51,39 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-8 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
+      <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 overflow-hidden">
         
         {/* Nút đóng */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
+          className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
 
-        {/* Tiêu đề & Icon */}
+        {/* Tiêu đề & Icon (Phẳng hoàn toàn, không đổ bóng) */}
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-rose-900/40">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center text-white shrink-0">
             {isLoginTab ? <Lock className="w-6 h-6" /> : <UserCheck className="w-6 h-6" />}
           </div>
           <div>
             <h2 className="text-xl font-bold text-white tracking-tight">
               {isLoginTab ? 'Đăng nhập tài khoản' : 'Đăng ký thành viên'}
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400 mt-0.5">
               {isLoginTab ? 'Đăng nhập để giao lưu và bình luận trực tiếp' : 'Tạo tài khoản thành viên miễn phí'}
             </p>
           </div>
         </div>
 
-        {/* Chuyển tab */}
+        {/* Chuyển tab (Phẳng, tương phản cao, không bao giờ bị tàng hình chữ) */}
         <div className="grid grid-cols-2 p-1 bg-slate-950 rounded-xl mb-6 border border-slate-800">
           <button
             type="button"
             onClick={() => { setIsLoginTab(true); setErrorMsg(''); }}
-            className={`py-2 text-xs font-semibold rounded-lg transition-all ${
-              isLoginTab ? 'bg-slate-800 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+            className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              isLoginTab ? 'bg-rose-600 text-white' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             Đăng nhập
@@ -91,8 +91,8 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
           <button
             type="button"
             onClick={() => { setIsLoginTab(false); setErrorMsg(''); }}
-            className={`py-2 text-xs font-semibold rounded-lg transition-all ${
-              !isLoginTab ? 'bg-slate-800 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+            className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              !isLoginTab ? 'bg-rose-600 text-white' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             Đăng ký thành viên
@@ -120,7 +120,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Ví dụ: Anh Tuấn Long Biên"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:ring-1 focus:ring-rose-500"
                 />
               </div>
             </div>
@@ -136,7 +136,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Nhập tên đăng nhập..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 font-mono"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:ring-1 focus:ring-rose-500 font-mono"
               />
             </div>
           </div>
@@ -151,15 +151,16 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:ring-1 focus:ring-rose-500"
               />
             </div>
           </div>
 
+          {/* Nút gửi (Phẳng hoàn toàn, không bóng đổ) */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm shadow-lg shadow-rose-900/40 hover:shadow-rose-900/60 transition-all mt-2 disabled:opacity-50"
+            className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white font-bold text-sm transition-colors mt-2 disabled:opacity-50 cursor-pointer"
           >
             {loading ? 'Đang xử lý...' : (isLoginTab ? 'Đăng nhập ngay' : 'Đăng ký tài khoản')}
           </button>

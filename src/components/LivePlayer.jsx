@@ -258,7 +258,7 @@ export default function LivePlayer({ streamKey = 'tiendev' }) {
   return (
     <div 
       ref={containerRef}
-      className="relative w-full aspect-video bg-slate-950 rounded-2xl overflow-hidden shadow-2xl border border-slate-800/80 group"
+      className="relative w-full aspect-video bg-slate-950 rounded-2xl overflow-hidden shadow-2xl border border-slate-800/80 group keep-dark"
     >
       {/* Thẻ Video HTML5 chuẩn */}
       <video
