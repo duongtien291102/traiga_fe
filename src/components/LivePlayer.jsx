@@ -41,7 +41,8 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
   const [isPlaying, setIsPlaying] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(13027); // 3:37:07 mặc định hiển thị chuẩn JWPlayer khi live
+  const [liveElapsed, setLiveElapsed] = useState(0);
+  const [duration, setDuration] = useState(13027); // Thời lượng mặc định khi video chờ chưa tải metadata
   const [qualityLevels, setQualityLevels] = useState([]);
   const [selectedQuality, setSelectedQuality] = useState('auto');
 
@@ -309,6 +310,17 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
       return () => clearTimeout(timer);
     }
   }, [streamStatus, loadStream]);
+
+  useEffect(() => {
+    if (streamStatus !== 'playing') return undefined;
+
+    const startedAt = Date.now();
+    setLiveElapsed(0);
+    const timer = setInterval(() => {
+      setLiveElapsed(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [streamStatus, streamKey]);
 
   const toggleMute = (e) => {
     if (e) e.stopPropagation();
@@ -645,9 +657,11 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
               />
             </div>
 
-            {/* Hiển thị Thời Gian: 00:00 / 3:37:07 */}
+            {/* Livestream không có thời lượng kết thúc cố định như video thường. */}
             <div className="text-[12px] sm:text-[13px] font-bold text-white tracking-tight font-sans select-none">
-              {formatPlayerTime(currentTime)} / {formatPlayerTime(duration || 13027)}
+              {streamStatus === 'playing'
+                ? `${formatPlayerTime(liveElapsed)} / LIVE`
+                : `${formatPlayerTime(currentTime)} / ${formatPlayerTime(duration || 13027)}`}
             </div>
           </div>
 
