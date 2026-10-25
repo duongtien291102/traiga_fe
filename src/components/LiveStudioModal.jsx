@@ -507,9 +507,16 @@ export default function LiveStudioModal({
   const attachPreviewStream = (stream) => {
     const video = previewVideoRef.current;
     if (!video || !stream) return;
-    if (video.srcObject !== stream) video.srcObject = stream;
-    const playResult = video.play?.();
-    if (playResult?.catch) playResult.catch(() => {});
+    try {
+      video.srcObject = stream;
+      const playResult = video.play?.();
+      if (playResult?.catch) playResult.catch(() => {});
+    } catch {
+      try {
+        video.srcObject = new MediaStream(stream.getTracks());
+        video.play?.().catch(() => {});
+      } catch {}
+    }
   };
 
   const replaceVideoTrack = async (newTrack, stream = mediaStreamRef.current) => {
@@ -525,6 +532,14 @@ export default function LiveStudioModal({
     const sender = peerConnRef.current?.getSenders().find((item) => item.track?.kind === 'video');
     newTrack.enabled = wasCameraEnabled;
     if (sender) await sender.replaceTrack(newTrack);
+
+    // Bắt buộc reset srcObject của thẻ video trên Safari/iOS để vẽ lại camera mới
+    if (previewVideoRef.current) {
+      previewVideoRef.current.srcObject = null;
+      previewVideoRef.current.srcObject = stream;
+      previewVideoRef.current.play?.().catch(() => {});
+    }
+
     attachPreviewStream(stream);
     syncActualVideoSettings(newTrack);
     setIsCameraOn(wasCameraEnabled && newTrack.readyState === 'live');
@@ -1168,6 +1183,18 @@ export default function LiveStudioModal({
           <div className="px-4 py-2 bg-rose-950/70 border-b border-rose-800/60 flex items-center gap-2 text-xs text-rose-200">
             <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
             <span className="line-clamp-2">{errorMessage}</span>
+          </div>
+        )}
+
+        {/* CẢNH BÁO NẾU ĐANG MỞ BẰNG TRÌNH DUYỆT NHÚNG ZALO / MESSENGER / FACEBOOK TRÊN MOBILE */}
+        {typeof navigator !== 'undefined' && /FBAN|FBAV|Zalo|Line|Instagram|BytedanceWebview/i.test(navigator.userAgent || '') && (
+          <div className="px-4 py-2.5 bg-amber-950/80 border-b border-amber-600/50 flex items-center justify-between gap-2 text-xs text-amber-200">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+              <span>
+                <strong>Lưu ý quan trọng:</strong> Bạn đang mở trang trong ứng dụng Zalo/Messenger. iOS sẽ tự động ngắt camera khi mở trong Zalo. Vui lòng bấm vào dấu <strong>(•••)</strong> ở góc trên bên phải màn hình và chọn <strong>"Mở bằng trình duyệt" (Safari / Chrome)</strong> để phát sóng ổn định!
+              </span>
+            </div>
           </div>
         )}
 
