@@ -59,7 +59,7 @@ import { getApiBaseUrl, getHlsBaseUrl, getRtmpBaseUrl, getHost } from './config'
 export const encodeRoomKey = (key) => {
   if (!key) return '';
   try {
-    return btoa(key).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    return `room_${btoa(key).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}`;
   } catch {
     return key;
   }
@@ -73,12 +73,18 @@ export const decodeRoomKey = (token) => {
     const num = parseInt(clean, 10);
     return `thanhtrung${String(num).padStart(2, '0')}`;
   }
-  // Nếu là chuỗi base64url đã mã hóa (ví dụ: dGhhbmh0cnVuZzAx -> thanhtrung01)
+  // Link mới có tiền tố room_; vẫn hỗ trợ link Base64 cũ.
   try {
-    let base64 = clean.replace(/-/g, '+').replace(/_/g, '/');
+    const isNewShareCode = clean.startsWith('room_');
+    const shareCode = isNewShareCode ? clean.slice('room_'.length) : clean;
+    let base64 = shareCode.replace(/-/g, '+').replace(/_/g, '/');
     while (base64.length % 4) base64 += '=';
-    const decoded = atob(base64);
-    if (decoded && decoded.length > 0) return decoded;
+    const binary = atob(base64);
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    const decoded = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    // Stream keys hiện dùng ký tự URL an toàn. Từ chối kết quả nhị phân rác
+    // để key dạng chữ thường (vd. thanhtrung03) được giữ nguyên.
+    if (/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(decoded)) return decoded;
   } catch {}
   return clean;
 };

@@ -79,8 +79,17 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
         );
         isSrsChecked = true;
         if (!isLiveActive) {
-          setStreamStatus('offline');
-          return;
+          // SRS API đôi lúc cập nhật trạng thái chậm hơn playlist HLS. Cho
+          // playlist quyết định khả năng xem trước khi kết luận phòng offline.
+          const playlistRes = await fetch(streamUrl, { cache: 'no-store' });
+          const playlist = playlistRes.ok ? await playlistRes.text() : '';
+          const hasLiveSegments = playlist.startsWith('#EXTM3U')
+            && playlist.includes('#EXTINF:')
+            && !playlist.includes('#EXT-X-ENDLIST');
+          if (!hasLiveSegments) {
+            setStreamStatus('offline');
+            return;
+          }
         }
       }
     } catch {
