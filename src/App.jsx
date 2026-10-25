@@ -654,7 +654,7 @@ export default function App() {
               >
                 <div className="relative h-40 bg-gradient-to-br from-slate-900 via-[#1a1c26] to-rose-950/60 flex items-center justify-center overflow-hidden">
                   <img
-                    src="/img/rooster_don.jpg"
+                    src="/img/rooster_dongtao.jpg"
                     alt={rep.title}
                     className="w-full h-full object-cover opacity-55 group-hover:scale-105 group-hover:opacity-75 transition duration-500"
                   />
