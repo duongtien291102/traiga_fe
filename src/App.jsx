@@ -7,7 +7,6 @@ import LiveStudioModal from './components/LiveStudioModal';
 import SystemAdminDashboard from './components/SystemAdminDashboard';
 import PostChickenModal from './components/PostChickenModal';
 import ChickenDetailModal from './components/ChickenDetailModal';
-import ChickenMarketplace from './components/ChickenMarketplace';
 import UserProfilePage from './components/UserProfilePage';
 import {
   Radio,
@@ -48,7 +47,10 @@ import {
   History,
   BarChart3,
   Eye,
-  Volume2
+  Volume2,
+  CreditCard,
+  Server,
+  AlertCircle
 } from 'lucide-react';
 import { getApiBaseUrl, getHlsBaseUrl, getRtmpBaseUrl, getHost } from './config';
 
@@ -100,6 +102,10 @@ export default function App() {
   const [liveAudioTrack, setLiveAudioTrack] = useState('blv'); // 'blv' (BLV Thành Trung) | 'arena' (Sới gốc)
   const [showAllRooms, setShowAllRooms] = useState(false); // false: chỉ hiện phòng đang live thực tế, true: hiện tất cả kênh đăng ký
   const [previewSelectedChannel, setPreviewSelectedChannel] = useState(null); // Kênh người dùng chủ động chọn xem khi không có live tự động
+  const [activeServer, setActiveServer] = useState('hd1'); // 'hd1' | 'hd2' | 'hd3'
+  const [oddsVotes, setOddsVotes] = useState({ red: 18, blue: 14, userVoted: null });
+  const [isCopiedBank, setIsCopiedBank] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
   const [themeMode, setThemeMode] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -610,6 +616,231 @@ export default function App() {
   // Xác định phòng live nhiều người xem nhất (Top 1 Live Room để chiếu lên Hero Banner)
   const topLiveRoom = actualLiveRooms[0] || null;
 
+  // Xử lý chuyển Server (HD1 • HD2 • HD3) học hỏi từ trieugadon.com
+  const handleServerChange = (srv) => {
+    setActiveServer(srv);
+    const roomMatches = liveRooms.find((r) => r.id?.toLowerCase().includes(srv)) || null;
+    if (roomMatches) {
+      changeChannel(roomMatches.id);
+    }
+    setToastMessage(`Đã chuyển sang Server ${srv.toUpperCase()}`);
+    setTimeout(() => setToastMessage(''), 2500);
+  };
+
+  // Xử lý bình chọn tỉ lệ (Gà Đỏ - Gà Xanh / Meron - Wala)
+  const handleVoteOdds = (team) => {
+    if (oddsVotes.userVoted) {
+      setToastMessage('Bạn đã bình chọn cho trận đấu này rồi!');
+      setTimeout(() => setToastMessage(''), 2000);
+      return;
+    }
+    setOddsVotes((prev) => ({
+      ...prev,
+      [team]: prev[team] + 1,
+      userVoted: team
+    }));
+    setToastMessage(team === 'red' ? '🔴 Bạn đã cổ vũ cho GÀ ĐỎ (Meron)!' : '🔵 Bạn đã cổ vũ cho GÀ XANH (Wala)!');
+    setTimeout(() => setToastMessage(''), 2500);
+  };
+
+  // Xử lý sao chép thông tin tài khoản ngân hàng (để trống theo yêu cầu khách)
+  const handleCopyBankInfo = () => {
+    const bankAccount = ''; // Để trống theo yêu cầu người dùng
+    if (!bankAccount) {
+      alert('Thông tin Số Tài Khoản Ngân Hàng đang cập nhật. Vui lòng liên hệ Hotline/Zalo: 0909 999 999!');
+      return;
+    }
+    navigator.clipboard.writeText(bankAccount).then(() => {
+      setIsCopiedBank(true);
+      setTimeout(() => setIsCopiedBank(false), 2000);
+    });
+  };
+
+  // Component tiện ích phòng Live (Học hỏi & nâng cấp từ trieugadon.com: Server HD1/2/3, Odds, STK chuyển khoản, Nội quy)
+  const renderLiveUtilitiesSection = () => {
+    const totalVotes = oddsVotes.red + oddsVotes.blue;
+    const redPercent = totalVotes > 0 ? Math.round((oddsVotes.red / totalVotes) * 100) : 50;
+    const bluePercent = 100 - redPercent;
+
+    return (
+      <div className="space-y-3 mt-3 w-full">
+        {/* THANH ĐỔI SERVER & CẶP NÚT TỈ LỆ MERON / WALA (HỌC HỎI TỪ TRIEUGADON.COM) */}
+        <div className="p-3 sm:p-4 rounded-xl bg-[#1e2329] border border-white/10 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Cụm Đổi Server: hd1 | hd2 | hd3 */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-[#edb929] font-bold uppercase tracking-wider flex items-center gap-1.5 shrink-0">
+              <Server className="w-3.5 h-3.5 text-[#edb929]" />
+              Đổi Sever:
+            </span>
+            <div className="flex items-center gap-1.5">
+              {(['hd1', 'hd2', 'hd3']).map((srv) => (
+                <button
+                  key={srv}
+                  onClick={() => handleServerChange(srv)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-black uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
+                    activeServer === srv
+                      ? 'bg-[#edb929] text-black shadow-md ring-2 ring-[#edb929]/50'
+                      : 'bg-[#292e38] text-gray-300 hover:text-white hover:bg-[#323946] border border-white/5'
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${activeServer === srv ? 'bg-black' : 'bg-emerald-400'}`}></span>
+                  <span>{srv}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Cặp Nút Tỉ Lệ / Dự Đoán (Đỏ Meron vs Xanh Wala) */}
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-gray-400 font-semibold hidden md:inline">Tỉ lệ cược/cổ vũ:</span>
+            <button
+              onClick={() => handleVoteOdds('red')}
+              className={`px-3.5 py-1.5 rounded-lg text-white font-extrabold text-xs shadow-md flex items-center gap-1.5 cursor-pointer transition transform active:scale-95 ${
+                oddsVotes.userVoted === 'red' ? 'ring-2 ring-white bg-[#e81226]' : 'bg-[#e81226] hover:bg-red-600'
+              }`}
+              title="Bình chọn Gà Đỏ"
+            >
+              <span>🔴 GÀ ĐỎ</span>
+              <span className="bg-black/30 px-1.5 py-0.5 rounded text-[10px]">{redPercent}%</span>
+            </button>
+
+            <button
+              onClick={() => handleVoteOdds('blue')}
+              className={`px-3.5 py-1.5 rounded-lg text-white font-extrabold text-xs shadow-md flex items-center gap-1.5 cursor-pointer transition transform active:scale-95 ${
+                oddsVotes.userVoted === 'blue' ? 'ring-2 ring-white bg-[#0f4cd9]' : 'bg-[#0f4cd9] hover:bg-blue-600'
+              }`}
+              title="Bình chọn Gà Xanh"
+            >
+              <span>🔵 GÀ XANH</span>
+              <span className="bg-black/30 px-1.5 py-0.5 rounded text-[10px]">{bluePercent}%</span>
+            </button>
+          </div>
+        </div>
+
+        {/* KHỐI 💳 THÔNG TIN CHUYỂN KHOẢN & ⚠️ QUY ĐỊNH (CHUẨN TRIEUGADON) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Cột 1: Thông Tin Chuyển Khoản */}
+          <div className="rounded-xl p-4 bg-[#1e2329] border border-white/10 shadow-lg flex flex-col justify-between">
+            <div className="space-y-2">
+              <h4 className="text-sm font-bold text-[#edb929] flex items-center gap-2 uppercase tracking-wide">
+                <CreditCard className="w-4 h-4 text-[#edb929]" />
+                💳 Thông Tin Chuyển Khoản
+              </h4>
+              <div className="text-xs space-y-1.5 text-gray-300">
+                <p>
+                  <span className="text-gray-400">Tên người nhận:</span>{' '}
+                  <strong className="text-white"></strong>
+                </p>
+                <p>
+                  <span className="text-gray-400">Số tài khoản:</span>{' '}
+                  <strong className="text-white font-mono text-sm"></strong>
+                </p>
+                <p>
+                  <span className="text-gray-400">Ngân hàng:</span>{' '}
+                  <strong className="text-white"></strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-3 mt-3 border-t border-white/10 flex items-center justify-between gap-2">
+              <button
+                onClick={handleCopyBankInfo}
+                className="bg-[#edb929] hover:bg-[#dca41e] text-black font-extrabold text-xs px-4 py-2 rounded-md shadow flex items-center gap-1.5 cursor-pointer transition transform active:scale-95"
+              >
+                {isCopiedBank ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-black" />
+                    <span>Đã sao chép STK</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5 text-black" />
+                    <span>📋 Sao chép STK</span>
+                  </>
+                )}
+              </button>
+              <span className="text-[11px] text-gray-400 italic">Ủng hộ / Cọc giữ gà</span>
+            </div>
+          </div>
+
+          {/* Cột 2: Quy định & Nội quy */}
+          <div className="rounded-xl p-4 bg-[#1e2329] border border-white/10 shadow-lg flex flex-col justify-between">
+            <div className="space-y-2">
+              <h4 className="text-sm font-bold text-rose-500 flex items-center gap-2 uppercase tracking-wide">
+                <AlertCircle className="w-4 h-4 text-rose-500" />
+                ⚠️ Quy định
+              </h4>
+              <div className="text-xs space-y-2 text-gray-300">
+                <p className="flex items-start gap-1.5 leading-relaxed">
+                  <span className="text-emerald-400 shrink-0">☑️</span>
+                  <span>Xổ Gà Mua Bán Trên Tinh Thần Giao Lưu Vui Vẻ, Lịch Sự Trên Live Chat</span>
+                </p>
+                <p className="flex items-start gap-1.5 leading-relaxed">
+                  <span className="text-rose-500 shrink-0">🚫</span>
+                  <span>Không Để Số Điện Thoại, Không Cá Cược Dưới Mọi Hình Thức</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-3 mt-3 border-t border-white/10 flex items-center justify-between">
+              <button
+                onClick={() => {
+                  const chatInput = document.querySelector('input[placeholder*="Bình luận"]') || document.querySelector('textarea');
+                  if (chatInput) {
+                    chatInput.scrollIntoView({ behavior: 'smooth' });
+                    chatInput.focus();
+                  } else {
+                    window.scrollTo({ top: 300, behavior: 'smooth' });
+                  }
+                }}
+                className="bg-[#0068ff] hover:bg-[#0053cc] text-white font-extrabold text-xs px-4 py-2 rounded-md shadow flex items-center gap-1.5 cursor-pointer transition"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Chat Ngay</span>
+              </button>
+              <span className="text-[11px] text-gray-400">⛔ CẤM CÁ CƯỢC, KHOÁ NICK!</span>
+            </div>
+          </div>
+        </div>
+
+        {/* KHỐI KẾT NỐI ĐAM MÊ (HOTLINE/ZALO 0909.999.999) */}
+        <div className="rounded-xl p-4 bg-[#1e2329] border border-[#edb929]/30 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-[#edb929]/10 border border-[#edb929]/30 flex items-center justify-center text-2xl shrink-0">
+              📱
+            </div>
+            <div>
+              <span className="text-[11px] font-bold text-[#edb929] uppercase tracking-wider">Kết Nối Đam Mê</span>
+              <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-none mt-0.5">
+                0909 999 999
+              </h3>
+              <p className="text-xs text-gray-400 mt-1">Hotline / Zalo liên hệ trực tiếp chủ trại</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <a
+              href="https://zalo.me/0909999999"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-[#0068ff] hover:bg-[#0053cc] text-white font-bold text-xs px-4 py-2.5 rounded-lg flex items-center gap-1.5 shadow transition cursor-pointer"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>Nhắn Zalo 0909.999.999</span>
+            </a>
+            <a
+              href="tel:0909999999"
+              className="bg-[#edb929] hover:bg-[#dca41e] text-black font-black text-xs px-4 py-2.5 rounded-lg flex items-center gap-1.5 shadow transition cursor-pointer"
+            >
+              <Phone className="w-4 h-4 text-black" />
+              <span>Gọi Ngay</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Component hiển thị danh sách Video Xem Lại (Google Drive / SRS DVR) dùng chung cho Trang Chủ & Phòng Live
   const renderReplaysSection = () => {
     const hasReplays = replays && replays.length > 0;
@@ -1040,33 +1271,35 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#0c0d11] text-gray-100 font-sans antialiased flex flex-col selection:bg-rose-600 selection:text-white">
 
-      {/* ==================== TOP BAR (Ẩn trên điện thoại để tiết kiệm chiều dọc màn hình) ==================== */}
-      <div className="hidden md:block border-b border-slate-800 bg-[#0e1017] text-xs text-slate-300 py-2 px-4 sm:px-8">
+      {/* ==================== TOP BAR ==================== */}
+      <div className="hidden md:block border-b border-white/10 bg-[#1e2329] text-xs text-slate-300 py-2 px-4 sm:px-8">
         <div className="w-full max-w-[1440px] mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="inline-flex items-center gap-1.5 text-amber-400 font-bold shrink-0">
-              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-              Trại Gà Thành Trung
+            <span className="inline-flex items-center gap-1.5 text-[#edb929] font-bold shrink-0">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#edb929]" />
+              Trại Gà Thành Trung Long Biên
             </span>
             <span className="hidden sm:inline text-slate-600">•</span>
             <span className="hidden sm:inline text-slate-300 truncate">
-              Q. Long Biên, Hà Nội • Giờ tiếp khách: 07h30 - 20h00
+              Giao Lưu Đam Mê • Vần Xổ Gà Đòn Trực Tiếp
             </span>
           </div>
           <div className="flex items-center gap-4 sm:gap-6 text-xs font-medium shrink-0">
-            <button
-              onClick={() => setIsPolicyModalOpen(true)}
-              className="hover:text-amber-300 transition-colors hidden md:flex items-center gap-1.5 text-slate-300 cursor-pointer whitespace-nowrap"
-            >
-              <Truck className="w-3.5 h-3.5 text-amber-400" />
-              <span>Gửi xe khách toàn quốc</span>
-            </button>
             <a
-              href="tel:0988888888"
-              className="text-slate-200 hover:text-amber-400 hidden lg:flex items-center gap-1.5 whitespace-nowrap transition-colors"
+              href="https://zalo.me/0909999999"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#0068ff] hover:text-blue-400 font-bold hidden sm:flex items-center gap-1.5 whitespace-nowrap transition-colors"
             >
-              <Phone className="w-3.5 h-3.5 text-amber-400" />
-              <span className="text-slate-400">Hotline/Zalo:</span> <span className="font-bold text-white">0988.888.xxx</span>
+              <MessageSquare className="w-3.5 h-3.5 text-[#0068ff]" />
+              <span>Nhắn Zalo Chủ Trại</span>
+            </a>
+            <a
+              href="tel:0909999999"
+              className="text-slate-200 hover:text-[#edb929] flex items-center gap-1.5 whitespace-nowrap transition-colors"
+            >
+              <Phone className="w-3.5 h-3.5 text-[#edb929]" />
+              <span className="text-slate-400">Hotline/Zalo:</span> <span className="font-bold text-[#edb929]">0909.999.999</span>
             </a>
             <span className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold text-xs whitespace-nowrap">
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
@@ -1100,11 +1333,11 @@ export default function App() {
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm sm:text-lg font-black tracking-tight text-white leading-none whitespace-nowrap">
-                    TRẠI GÀ <span className="text-amber-400">THÀNH TRUNG</span>
+                    TRẠI GÀ <span className="text-[#edb929]">THÀNH TRUNG LONG BIÊN</span>
                   </span>
                 </div>
                 <span className="hidden sm:block text-[10px] font-semibold text-gray-400 tracking-wider uppercase whitespace-nowrap mt-0.5">
-                  Cơ Sở Long Biên • Hà Nội
+                  Giao Lưu Đam Mê • Vần Xổ Gà Đòn
                 </span>
               </div>
             </a>
@@ -1154,6 +1387,7 @@ export default function App() {
                 Xem Lại
               </button>
 
+              {/* Tạm ẩn mục Chợ Gà theo yêu cầu.
               <button
                 onClick={() => {
                   setSelectedMarketChicken(null);
@@ -1167,6 +1401,7 @@ export default function App() {
               >
                 <span>Chợ Gà</span>
               </button>
+              */}
 
               <button
                 onClick={() => setIsPolicyModalOpen(true)}
@@ -1181,6 +1416,7 @@ export default function App() {
           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
 
             {/* Prominent Đăng Bán Gà Button (Chỉ hiển thị cho tài khoản Admin Chủ Trại hoặc SystemAdmin) */}
+            {/* Tạm ẩn chức năng đăng bán gà theo yêu cầu.
             {(currentUser?.role === 'admin' || currentUser?.role === 'systemadmin') && (
               <button
                 onClick={openPostChickenWithAuth}
@@ -1191,6 +1427,7 @@ export default function App() {
                 <span>Đăng Bán Gà</span>
               </button>
             )}
+            */}
 
             {/* Light / Dark Mode Toggle Button */}
             <button
@@ -1308,7 +1545,7 @@ export default function App() {
       </header>
 
       {/* Mobile Sub-Navigation Bar (Chia đều 4 nút vừa khít 100% chiều ngang điện thoại) */}
-      <div className="lg:hidden grid grid-cols-5 border-b border-white/10 bg-[#0e0f14] px-2.5 py-1.5 gap-1.5 text-[11px] font-medium">
+      <div className="lg:hidden grid grid-cols-4 border-b border-white/10 bg-[#0e0f14] px-2.5 py-1.5 gap-1.5 text-[11px] font-medium">
         <button
           onClick={() => {
             setSelectedMarketChicken(null);
@@ -1343,6 +1580,7 @@ export default function App() {
         >
           Xem Lại
         </button>
+        {/* Tạm ẩn mục Chợ Gà trên thanh điều hướng mobile.
         <button
           onClick={() => {
             setSelectedMarketChicken(null);
@@ -1354,6 +1592,7 @@ export default function App() {
         >
           Chợ Gà
         </button>
+        */}
         <button
           onClick={() => setIsPolicyModalOpen(true)}
           className="py-1.5 px-1 rounded-lg text-center truncate text-gray-400 hover:text-white bg-white/5 cursor-pointer"
@@ -1469,6 +1708,7 @@ export default function App() {
                       </p>
 
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 pt-2">
+                        {/* Tạm ẩn nút dẫn tới khu mua bán gà.
                         <button
                           onClick={() => {
                             if (activeNavTab !== 'market') setActiveNavTab('market');
@@ -1479,6 +1719,7 @@ export default function App() {
                           <ShoppingBag className="w-4 h-4" />
                           XEM DÀN GÀ ĐANG CÓ SẴN
                         </button>
+                        */}
                         <button
                           onClick={() => currentRoomInfo && openConnectWithFarm(currentRoomInfo.title, currentRoomInfo.farm)}
                           disabled={!currentRoomInfo}
@@ -1612,6 +1853,8 @@ export default function App() {
             {renderReplaysSection()}
 
             {/* ==================== DANH SÁCH GÀ ĐANG BÁN (CÓ ẢNH RÕ RÀNG, BẤM XEM CHI TIẾT) ==================== */}
+            {/* Tạm ẩn danh sách gà mua bán/giao lưu trên trang chủ. */}
+            {false ? (
             <section id="featured-chickens" className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className={`text-xl sm:text-2xl font-black ${
@@ -1773,7 +2016,7 @@ export default function App() {
                           </button>
                           {currentUser ? (
                             <a
-                              href={`tel:${item.phone?.replace(/\D/g, '') || '0988888888'}`}
+                              href={`tel:${item.phone?.replace(/\D/g, '') || '0909999999'}`}
                               className="py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition flex items-center justify-center gap-1.5 shadow-sm"
                             >
                               <Phone className="w-4 h-4" />
@@ -1796,6 +2039,7 @@ export default function App() {
                 </div>
               )}
             </section>
+            ) : null}
 
             {/* ==================== CÁC CƠ SỞ TRẠI GÀ THÀNH TRUNG ==================== */}
             <section id="farms" className="space-y-3">
@@ -1911,6 +2155,9 @@ export default function App() {
                       </button>
                     </div>
                   </div>
+
+                  {/* KHỐI TIỆN ÍCH PHÒNG LIVE HỌC HỎI TỪ TRIEUGADON.COM (Server HD1/2/3, Odds, STK chuyển khoản, Nội quy) */}
+                  {renderLiveUtilitiesSection()}
 
                   {/* PHÒNG BÌNH LUẬN TRỰC TIẾP TRÊN MOBILE */}
                   <div className="block lg:hidden">
@@ -2110,6 +2357,7 @@ export default function App() {
         {/* ======================================================== */}
         {/* VIEW 3: CHỢ GÀ BA MIỀN & MÀN HÌNH CHI TIẾT CHIẾN KÊ      */}
         {/* ======================================================== */}
+        {/* Tạm ẩn toàn bộ khu vực chợ gà.
         {activeNavTab === 'market' && (
           selectedMarketChicken ? (
             <ChickenDetailModal
@@ -2132,6 +2380,7 @@ export default function App() {
             />
           )
         )}
+        */}
 
         {/* ======================================================== */}
         {/* VIEW 4: TRANG HỒ SƠ & TÀI KHOẢN CÁ NHÂN (FULL PAGE)      */}
@@ -2158,6 +2407,14 @@ export default function App() {
         )}
 
       </main>
+
+      {/* TOAST MESSAGE THÔNG BÁO NHANH */}
+      {toastMessage && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-[#1e2329] border border-[#edb929] text-[#edb929] px-4 py-2 rounded-xl shadow-2xl font-bold text-xs flex items-center gap-2 animate-bounce">
+          <Sparkles className="w-4 h-4 text-[#edb929]" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
 
       {/* ==================== FOOTER ==================== */}
       <footer className="mt-16 bg-[#0a0b0e] border-t border-white/10 pt-10 pb-24 lg:pb-8 text-xs text-gray-400">
@@ -2209,6 +2466,7 @@ export default function App() {
                     Phòng Live Xổ Gà
                   </button>
                 </li>
+                {/* Tạm ẩn liên kết Chợ Gà ở chân trang.
                 <li>
                   <button
                     onClick={() => {
@@ -2221,6 +2479,7 @@ export default function App() {
                     <span>Chợ Gà</span>
                   </button>
                 </li>
+                */}
               </ul>
             </div>
 
@@ -2238,7 +2497,7 @@ export default function App() {
               <h4 className="text-sm font-bold text-white uppercase tracking-wider">Liên Hệ Ban Quản Trị</h4>
               <p>Hỗ trợ kết nối các trại gà uy tín và hướng dẫn cài đặt camera live trực tiếp.</p>
               <button
-                onClick={() => alert('Hotline / Zalo Ban Quản Trị: 0988.888.xxx (Hỗ trợ 24/7)')}
+                onClick={() => alert('Hotline / Zalo Ban Quản Trị: 0909.999.999 (Hỗ trợ 24/7)')}
                 className="w-full bg-white hover:bg-gray-100 text-slate-900 font-bold text-xs py-2.5 px-4 rounded-full transition-all text-center"
               >
                 Nhắn Zalo Ban Quản Trị
@@ -2251,14 +2510,14 @@ export default function App() {
             <div className="flex items-center gap-4 text-slate-400">
               <span>Q. Long Biên, Hà Nội</span>
               <span>•</span>
-              <span>Hotline / Zalo: 0988.888.xxx</span>
+              <span>Hotline / Zalo: 0909.999.999</span>
             </div>
           </div>
         </div>
       </footer>
 
       {/* ==================== MOBILE STICKY BOTTOM NAVIGATION BAR ==================== */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[#12141c]/95 backdrop-blur-md border-t border-white/10 px-2 pt-1.5 pb-safe grid grid-cols-4 gap-1 shadow-2xl">
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[#12141c]/95 backdrop-blur-md border-t border-white/10 px-2 pt-1.5 pb-safe grid grid-cols-3 gap-1 shadow-2xl">
         <button
           onClick={() => {
             setSelectedMarketChicken(null);
@@ -2290,6 +2549,7 @@ export default function App() {
           <span className="text-[10px]">Trực Tiếp</span>
         </button>
 
+        {/* Tạm ẩn mục Chợ Gà trên thanh điều hướng mobile dưới cùng.
         <button
           onClick={() => {
             setSelectedMarketChicken(null);
@@ -2303,7 +2563,9 @@ export default function App() {
           <ShoppingBag className="w-4 h-4 mb-0.5" />
           <span className="text-[10px]">Chợ Gà</span>
         </button>
+        */}
 
+        {/* Tạm ẩn nút Đăng Bán trên thanh mobile; khôi phục khi mở lại chợ gà.
         {currentUser?.role === 'admin' ? (
           <button
             onClick={openPostChickenWithAuth}
@@ -2329,6 +2591,7 @@ export default function App() {
             <span className="text-[10px]">Liên Hệ</span>
           </button>
         )}
+        */}
       </nav>
 
       {/* ==================== FLOATING BACK TO TOP BUTTON ==================== */}
