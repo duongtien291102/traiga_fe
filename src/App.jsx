@@ -680,15 +680,17 @@ export default function App() {
   };
 
   // Component tiện ích phòng Live (Học hỏi & nâng cấp từ trieugadon.com: Server HD1/2/3, Odds, STK chuyển khoản, Nội quy)
-  const renderLiveUtilitiesSection = () => {
+  const renderLiveUtilitiesSection = (section = 'all') => {
     const totalVotes = oddsVotes.red + oddsVotes.blue;
     const redPercent = totalVotes > 0 ? Math.round((oddsVotes.red / totalVotes) * 100) : 50;
     const bluePercent = 100 - redPercent;
+    const showRoomControls = section !== 'details';
+    const showDetails = section !== 'controls';
 
     return (
       <div className="space-y-3 mt-3 w-full">
         {/* THANH TÊN PHÒNG + ĐỔI SERVER + TỈ LỆ MERON/WALA + CHIA SẺ */}
-        <div className="p-3 sm:p-4 rounded-xl bg-[#1e2329] border border-white/10 flex flex-col gap-3">
+        {showRoomControls && <div className="p-3 sm:p-4 rounded-xl bg-[#1e2329] border border-white/10 flex flex-col gap-3">
           {/* Hàng 1: Tên Phòng Live & Nút Chia Sẻ */}
           <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-white/10">
             <div className="flex items-center gap-2 min-w-0">
@@ -762,12 +764,13 @@ export default function App() {
               </button>
             </div>
           </div>
-        </div>
+        </div>}
 
-        {/* KHỐI 💳 THÔNG TIN CHUYỂN KHOẢN & ⚠️ QUY ĐỊNH (CHUẨN TRIEUGADON) */}
+        {showDetails && <>
+        {/* Quy định trước, sau đó đến thông tin chuyển khoản */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* Cột 1: Thông Tin Chuyển Khoản */}
-          <div className="rounded-xl p-4 bg-[#1e2329] border border-white/10 shadow-lg flex flex-col justify-between">
+          <div className="order-2 rounded-xl p-4 bg-[#1e2329] border border-white/10 shadow-lg flex flex-col justify-between">
             <div className="space-y-2">
               <h4 className="text-sm font-bold text-[#edb929] flex items-center gap-2 uppercase tracking-wide">
                 <CreditCard className="w-4 h-4 text-[#edb929]" />
@@ -811,7 +814,7 @@ export default function App() {
           </div>
 
           {/* Cột 2: Quy định & Nội quy */}
-          <div className="rounded-xl p-4 bg-[#1e2329] border border-white/10 shadow-lg flex flex-col justify-between">
+          <div className="order-1 rounded-xl p-4 bg-[#1e2329] border border-white/10 shadow-lg flex flex-col justify-between">
             <div className="space-y-2">
               <h4 className="text-sm font-bold text-rose-500 flex items-center gap-2 uppercase tracking-wide">
                 <AlertCircle className="w-4 h-4 text-rose-500" />
@@ -884,6 +887,7 @@ export default function App() {
             </a>
           </div>
         </div>
+        </>}
       </div>
     );
   };
@@ -2053,6 +2057,9 @@ export default function App() {
                 {/* Cột trái: LivePlayer + CakhiaTV Controls & Icon Tab Bar (8 cols) */}
                 <div className="lg:col-span-8 flex flex-col gap-3">
 
+                  {/* Tên trại, chia sẻ và đổi server nằm trước player */}
+                  {renderLiveUtilitiesSection('controls')}
+
                   {/* VIDEO PLAYER COMPONENT (HLS Stream) */}
                   <div className="relative rounded-none overflow-hidden bg-[#13141b]">
                     <div className="bg-black">
@@ -2061,9 +2068,6 @@ export default function App() {
 
 
                   </div>
-
-                  {/* KHỐI TIỆN ÍCH PHÒNG LIVE HỌC HỎI TỪ TRIEUGADON.COM (Server HD1/2/3, Odds, STK chuyển khoản, Nội quy) */}
-                  {renderLiveUtilitiesSection()}
 
                   {/* PHÒNG BÌNH LUẬN TRỰC TIẾP TRÊN MOBILE */}
                   <div className="block lg:hidden">
@@ -2075,6 +2079,9 @@ export default function App() {
                       />
                     </div>
                   </div>
+
+                  {/* Quy định và thông tin chuyển khoản nằm sau khu vực chat trên mobile. */}
+                  {renderLiveUtilitiesSection('details')}
 
                 </div>
 
