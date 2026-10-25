@@ -1652,7 +1652,7 @@ export default function App() {
 
             {/* ==================== CAKHIATV LIVE THEATER: PLAYER & INTERACTION ==================== */}
             {/* CHỈ HIỂN THỊ KHI CÓ NGƯỜI ĐANG LIVE (ẢNH 1-2) HOẶC NGƯỜI DÙNG BẤM CHỌN KÊNH XEM */}
-            {(hasAnyLive || previewSelectedChannel) && (
+            {(effectiveIsLive || previewSelectedChannel) && (
               <section ref={playerSectionRef} id="main-player-section" className="space-y-4 pt-1">
 
               {/* KHUNG MAIN VIDEO VÀ LIVE CHAT (Desktop 8-4 cols, Mobile full-stack) */}
@@ -2147,9 +2147,9 @@ export default function App() {
                 <div className="text-[11px] text-amber-400 font-semibold">{selectedChickenForConnect.farm}</div>
               </div>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                hasAnyLive ? 'text-emerald-400 bg-emerald-500/20' : 'text-gray-400 bg-white/10'
+                effectiveIsLive ? 'text-emerald-400 bg-emerald-500/20' : 'text-gray-400 bg-white/10'
               }`}>
-                {hasAnyLive ? 'Đang Lên Sóng' : 'Chiến Kê Sẵn Sàng'}
+                {effectiveIsLive ? 'Đang Lên Sóng' : 'Chiến Kê Sẵn Sàng'}
               </span>
             </div>
 
