@@ -31,8 +31,29 @@ import {
   Sliders,
   Gauge
 } from 'lucide-react';
-import { getApiBaseUrl, getWsUrl, NGROK_HLS_URL, isVercel } from '../config';
+import { getApiBaseUrl, getWsUrl, NGROK_HLS_URL, SRS_VPS_HOST, isVercel } from '../config';
 import { mergeChatMessages } from '../chatUtils';
+
+const waitForIceGatheringComplete = (peerConnection, timeoutMs = 8000) => new Promise((resolve) => {
+  if (peerConnection.iceGatheringState === 'complete') {
+    resolve();
+    return;
+  }
+
+  let timeoutId;
+  const finish = () => {
+    clearTimeout(timeoutId);
+    peerConnection.removeEventListener('icegatheringstatechange', onStateChange);
+    resolve();
+  };
+  const onStateChange = () => {
+    if (peerConnection.iceGatheringState === 'complete') finish();
+  };
+
+  peerConnection.addEventListener('icegatheringstatechange', onStateChange);
+  timeoutId = setTimeout(finish, timeoutMs);
+  onStateChange();
+});
 
 export default function LiveStudioModal({ 
   isOpen, 
@@ -934,6 +955,18 @@ export default function LiveStudioModal({
       return;
     }
 
+    const streamKey = String(selectedKey || '').trim();
+    if (!streamKey) {
+      setErrorMessage('Vui lòng chọn kênh có Stream Key trước khi phát sóng.');
+      return;
+    }
+
+    const videoTrack = mediaStreamRef.current.getVideoTracks()[0];
+    if (!videoTrack || videoTrack.readyState !== 'live') {
+      setErrorMessage('Camera chưa sẵn sàng. Hãy bật lại camera rồi thử phát lại.');
+      return;
+    }
+
     setIsPublishing(true);
     setErrorMessage('');
 
@@ -957,40 +990,35 @@ export default function LiveStudioModal({
       }
 
       const pc = new RTCPeerConnection({
-        iceServers: []
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
       });
       peerConnRef.current = pc;
 
-      // QUAN TRỌNG VỚI SRS MEDIA SERVER (SRS 5):
-      // Bắt buộc phải khởi tạo cả 2 Transceiver audio và video ở chế độ "sendonly"
-      // trước khi tạo Offer để SRS cấu hình đúng luồng Ingest và bộ chuyển đổi Opus -> AAC
-      pc.addTransceiver('audio', { direction: 'sendonly' });
-      pc.addTransceiver('video', { direction: 'sendonly' });
-
       const audioTrack = mediaStreamRef.current.getAudioTracks()[0];
-      const videoTrack = mediaStreamRef.current.getVideoTracks()[0];
 
       if (audioTrack) {
         audioTrack.enabled = isMicOn;
-        pc.addTrack(audioTrack, mediaStreamRef.current);
+        pc.addTransceiver(audioTrack, { direction: 'sendonly', streams: [mediaStreamRef.current] });
         console.log('[WEBRTC] Đã gắn Audio Track vào bộ phát sendonly:', audioTrack.label);
       }
 
       if (videoTrack) {
         videoTrack.enabled = isCameraOn;
-        pc.addTrack(videoTrack, mediaStreamRef.current);
+        pc.addTransceiver(videoTrack, { direction: 'sendonly', streams: [mediaStreamRef.current] });
         console.log('[WEBRTC] Đã gắn Video Track vào bộ phát sendonly:', videoTrack.label);
       }
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
+      // The legacy SRS JSON publish API exchanges one complete SDP offer rather than
+      // trickled ICE candidates, so wait for gathering and send the final local SDP.
+      await waitForIceGatheringComplete(pc);
 
-      const hostname = window.location.hostname || 'localhost';
-      const streamUrl = `webrtc://${hostname}/live/${encodeURIComponent(selectedKey.trim())}`;
+      const streamUrl = `webrtc://${SRS_VPS_HOST}/live/${encodeURIComponent(streamKey)}`;
       
-      // Khi chạy trên Vercel, trỏ tín hiệu WebRTC thẳng vào đường hầm Ngrok HTTPS
+      // Use the same-origin Vercel/Vite rewrite so HTTPS pages do not make mixed-content requests.
       const rtcBase = isVercel() ? NGROK_HLS_URL : '';
-      const apiUrl = `${rtcBase}/rtc/v1/publish/`;
+      const apiUrl = new URL(`${rtcBase}/rtc/v1/publish/`, window.location.origin).toString();
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -999,8 +1027,9 @@ export default function LiveStudioModal({
           'ngrok-skip-browser-warning': 'true'
         },
         body: JSON.stringify({
+          api: apiUrl,
           streamurl: streamUrl,
-          sdp: offer.sdp
+          sdp: pc.localDescription?.sdp || offer.sdp
         })
       });
 
