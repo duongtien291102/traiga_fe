@@ -1650,16 +1650,6 @@ export default function App() {
                   <div className="relative w-full h-full min-h-[340px] sm:min-h-[380px] flex flex-col justify-between bg-[#14151c]">
                     <div className="relative w-full aspect-video bg-black overflow-hidden">
                       <LivePlayer streamKey={topLiveRoom.id} />
-
-                      <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-2 pointer-events-none">
-                        <span className="bg-red-700 text-white text-[11px] font-bold uppercase px-2.5 py-1 rounded-md tracking-wider flex items-center gap-1.5 shadow">
-                          <span className="w-2 h-2 rounded-full bg-white"></span>
-                          ĐANG PHÁT TRỰC TIẾP
-                        </span>
-                        <span className="text-xs text-amber-300 font-bold bg-black/80 px-2.5 py-1 rounded-md border border-amber-500/40">
-                          {topLiveRoom.viewers} người đang xem
-                        </span>
-                      </div>
                     </div>
 
                     <div className="p-4 bg-[#14151c] border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">

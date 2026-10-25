@@ -520,10 +520,12 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
       {streamStatus === 'playing' && isMuted && (
         <button
           onClick={toggleMute}
-          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30 flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white border border-rose-300/40 text-xs font-extrabold px-3.5 py-2 rounded-full transition-all cursor-pointer animate-pulse"
+          aria-label="Bật âm thanh"
+          title="Bật âm thanh"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30 flex h-9 w-9 sm:w-auto items-center justify-center gap-2 bg-rose-600 hover:bg-rose-500 text-white border border-rose-300/40 text-xs font-extrabold sm:px-3 sm:py-2 rounded-full transition-colors cursor-pointer"
         >
-          <VolumeX className="w-4 h-4 text-white" />
-          <span>Chạm để bật âm thanh 🔊</span>
+          <VolumeX className="w-4 h-4 shrink-0 text-white" />
+          <span className="hidden sm:inline">Bật tiếng</span>
         </button>
       )}
 
