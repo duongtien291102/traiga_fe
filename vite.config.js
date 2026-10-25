@@ -46,6 +46,10 @@ export default defineConfig({
         target: 'http://103.82.26.60:8080',
         changeOrigin: true,
       },
+      '/abr': {
+        target: 'http://103.82.26.60:8080',
+        changeOrigin: true,
+      },
       '/rtc': {
         target: 'http://103.82.26.60:8080',
         changeOrigin: true,

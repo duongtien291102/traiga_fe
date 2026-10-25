@@ -163,7 +163,7 @@ export default function ChickenDetailModal({
             <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
               {currentUser ? (
                 <a
-                  href={`tel:${chicken.phone?.replace(/\D/g, '') || '0909999999'}`}
+                  href={`tel:${chicken.phone?.replace(/\D/g, '') || '0946939999'}`}
                   className="py-3.5 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-base flex items-center justify-center gap-2 transition text-center"
                 >
                   <Phone className="w-5 h-5" />

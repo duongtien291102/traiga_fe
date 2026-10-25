@@ -12,7 +12,6 @@ import {
   Check, 
   Sparkles, 
   Activity, 
-  ShieldCheck,
   Play,
   Square,
   Clock,
@@ -27,9 +26,7 @@ import {
   Maximize2,
   Minimize2,
   Smartphone,
-  Zap,
   Sliders,
-  Gauge
 } from 'lucide-react';
 import { getApiBaseUrl, getWsUrl, NGROK_HLS_URL, SRS_VPS_HOST, isVercel } from '../config';
 import { mergeChatMessages } from '../chatUtils';
@@ -60,6 +57,7 @@ export default function LiveStudioModal({
   onClose, 
   streamKeys = [], 
   currentStreamKey = '',
+  publishSecrets = {},
   onStreamStarted,
   user,
   sessions = []
@@ -78,9 +76,6 @@ export default function LiveStudioModal({
   const [isCopiedSession, setIsCopiedSession] = useState(false);
 
   // Cấu hình nâng cao: Độ trễ (delay), Độ phân giải (resolution), Hướng quay dọc/ngang (orientation)
-  const [streamDelayMode, setStreamDelayMode] = useState(() => {
-    return (typeof window !== 'undefined' && localStorage.getItem('traiga_stream_delay_mode')) || 'normal';
-  });
   const [resolution, setResolution] = useState('720p'); // '1080p' | '720p' | '480p' | '360p'
   const [actualVideoSettings, setActualVideoSettings] = useState(null);
   const [orientation, setOrientation] = useState('landscape'); // 'landscape' (Ngang 16:9) | 'portrait' (Dọc 9:16) | 'square' (Vuông 1:1)
@@ -559,7 +554,7 @@ export default function LiveStudioModal({
             width: { ideal: dims.width },
             height: { ideal: dims.height },
             aspectRatio: { ideal: dims.aspectRatio },
-            frameRate: { ideal: 30 }
+            frameRate: { ideal: 60 }
           },
           audio: false
         });
@@ -645,7 +640,7 @@ export default function LiveStudioModal({
             width: { ideal: dims.width },
             height: { ideal: dims.height },
             aspectRatio: { ideal: dims.aspectRatio },
-            frameRate: { ideal: 30 }
+            frameRate: { ideal: 60 }
           },
           audio: false
         });
@@ -660,13 +655,6 @@ export default function LiveStudioModal({
       await replaceVideoTrack(newVideoTrack);
     } catch (err) {
       console.warn('Không thể cập nhật camera với cấu hình mới:', err);
-    }
-  };
-
-  const handleDelayChange = (mode) => {
-    setStreamDelayMode(mode);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('traiga_stream_delay_mode', mode);
     }
   };
 
@@ -726,7 +714,7 @@ export default function LiveStudioModal({
           width: { ideal: dims.width },
           height: { ideal: dims.height },
           aspectRatio: { ideal: dims.aspectRatio },
-          frameRate: { ideal: 30 }
+          frameRate: { ideal: 60 }
         };
 
         const audioConstraints = {
@@ -787,7 +775,7 @@ export default function LiveStudioModal({
       } else {
         // Chia sẻ màn hình
         stream = await navigator.mediaDevices.getDisplayMedia({
-          video: { frameRate: { ideal: 30 } },
+          video: { frameRate: { ideal: 60 } },
           audio: true
         });
 
@@ -975,6 +963,11 @@ export default function LiveStudioModal({
       setErrorMessage('Vui lòng chọn kênh có Stream Key trước khi phát sóng.');
       return;
     }
+    const publishSecret = publishSecrets[streamKey];
+    if (!publishSecret) {
+      setErrorMessage('Chưa tải được khóa phát an toàn. Vui lòng đăng nhập lại rồi thử lại.');
+      return;
+    }
 
     const videoTrack = mediaStreamRef.current.getVideoTracks()[0];
     if (!videoTrack || videoTrack.readyState !== 'live') {
@@ -1029,7 +1022,7 @@ export default function LiveStudioModal({
       // trickled ICE candidates, so wait for gathering and send the final local SDP.
       await waitForIceGatheringComplete(pc);
 
-      const streamUrl = `webrtc://${SRS_VPS_HOST}/live/${encodeURIComponent(streamKey)}`;
+      const streamUrl = `webrtc://${SRS_VPS_HOST}/live/${encodeURIComponent(streamKey)}?publish_secret=${encodeURIComponent(publishSecret)}`;
       
       // Use the same-origin Vercel/Vite rewrite so HTTPS pages do not make mixed-content requests.
       const rtcBase = isVercel() ? NGROK_HLS_URL : '';
@@ -1636,7 +1629,7 @@ export default function LiveStudioModal({
                       <Sliders className="w-3.5 h-3.5 text-cyan-400" />
                       <span>Độ phân giải video:</span>
                     </span>
-                    <span className="text-[10px] text-cyan-300/80 font-mono">Tối đa 30 FPS</span>
+                    <span className="text-[10px] text-cyan-300/80 font-mono">Tối đa 60 FPS</span>
                   </label>
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
@@ -1662,68 +1655,11 @@ export default function LiveStudioModal({
                   </div>
                 </div>
 
-                {/* 4. CHỈNH ĐỘ DELAY / ĐỘ TRỄ PHÁT SÓNG (HLS BUFFER) */}
-                <div>
-                  <label className="text-gray-400 mb-1.5 block font-semibold text-[11px] flex items-center gap-1.5">
-                    <Gauge className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Độ trễ phát sóng (Delay người xem):</span>
-                  </label>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => handleDelayChange('low')}
-                      className={`py-2 px-1.5 rounded-xl text-center transition border cursor-pointer flex flex-col items-center gap-0.5 ${
-                        streamDelayMode === 'low'
-                          ? 'bg-amber-500/20 text-amber-300 border-amber-500 shadow-sm shadow-amber-950/40'
-                          : 'bg-black/40 text-gray-400 border-white/5 hover:text-white hover:border-white/20'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1 font-bold text-[11px]">
-                        <Zap className="w-3 h-3 text-amber-400" />
-                        <span>Siêu nhanh</span>
-                      </div>
-                      <span className="text-[9px] opacity-75 font-mono">Ít buffer hơn</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleDelayChange('normal')}
-                      className={`py-2 px-1.5 rounded-xl text-center transition border cursor-pointer flex flex-col items-center gap-0.5 ${
-                        streamDelayMode === 'normal'
-                          ? 'bg-amber-500/20 text-amber-300 border-amber-500 shadow-sm shadow-amber-950/40'
-                          : 'bg-black/40 text-gray-400 border-white/5 hover:text-white hover:border-white/20'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1 font-bold text-[11px]">
-                        <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                        <span>Cân bằng</span>
-                      </div>
-                      <span className="text-[9px] opacity-75 font-mono">Cân bằng buffer</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleDelayChange('safe')}
-                      className={`py-2 px-1.5 rounded-xl text-center transition border cursor-pointer flex flex-col items-center gap-0.5 ${
-                        streamDelayMode === 'safe'
-                          ? 'bg-amber-500/20 text-amber-300 border-amber-500 shadow-sm shadow-amber-950/40'
-                          : 'bg-black/40 text-gray-400 border-white/5 hover:text-white hover:border-white/20'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1 font-bold text-[11px]">
-                        <Activity className="w-3 h-3 text-blue-400" />
-                        <span>Ổn định cao</span>
-                      </div>
-                      <span className="text-[9px] opacity-75 font-mono">Nhiều buffer hơn</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 5. THÔNG SỐ TÓM TẮT REALTIME */}
+                {/* 4. THÔNG SỐ TÓM TẮT REALTIME */}
                 <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 space-y-1.5 font-mono text-[11px] text-gray-400">
                   <div className="flex justify-between">
                     <span>Giao thức phát:</span>
-                    <span className="text-cyan-400 font-bold">HLS • buffer tùy chế độ</span>
+                    <span className="text-cyan-400 font-bold">HLS • delay khoảng 5 giây</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Khung hình / Cam:</span>
@@ -1736,13 +1672,7 @@ export default function LiveStudioModal({
                     <span className="text-gray-200">
                       {actualVideoSettings
                         ? `${actualVideoSettings.width}×${actualVideoSettings.height}${actualVideoSettings.frameRate ? ` @ ${Math.round(actualVideoSettings.frameRate)} FPS` : ''}`
-                        : `${resolution.toUpperCase()} yêu cầu • tối đa 30 FPS`}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Độ trễ khán giả:</span>
-                    <span className="text-emerald-400 font-bold">
-                      {streamDelayMode === 'low' ? 'Ít buffer hơn' : streamDelayMode === 'safe' ? 'Nhiều buffer hơn' : 'Cân bằng buffer'}
+                        : `${resolution.toUpperCase()} yêu cầu • tối đa 60 FPS`}
                     </span>
                   </div>
                 </div>

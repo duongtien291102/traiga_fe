@@ -31,6 +31,7 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
   const containerRef = useRef(null);
   const seekBarRef = useRef(null);
   const hlsRef = useRef(null);
+  const nativeQualityUrlsRef = useRef([]);
 
   // Trạng thái phát sóng
   const [streamStatus, setStreamStatus] = useState('connecting'); // 'connecting' | 'playing' | 'offline' | 'error'
@@ -41,6 +42,8 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
   const [retryCount, setRetryCount] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(13027); // 3:37:07 mặc định hiển thị chuẩn JWPlayer khi live
+  const [qualityLevels, setQualityLevels] = useState([]);
+  const [selectedQuality, setSelectedQuality] = useState('auto');
 
   // Ngày hiện tại cho bảng tỷ số cặp đấu
   const todayStr = React.useMemo(() => {
@@ -50,6 +53,7 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
 
   // SRS 5 phân phối HLS tại /live/[streamKey].m3u8
   const streamUrl = `${getHlsBaseUrl()}/live/${encodeURIComponent(streamKey.trim())}.m3u8`;
+  const masterUrl = `${getHlsBaseUrl()}/live/${encodeURIComponent(streamKey.trim())}.master.m3u8`;
 
   // Hàm lấy thẻ video đang hoạt động (luồng live hoặc video chờ)
   const getActiveVideo = () => {
@@ -96,6 +100,20 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
       }
     }
 
+    setQualityLevels([]);
+    setSelectedQuality('auto');
+    nativeQualityUrlsRef.current = [];
+    let playbackUrl = streamUrl;
+    for (let attempt = 0; attempt < 10 && playbackUrl === streamUrl; attempt += 1) {
+      try {
+        const masterResponse = await fetch(masterUrl, { method: 'HEAD', cache: 'no-store' });
+        if (masterResponse.ok) playbackUrl = masterUrl;
+      } catch {}
+      if (playbackUrl === streamUrl && attempt < 9) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    }
+
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
@@ -130,8 +148,9 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: false,
-        liveSyncDurationCount: 4,
-        liveMaxLatencyDurationCount: 10,
+        // Keep viewers about five seconds behind the live edge.
+        liveSyncDuration: 5,
+        liveMaxLatencyDuration: 10,
         liveBackBufferLength: 30,
         maxBufferLength: 30,
         maxMaxBufferLength: 60,
@@ -147,11 +166,18 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
       });
 
       hlsRef.current = hls;
-      hls.loadSource(streamUrl);
+      hls.loadSource(playbackUrl);
       hls.attachMedia(video);
 
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
         networkRecoveryCount = 0;
+        const levels = (data?.levels || hls.levels || []).map((level, index) => ({
+          id: `level-${index}`,
+          label: level.height ? `${level.height}p` : `Mức ${index + 1}`,
+          index,
+          height: level.height || 0
+        }));
+        setQualityLevels(levels);
         setStreamStatus('playing');
         safePlay();
       });
@@ -194,7 +220,30 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = `${streamUrl}?_t=${Date.now()}`;
+      if (playbackUrl === masterUrl) {
+        try {
+          const response = await fetch(masterUrl, { cache: 'no-store' });
+          const manifest = await response.text();
+          const lines = manifest.split(/\r?\n/);
+          const variants = [];
+          for (let index = 0; index < lines.length; index += 1) {
+            const info = lines[index].match(/#EXT-X-STREAM-INF:(.*)/);
+            if (!info) continue;
+            const uri = lines.slice(index + 1).find((line) => line.trim() && !line.startsWith('#'));
+            if (!uri) continue;
+            const height = Number(info[1].match(/RESOLUTION=\d+x(\d+)/)?.[1]) || 0;
+            variants.push({
+              id: `native-${variants.length}`,
+              label: `${height || 'Gốc'}${height ? 'p' : ''}`,
+              url: new URL(uri.trim(), masterUrl).toString(),
+              height
+            });
+          }
+          nativeQualityUrlsRef.current = variants;
+          setQualityLevels(variants);
+        } catch {}
+      }
+      video.src = `${playbackUrl}?_t=${Date.now()}`;
       video.addEventListener('loadedmetadata', () => {
         setStreamStatus('playing');
         safePlay();
@@ -207,7 +256,31 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
       setStreamStatus('error');
       setErrorMessage('Trình duyệt của bạn không hỗ trợ định dạng HLS.');
     }
-  }, [streamUrl, streamKey]);
+  }, [masterUrl, streamUrl, streamKey]);
+
+  const handleQualityChange = (qualityId) => {
+    setSelectedQuality(qualityId);
+    if (qualityId === 'auto') {
+      if (hlsRef.current) hlsRef.current.currentLevel = -1;
+      else if (videoRef.current) {
+        videoRef.current.src = `${masterUrl}?_t=${Date.now()}`;
+        videoRef.current.play().catch(() => {});
+      }
+      return;
+    }
+
+    if (hlsRef.current) {
+      const levelIndex = Number(qualityId.replace('level-', ''));
+      if (Number.isInteger(levelIndex)) hlsRef.current.currentLevel = levelIndex;
+      return;
+    }
+
+    const variant = nativeQualityUrlsRef.current.find((level) => level.id === qualityId);
+    if (variant && videoRef.current) {
+      videoRef.current.src = `${variant.url}?_t=${Date.now()}`;
+      videoRef.current.play().catch(() => {});
+    }
+  };
 
   useEffect(() => {
     loadStream();
@@ -571,6 +644,24 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
 
           {/* Cụm bên phải: Picture-in-Picture & Toàn màn hình (Mũi tên chéo) */}
           <div className="flex items-center gap-4 sm:gap-5">
+            {qualityLevels.length > 0 && (
+              <label className="flex items-center gap-1.5 text-[11px] sm:text-xs text-white/80">
+                <span className="hidden sm:inline">Chất lượng</span>
+                <select
+                  value={selectedQuality}
+                  onChange={(event) => handleQualityChange(event.target.value)}
+                  onClick={(event) => event.stopPropagation()}
+                  className="max-w-[92px] rounded bg-black/70 border border-white/20 px-1.5 py-1 text-white outline-none cursor-pointer"
+                  aria-label="Chọn chất lượng video"
+                >
+                  <option value="auto">Auto</option>
+                  {qualityLevels.map((level) => (
+                    <option key={level.id} value={level.id}>{level.label}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+
             {/* Nút Picture-in-Picture (PiP) */}
             <button
               type="button"

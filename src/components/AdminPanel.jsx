@@ -19,6 +19,10 @@ import {
   Clock,
   Send,
   Zap,
+  Copy,
+  Check,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { getApiBaseUrl } from '../config';
 
@@ -27,6 +31,8 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
   const [keys, setKeys] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [copiedSessionId, setCopiedSessionId] = useState(null);
+  const [revealedKeys, setRevealedKeys] = useState({});
+  const [copiedKeyId, setCopiedKeyId] = useState(null);
   const [newKey, setNewKey] = useState('');
   const [newTitle, setNewTitle] = useState('');
   const [newStreamer, setNewStreamer] = useState('');
@@ -41,6 +47,56 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
   const [roomBotsMsg, setRoomBotsMsg] = useState('');
   const [roomBotsErr, setRoomBotsErr] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+
+  const requestPublishSecret = async (keyId) => {
+    const res = await fetch(`${getApiBaseUrl()}/api/keys/secret?id=${encodeURIComponent(keyId)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store'
+    });
+    const data = await res.json();
+    if (!res.ok || !data.publish_secret) {
+      throw new Error(data.error || 'Không thể lấy khóa phát');
+    }
+    return data.publish_secret;
+  };
+
+  const handleRevealKey = async (key) => {
+    if (revealedKeys[key.id]) {
+      setRevealedKeys((prev) => {
+        const next = { ...prev };
+        delete next[key.id];
+        return next;
+      });
+      return;
+    }
+    try {
+      const publishSecret = await requestPublishSecret(key.id);
+      setRevealedKeys((prev) => ({ ...prev, [key.id]: publishSecret }));
+      setTimeout(() => {
+        setRevealedKeys((prev) => {
+          if (prev[key.id] !== publishSecret) return prev;
+          const next = { ...prev };
+          delete next[key.id];
+          return next;
+        });
+      }, 30000);
+    } catch (err) {
+      setMsg(err.message || 'Không thể lấy khóa phát');
+      setTimeout(() => setMsg(''), 3000);
+    }
+  };
+
+  const handleCopyKey = async (key) => {
+    try {
+      const publishSecret = await requestPublishSecret(key.id);
+      await navigator.clipboard.writeText(publishSecret);
+      setCopiedKeyId(key.id);
+      setTimeout(() => setCopiedKeyId(null), 2000);
+    } catch (err) {
+      setMsg(err.message || 'Không thể sao chép khóa phát');
+      setTimeout(() => setMsg(''), 3000);
+    }
+  };
 
   // Quản lý Video Xem Lại (Google Drive / DVR Replay)
   const [replayTitle, setReplayTitle] = useState('');
@@ -424,7 +480,25 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
                           <tr key={k.id || k.key} className="hover:bg-slate-800/30 transition">
                             <td className="py-3.5 font-bold text-white">
                               <div className="inline-flex items-center gap-1.5 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800 text-rose-400">
-                                <span aria-label="Stream Key đã được ẩn" title="Stream Key đã được ẩn">••••••••</span>
+                                <span className="min-w-16" aria-label={revealedKeys[k.id] ? 'Stream Key đã hiện' : 'Stream Key đã được ẩn'}>
+                                  {revealedKeys[k.id] || '••••••••'}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRevealKey(k)}
+                                  className="text-slate-400 hover:text-white ml-1"
+                                  title={revealedKeys[k.id] ? 'Ẩn Stream Key' : 'Hiện Stream Key'}
+                                >
+                                  {revealedKeys[k.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyKey(k)}
+                                  className="text-slate-400 hover:text-white"
+                                  title="Sao chép Stream Key"
+                                >
+                                  {copiedKeyId === k.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                                </button>
                               </div>
                             </td>
                             <td className="py-3.5 font-sans">

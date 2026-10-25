@@ -40,8 +40,17 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
       if (data.stream_key) {
         localStorage.setItem('my_stream_key', data.stream_key);
       }
+      if (Array.isArray(data.stream_keys)) {
+        const publishSecrets = Object.fromEntries(
+          data.stream_keys
+            .filter((item) => item?.key && item?.publish_secret)
+            .map((item) => [item.key, item.publish_secret])
+        );
+        if (data.stream_key && data.publish_secret) publishSecrets[data.stream_key] = data.publish_secret;
+        localStorage.setItem('my_publish_secrets', JSON.stringify(publishSecrets));
+      }
 
-      onAuthSuccess(data.user, data.token, data.stream_key);
+      onAuthSuccess(data.user, data.token, data.stream_key, data.publish_secret, data.stream_keys || []);
       onClose();
     } catch (err) {
       setErrorMsg(err.message);

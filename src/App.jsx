@@ -92,6 +92,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [authToken, setAuthToken] = useState('');
   const [myStreamKey, setMyStreamKey] = useState('');
+  const [publishSecrets, setPublishSecrets] = useState({});
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
   const [isSystemAdminOpen, setIsSystemAdminOpen] = useState(false);
@@ -202,12 +203,14 @@ export default function App() {
     const savedToken = localStorage.getItem('auth_token');
     const savedUser = localStorage.getItem('auth_user');
     const savedKey = localStorage.getItem('my_stream_key');
+    const savedSecrets = localStorage.getItem('my_publish_secrets');
 
     if (savedToken && savedUser) {
       try {
         setAuthToken(savedToken);
         setCurrentUser(JSON.parse(savedUser));
         if (savedKey) setMyStreamKey(savedKey);
+        if (savedSecrets) setPublishSecrets(JSON.parse(savedSecrets));
       } catch (e) {
         localStorage.clear();
       }
@@ -281,9 +284,11 @@ export default function App() {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
     localStorage.removeItem('my_stream_key');
+    localStorage.removeItem('my_publish_secrets');
     setCurrentUser(null);
     setAuthToken('');
     setMyStreamKey('');
+    setPublishSecrets({});
     setActiveNavTab((curr) => curr === 'profile' ? 'home' : curr);
     setIsAdminPanelOpen(false);
     setIsSystemAdminOpen(false);
@@ -312,9 +317,21 @@ export default function App() {
         return res.ok ? res.json() : null;
       })
       .then((data) => {
-        if (!data?.stream_key) return;
-        setMyStreamKey(data.stream_key);
-        localStorage.setItem('my_stream_key', data.stream_key);
+        if (!data) return;
+        if (data.stream_key) {
+          setMyStreamKey(data.stream_key);
+          setStreamKey((current) => current || data.stream_key);
+          setInputKey((current) => current || data.stream_key);
+          localStorage.setItem('my_stream_key', data.stream_key);
+        }
+        const secrets = Object.fromEntries(
+          (data.stream_keys || [])
+            .filter((item) => item?.key && item?.publish_secret)
+            .map((item) => [item.key, item.publish_secret])
+        );
+        if (data.stream_key && data.publish_secret) secrets[data.stream_key] = data.publish_secret;
+        setPublishSecrets(secrets);
+        localStorage.setItem('my_publish_secrets', JSON.stringify(secrets));
       })
       .catch(() => { });
 
@@ -346,6 +363,10 @@ export default function App() {
       })
       .catch(() => { });
   };
+
+  useEffect(() => {
+    if (isAuthHydrated && authToken) fetchKeysAndSessions();
+  }, [isAuthHydrated, authToken]);
 
   // Tải danh sách luồng phát thực tế từ SRS Media Server
   const fetchSrsStreams = () => {
@@ -494,7 +515,7 @@ export default function App() {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const handleAuthSuccess = (user, token, key) => {
+  const handleAuthSuccess = (user, token, key, publishSecret, streamKeys = []) => {
     setCurrentUser(user);
     setAuthToken(token);
     if (key) {
@@ -502,6 +523,14 @@ export default function App() {
       setStreamKey(key);
       setInputKey(key);
     }
+    const secrets = Object.fromEntries(
+      streamKeys
+        .filter((item) => item?.key && item?.publish_secret)
+        .map((item) => [item.key, item.publish_secret])
+    );
+    if (key && publishSecret) secrets[key] = publishSecret;
+    setPublishSecrets(secrets);
+    localStorage.setItem('my_publish_secrets', JSON.stringify(secrets));
     fetchKeysAndSessions();
   };
 
@@ -520,9 +549,11 @@ export default function App() {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
     localStorage.removeItem('my_stream_key');
+    localStorage.removeItem('my_publish_secrets');
     setCurrentUser(null);
     setAuthToken('');
     setMyStreamKey('');
+    setPublishSecrets({});
     setActiveNavTab((curr) => curr === 'profile' ? 'home' : curr);
   };
 
@@ -633,7 +664,7 @@ export default function App() {
   const handleCopyBankInfo = () => {
     const bankAccount = ''; // Để trống theo yêu cầu người dùng
     if (!bankAccount) {
-      alert('Thông tin Số Tài Khoản Ngân Hàng đang cập nhật. Vui lòng liên hệ Hotline/Zalo: 0909 999 999!');
+      alert('Thông tin Số Tài Khoản Ngân Hàng đang cập nhật. Vui lòng liên hệ Hotline/Zalo: 0946 939 999!');
       return;
     }
     navigator.clipboard.writeText(bankAccount).then(() => {
@@ -650,56 +681,80 @@ export default function App() {
 
     return (
       <div className="space-y-3 mt-3 w-full">
-        {/* THANH ĐỔI SERVER & CẶP NÚT TỈ LỆ MERON / WALA (HỌC HỎI TỪ TRIEUGADON.COM) */}
-        <div className="p-3 sm:p-4 rounded-xl bg-[#1e2329] border border-white/10 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          {/* Cụm Đổi Server: hd1 | hd2 | hd3 */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-[#edb929] font-bold uppercase tracking-wider flex items-center gap-1.5 shrink-0">
-              <Server className="w-3.5 h-3.5 text-[#edb929]" />
-              Đổi Sever:
-            </span>
-            <div className="flex items-center gap-1.5">
-              {(['hd1', 'hd2', 'hd3']).map((srv) => (
-                <button
-                  key={srv}
-                  onClick={() => handleServerChange(srv)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-black uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
-                    activeServer === srv
-                      ? 'bg-[#edb929] text-black shadow-md ring-2 ring-[#edb929]/50'
-                      : 'bg-[#292e38] text-gray-300 hover:text-white hover:bg-[#323946] border border-white/5'
-                  }`}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full ${activeServer === srv ? 'bg-black' : 'bg-emerald-400'}`}></span>
-                  <span>{srv}</span>
-                </button>
-              ))}
+        {/* THANH TÊN PHÒNG + ĐỔI SERVER + TỈ LỆ MERON/WALA + CHIA SẺ */}
+        <div className="p-3 sm:p-4 rounded-xl bg-[#1e2329] border border-white/10 flex flex-col gap-3">
+          {/* Hàng 1: Tên Phòng Live & Nút Chia Sẻ */}
+          <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-white/10">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#e80017] animate-pulse shrink-0"></span>
+              <h2 className="text-xs sm:text-sm font-black uppercase text-white tracking-wide truncate">
+                {currentRoomInfo?.title || currentRoomInfo?.farm || currentRoomInfo?.streamer || 'Trại Gà Thành Trung Long Biên'}
+              </h2>
             </div>
+
+            <button
+              onClick={() => {
+                const shareCode = encodeRoomKey(streamKey);
+                const shareUrl = `${window.location.origin}/?live=${shareCode}`;
+                copyToClipboard(shareUrl, 'shareChannel');
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#292e38] hover:bg-[#323946] text-gray-200 hover:text-white text-xs font-bold border border-white/10 transition cursor-pointer shrink-0"
+              title="Sao chép link phòng live để gửi anh em xem"
+            >
+              {copiedField === 'shareChannel' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-[#edb929]" />}
+              <span>{copiedField === 'shareChannel' ? 'Đã sao chép!' : 'Chia sẻ'}</span>
+            </button>
           </div>
 
-          {/* Cặp Nút Tỉ Lệ / Dự Đoán (Đỏ Meron vs Xanh Wala) */}
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-gray-400 font-semibold hidden md:inline">Tỉ lệ cược/cổ vũ:</span>
-            <button
-              onClick={() => handleVoteOdds('red')}
-              className={`px-3.5 py-1.5 rounded-lg text-white font-extrabold text-xs shadow-md flex items-center gap-1.5 cursor-pointer transition transform active:scale-95 ${
-                oddsVotes.userVoted === 'red' ? 'ring-2 ring-white bg-[#e81226]' : 'bg-[#e81226] hover:bg-red-600'
-              }`}
-              title="Bình chọn Gà Đỏ"
-            >
-              <span>🔴 GÀ ĐỎ</span>
-              <span className="bg-black/30 px-1.5 py-0.5 rounded text-[10px]">{redPercent}%</span>
-            </button>
+          {/* Hàng 2: Cụm Đổi Server (hd1 | hd2 | hd3) & Cặp Nút Tỉ Lệ (Gà Đỏ vs Gà Xanh) */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-[#edb929] font-bold uppercase tracking-wider flex items-center gap-1.5 shrink-0">
+                <Server className="w-3.5 h-3.5 text-[#edb929]" />
+                Đổi Sever:
+              </span>
+              <div className="flex items-center gap-1.5">
+                {(['hd1', 'hd2', 'hd3']).map((srv) => (
+                  <button
+                    key={srv}
+                    onClick={() => handleServerChange(srv)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-black uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
+                      activeServer === srv
+                        ? 'bg-[#edb929] text-black ring-2 ring-[#edb929]/50'
+                        : 'bg-[#292e38] text-gray-300 hover:text-white hover:bg-[#323946] border border-white/5'
+                    }`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${activeServer === srv ? 'bg-black' : 'bg-emerald-400'}`}></span>
+                    <span>{srv}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-            <button
-              onClick={() => handleVoteOdds('blue')}
-              className={`px-3.5 py-1.5 rounded-lg text-white font-extrabold text-xs shadow-md flex items-center gap-1.5 cursor-pointer transition transform active:scale-95 ${
-                oddsVotes.userVoted === 'blue' ? 'ring-2 ring-white bg-[#0f4cd9]' : 'bg-[#0f4cd9] hover:bg-blue-600'
-              }`}
-              title="Bình chọn Gà Xanh"
-            >
-              <span>🔵 GÀ XANH</span>
-              <span className="bg-black/30 px-1.5 py-0.5 rounded text-[10px]">{bluePercent}%</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-gray-400 font-semibold hidden md:inline">Tỉ lệ cược/cổ vũ:</span>
+              <button
+                onClick={() => handleVoteOdds('red')}
+                className={`px-3.5 py-1.5 rounded-lg text-white font-extrabold text-xs flex items-center gap-1.5 cursor-pointer transition transform active:scale-95 ${
+                  oddsVotes.userVoted === 'red' ? 'ring-2 ring-white bg-[#e81226]' : 'bg-[#e81226] hover:bg-red-600'
+                }`}
+                title="Bình chọn Gà Đỏ"
+              >
+                <span>🔴 GÀ ĐỎ</span>
+                <span className="bg-black/30 px-1.5 py-0.5 rounded text-[10px]">{redPercent}%</span>
+              </button>
+
+              <button
+                onClick={() => handleVoteOdds('blue')}
+                className={`px-3.5 py-1.5 rounded-lg text-white font-extrabold text-xs flex items-center gap-1.5 cursor-pointer transition transform active:scale-95 ${
+                  oddsVotes.userVoted === 'blue' ? 'ring-2 ring-white bg-[#0f4cd9]' : 'bg-[#0f4cd9] hover:bg-blue-600'
+                }`}
+                title="Bình chọn Gà Xanh"
+              >
+                <span>🔵 GÀ XANH</span>
+                <span className="bg-black/30 px-1.5 py-0.5 rounded text-[10px]">{bluePercent}%</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -789,7 +844,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* KHỐI KẾT NỐI ĐAM MÊ (HOTLINE/ZALO 0909.999.999) */}
+        {/* KHỐI KẾT NỐI ĐAM MÊ (HOTLINE/ZALO 0946.939.999) */}
         <div className="rounded-xl p-4 bg-[#1e2329] border border-[#edb929]/30 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-[#edb929]/10 border border-[#edb929]/30 flex items-center justify-center text-2xl shrink-0">
@@ -798,7 +853,7 @@ export default function App() {
             <div>
               <span className="text-[11px] font-bold text-[#edb929] uppercase tracking-wider">Kết Nối Đam Mê</span>
               <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-none mt-0.5">
-                0909 999 999
+                0946 939 999
               </h3>
               <p className="text-xs text-gray-400 mt-1">Hotline / Zalo liên hệ trực tiếp chủ trại</p>
             </div>
@@ -806,16 +861,16 @@ export default function App() {
 
           <div className="flex items-center gap-2 flex-wrap">
             <a
-              href="https://zalo.me/0909999999"
+              href="https://zalo.me/84946939999"
               target="_blank"
               rel="noopener noreferrer"
               className="bg-[#0068ff] hover:bg-[#0053cc] text-white font-bold text-xs px-4 py-2.5 rounded-lg flex items-center gap-1.5 shadow transition cursor-pointer"
             >
               <MessageSquare className="w-4 h-4" />
-              <span>Nhắn Zalo 0909.999.999</span>
+              <span>Nhắn Zalo 0946.939.999</span>
             </a>
             <a
-              href="tel:0909999999"
+              href="tel:0946939999"
               className="bg-[#edb929] hover:bg-[#dca41e] text-black font-black text-xs px-4 py-2.5 rounded-lg flex items-center gap-1.5 shadow transition cursor-pointer"
             >
               <Phone className="w-4 h-4 text-black" />
@@ -1211,6 +1266,7 @@ export default function App() {
             onClose={closeLiveStudioPage}
             streamKeys={displayKeys}
             currentStreamKey={streamKey}
+            publishSecrets={publishSecrets}
             user={currentUser}
             sessions={sessions}
             onStreamStarted={(startedKey) => {
@@ -1270,7 +1326,7 @@ export default function App() {
           </div>
           <div className="flex items-center gap-4 sm:gap-6 text-xs font-medium shrink-0">
             <a
-              href="https://zalo.me/0909999999"
+              href="https://zalo.me/84946939999"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[#0068ff] hover:text-blue-400 font-bold hidden sm:flex items-center gap-1.5 whitespace-nowrap transition-colors"
@@ -1279,11 +1335,11 @@ export default function App() {
               <span>Nhắn Zalo Chủ Trại</span>
             </a>
             <a
-              href="tel:0909999999"
+              href="tel:0946939999"
               className="text-slate-200 hover:text-[#edb929] flex items-center gap-1.5 whitespace-nowrap transition-colors"
             >
               <Phone className="w-3.5 h-3.5 text-[#edb929]" />
-              <span className="text-slate-400">Hotline/Zalo:</span> <span className="font-bold text-[#edb929]">0909.999.999</span>
+              <span className="text-slate-400">Hotline/Zalo:</span> <span className="font-bold text-[#edb929]">0946.939.999</span>
             </a>
             <span className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold text-xs whitespace-nowrap">
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
@@ -1600,37 +1656,18 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="p-4 sm:p-5 bg-[#14151c] border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="space-y-1">
-                        <div className="text-xs text-amber-400 font-bold flex items-center gap-2">
-                          <span>{topLiveRoom.farm}</span>
-                          <span>•</span>
-                          <span>Chủ kê: {topLiveRoom.streamer}</span>
-                        </div>
-                        <h3 className="text-lg sm:text-xl font-bold text-white leading-tight">
-                          {topLiveRoom.title}
-                        </h3>
-                        <p className="text-xs text-slate-400 line-clamp-1">
-                          {topLiveRoom.loi} • Trực tiếp từ chuồng xổ
-                        </p>
-                      </div>
+                    <div className="p-4 bg-[#14151c] border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <h3 className="text-base sm:text-lg font-bold text-white leading-tight">
+                        {topLiveRoom.title}
+                      </h3>
 
-                      <div className="flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto shrink-0">
-                        <button
-                          onClick={() => changeChannel(topLiveRoom.id, true)}
-                          className="flex-1 sm:flex-initial justify-center bg-red-700 hover:bg-red-600 text-white text-xs sm:text-sm font-bold py-2.5 px-4 sm:px-5 rounded-lg flex items-center gap-2 transition cursor-pointer"
-                        >
-                          <Tv className="w-4 h-4" />
-                          <span>VÀO PHÒNG LIVE</span>
-                        </button>
-                        <button
-                          onClick={() => openConnectWithFarm(topLiveRoom.title, topLiveRoom.farm)}
-                          className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs sm:text-sm font-bold py-2.5 px-3.5 rounded-lg transition flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
-                        >
-                          <Phone className="w-3.5 h-3.5 text-amber-400" />
-                          <span>LIÊN HỆ</span>
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => changeChannel(topLiveRoom.id, true)}
+                        className="w-full sm:w-auto justify-center bg-[#e80017] hover:bg-red-600 text-white text-xs sm:text-sm font-bold py-2.5 px-5 rounded-lg flex items-center gap-2 transition cursor-pointer shrink-0"
+                      >
+                        <Tv className="w-4 h-4" />
+                        <span>VÀO PHÒNG LIVE</span>
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -1651,53 +1688,23 @@ export default function App() {
                     }`}></div>
 
                     <div className="relative z-10 space-y-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="bg-rose-600 text-white text-[11px] font-black uppercase px-2.5 py-0.5 rounded tracking-wide shadow-sm">
-                          {currentRoomInfo?.title || 'Chưa có lịch phát sóng'}
-                        </span>
-                        <span className={`text-xs font-bold ${
-                          themeMode === 'light' ? 'text-amber-800' : 'text-amber-400'
-                        }`}>
-                          {[currentRoomInfo?.farm, currentRoomInfo?.streamer].filter(Boolean).join(' • ')}
-                        </span>
-                      </div>
-
-                      <h2 className={`text-lg sm:text-3xl font-black tracking-tight leading-snug ${
-                        themeMode === 'light' ? 'text-slate-950' : 'text-white'
-                      }`}>
-                        {currentRoomInfo?.chang ? `Chạng ${currentRoomInfo.chang}` : 'Chưa có thông tin lịch'} <span className={themeMode === 'light' ? 'text-rose-600' : 'text-amber-400'}>{currentRoomInfo?.loi || ''}</span>
+                      <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white uppercase">
+                        {currentRoomInfo?.title || 'TRẠI GÀ THÀNH TRUNG LONG BIÊN'}
                       </h2>
 
-                      <p className={`text-xs sm:text-sm max-w-xl leading-relaxed ${
-                        themeMode === 'light' ? 'text-slate-700 font-medium' : 'text-slate-300'
-                      }`}>
-                        {currentRoomInfo?.farm || 'Thông tin sẽ hiển thị khi kênh được cấu hình.'}
-                      </p>
-
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 pt-2">
-                        {/* Tạm ẩn nút dẫn tới khu mua bán gà.
+                      <div className="flex flex-wrap items-center gap-2.5 pt-1">
                         <button
                           onClick={() => {
-                            if (activeNavTab !== 'market') setActiveNavTab('market');
+                            if (currentRoomInfo?.id || currentRoomInfo?.key) {
+                              setPreviewSelectedChannel(currentRoomInfo.id || currentRoomInfo.key);
+                            }
+                            setActiveNavTab('live');
                             window.scrollTo({ top: 0, behavior: 'smooth' });
                           }}
-                          className="w-full sm:w-auto justify-center bg-rose-600 hover:bg-rose-500 text-white text-xs sm:text-sm font-bold py-2.5 px-5 rounded-lg flex items-center gap-2 transition cursor-pointer shadow-md"
+                          className="bg-[#e80017] hover:bg-red-600 text-white text-xs sm:text-sm font-extrabold py-2.5 px-5 rounded-lg flex items-center gap-2 transition cursor-pointer"
                         >
-                          <ShoppingBag className="w-4 h-4" />
-                          XEM DÀN GÀ ĐANG CÓ SẴN
-                        </button>
-                        */}
-                        <button
-                          onClick={() => currentRoomInfo && openConnectWithFarm(currentRoomInfo.title, currentRoomInfo.farm)}
-                          disabled={!currentRoomInfo}
-                          className={`w-full sm:w-auto justify-center text-xs sm:text-sm font-bold py-2.5 px-4 rounded-lg transition flex items-center gap-1.5 cursor-pointer border ${
-                            themeMode === 'light'
-                              ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300'
-                              : 'bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border-amber-500/40'
-                          }`}
-                        >
-                          <Phone className={`w-3.5 h-3.5 ${themeMode === 'light' ? 'text-amber-700' : 'text-amber-400'}`} />
-                          LIÊN HỆ XEM CLIP ZALO
+                          <Tv className="w-4 h-4" />
+                          <span>VÀO PHÒNG LIVE</span>
                         </button>
                       </div>
                     </div>
@@ -1765,38 +1772,35 @@ export default function App() {
                                   : (themeMode === 'light' ? 'bg-slate-50 hover:bg-slate-100 border-slate-200' : 'bg-[#111217] hover:bg-white/5 border-white/5'))
                           }`}
                         >
-                          <div className="flex items-center justify-between text-[11px] mb-1">
-                            <span className={`flex items-center gap-1.5 font-bold truncate max-w-[170px] ${
-                              themeMode === 'light' ? 'text-slate-900' : 'text-gray-300'
-                            }`}>
-                              🐓 {item.title || item.streamer || 'Phòng Live Trại Gà'}
-                            </span>
-                            {isItemLive ? (
-                              <span className="text-rose-600 font-bold flex items-center gap-1 text-[11px]">
-                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
-                                LIVE
-                              </span>
-                            ) : (
-                              <span className="text-gray-500 font-medium text-[10px]">
-                                Chờ lên sóng
-                              </span>
-                            )}
-                          </div>
                           <div className="flex items-center justify-between text-xs">
-                            <span className={`text-[11px] ${themeMode === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
-                              Chủ kê: {item.streamer || 'Trại Gà Thành Trung'}
-                            </span>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded transition ${
-                              isItemLive
-                                ? (isSelected
-                                    ? 'bg-rose-600 text-white'
-                                    : 'bg-rose-500/20 text-rose-400 border border-rose-500/30')
-                                : (isSelected
-                                    ? (themeMode === 'light' ? 'bg-slate-200 text-slate-800' : 'bg-white/20 text-white')
-                                    : (themeMode === 'light' ? 'bg-slate-100 text-slate-600' : 'bg-white/10 text-gray-300'))
+                            <span className={`flex items-center gap-1.5 font-bold truncate max-w-[180px] ${
+                              themeMode === 'light' ? 'text-slate-900' : 'text-gray-200'
                             }`}>
-                              {isItemLive ? 'Xem luồng' : 'Vào kênh'}
+                              🐓 {item.title || 'Phòng Live Trại Gà'}
                             </span>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {isItemLive ? (
+                                <span className="text-rose-600 font-bold flex items-center gap-1 text-[11px]">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                                  LIVE
+                                </span>
+                              ) : (
+                                <span className="text-gray-500 font-medium text-[10px]">
+                                  Chờ lên sóng
+                                </span>
+                              )}
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded transition ${
+                                isItemLive
+                                  ? (isSelected
+                                      ? 'bg-rose-600 text-white'
+                                      : 'bg-rose-500/20 text-rose-400 border border-rose-500/30')
+                                  : (isSelected
+                                      ? (themeMode === 'light' ? 'bg-slate-200 text-slate-800' : 'bg-white/20 text-white')
+                                      : (themeMode === 'light' ? 'bg-slate-100 text-slate-600' : 'bg-white/10 text-gray-300'))
+                              }`}>
+                                {isItemLive ? 'Xem luồng' : 'Vào kênh'}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       );
@@ -1983,7 +1987,7 @@ export default function App() {
                           </button>
                           {currentUser ? (
                             <a
-                              href={`tel:${item.phone?.replace(/\D/g, '') || '0909999999'}`}
+                              href={`tel:${item.phone?.replace(/\D/g, '') || '0946939999'}`}
                               className="py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition flex items-center justify-center gap-1.5 shadow-sm"
                             >
                               <Phone className="w-4 h-4" />
@@ -2040,44 +2044,7 @@ export default function App() {
         {activeNavTab === 'live' && (
           <div className="space-y-6 animate-fadeIn">
 
-            {/* Breadcrumb & Navigation Bar */}
-            <div className="flex items-center justify-between gap-2 bg-[#14151c] border border-white/10 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-xl">
-              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                <button
-                  onClick={() => {
-                    setActiveNavTab('home');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs font-bold transition flex items-center gap-1 border border-white/10 cursor-pointer shrink-0"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Về Trang Chủ</span>
-                </button>
-                <div className="h-4 w-px bg-white/15 hidden sm:block"></div>
-                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                  <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-rose-500 animate-pulse shrink-0"></span>
-                  <h1 className="text-xs sm:text-lg font-black uppercase text-white tracking-wide truncate">
-                    <span className="hidden sm:inline">Phòng Live: </span>
-                    <span className="text-amber-400">{currentRoomInfo?.farm || currentRoomInfo?.streamer || ''}</span>
-                  </h1>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => {
-                    const shareCode = encodeRoomKey(streamKey);
-                    const shareUrl = `${window.location.origin}/?live=${shareCode}`;
-                    copyToClipboard(shareUrl, 'shareChannel');
-                  }}
-                  className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#1b1c25] hover:bg-white/10 text-gray-300 hover:text-white text-[11px] sm:text-xs font-semibold border border-white/10 transition cursor-pointer"
-                  title="Sao chép link an toàn phòng live này để gửi anh em xem"
-                >
-                  {copiedField === 'shareChannel' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-cyan-400" />}
-                  <span>{copiedField === 'shareChannel' ? 'Đã sao chép!' : 'Chia sẻ'}</span>
-                </button>
-              </div>
-            </div>
 
             {/* ==================== CAKHIATV LIVE THEATER: PLAYER & INTERACTION ==================== */}
             {/* CHỈ HIỂN THỊ KHI CÓ NGƯỜI ĐANG LIVE (ẢNH 1-2) HOẶC NGƯỜI DÙNG BẤM CHỌN KÊNH XEM */}
@@ -2096,33 +2063,7 @@ export default function App() {
                       <LivePlayer streamKey={streamKey} />
                     </div>
 
-                    {/* Overlay Thẻ Chiến Kê đang lên sóng */}
-                    <div className="p-3 bg-[#13141b] border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-rose-600/20 border border-rose-500/40 flex items-center justify-center text-xl shrink-0">
-                          🐓
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-extrabold text-white">
-                              {currentRoomInfo?.title || ''}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-gray-400 mt-0.5">
-                            {[currentRoomInfo?.farm, currentRoomInfo?.loi].filter(Boolean).join(' • ')}
-                          </p>
-                        </div>
-                      </div>
 
-                      <button
-                        onClick={() => currentRoomInfo && openConnectWithFarm(currentRoomInfo.title, currentRoomInfo.farm)}
-                        disabled={!currentRoomInfo}
-                        className="w-full sm:w-auto bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-500 hover:to-orange-500 text-white font-extrabold text-xs px-4 py-2.5 sm:py-2 rounded-xl shadow-lg transition-transform hover:scale-105 shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
-                      >
-                        <Phone className="w-3.5 h-3.5" />
-                        <span>Hỏi Về Con Này</span>
-                      </button>
-                    </div>
                   </div>
 
                   {/* KHỐI TIỆN ÍCH PHÒNG LIVE HỌC HỎI TỪ TRIEUGADON.COM (Server HD1/2/3, Odds, STK chuyển khoản, Nội quy) */}
@@ -2259,47 +2200,15 @@ export default function App() {
                                   </span>
                                 )}
 
-                                <div className="absolute top-2 left-2 flex items-center gap-1.5 z-10">
-                                  <div className="w-6 h-6 rounded-full border border-white/40 bg-slate-900/90 overflow-hidden flex items-center justify-center text-[10px] font-bold text-white shadow-sm">
-                                    {(room.streamer || 'T').substring(0, 1).toUpperCase()}
-                                  </div>
-                                </div>
-
-                                {room.chang ? (
-                                  <div className="absolute bottom-2 left-2 bg-black/80 backdrop-blur-sm px-2 py-0.5 rounded text-[11px] font-bold text-amber-300 border border-amber-500/30">
-                                    Chạng: {room.chang}
-                                  </div>
-                                ) : (
-                                  <div className="absolute bottom-2 left-2 bg-black/75 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-medium text-slate-300 border border-white/15">
-                                    {room.streamer || 'Chiến kê tuyển'}
-                                  </div>
-                                )}
                               </div>
 
-                              <div className="p-3 space-y-2.5">
-                                <div className="flex items-center gap-1.5 text-[11px] text-gray-400 truncate">
-                                  <span className="text-amber-400">★</span>
-                                  <span className="truncate">{room.farm || 'Trại Gà Thành Trung'}</span>
-                                </div>
-
-                                <div className="space-y-0.5">
-                                  <h4 className="font-bold text-xs text-white truncate">
-                                    {room.ms ? `${room.ms}: ` : ''}{room.title}
-                                  </h4>
-                                  <p className="text-[11px] text-gray-400 line-clamp-1">
-                                    {room.loi || 'Giao lưu xổ đòn & kỹ thuật nuôi dưỡng kê chiến'}
-                                  </p>
-                                </div>
-
-                                <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px]">
-                                  <div className="flex items-center gap-1.5 text-gray-300 font-semibold truncate">
-                                    <span className="text-rose-500">🎙️</span>
-                                    <span className="truncate">{room.streamer || 'Chủ Trại'}</span>
-                                  </div>
-                                  <button className="bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg cursor-pointer">
-                                    {streamKey === room.id ? 'Đang xem' : 'Vào xem'}
-                                  </button>
-                                </div>
+                              <div className="p-3 flex items-center justify-between gap-2">
+                                <h4 className="font-bold text-xs text-white truncate">
+                                  {room.title}
+                                </h4>
+                                <button className="bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg cursor-pointer shrink-0">
+                                  {streamKey === room.id ? 'Đang xem' : 'Vào xem'}
+                                </button>
                               </div>
                             </div>
                           );
@@ -2466,7 +2375,7 @@ export default function App() {
               <h4 className="text-sm font-bold text-white uppercase tracking-wider">Liên Hệ Ban Quản Trị</h4>
               <p>Hỗ trợ kết nối các trại gà uy tín và hướng dẫn cài đặt camera live trực tiếp.</p>
               <button
-                onClick={() => alert('Hotline / Zalo Ban Quản Trị: 0909.999.999 (Hỗ trợ 24/7)')}
+                onClick={() => alert('Hotline / Zalo Ban Quản Trị: 0946.939.999 (Hỗ trợ 24/7)')}
                 className="w-full bg-white hover:bg-gray-100 text-slate-900 font-bold text-xs py-2.5 px-4 rounded-full transition-all text-center"
               >
                 Nhắn Zalo Ban Quản Trị
@@ -2479,7 +2388,7 @@ export default function App() {
             <div className="flex items-center gap-4 text-slate-400">
               <span>Q. Long Biên, Hà Nội</span>
               <span>•</span>
-              <span>Hotline / Zalo: 0909.999.999</span>
+              <span>Hotline / Zalo: 0946.939.999</span>
             </div>
           </div>
         </div>
