@@ -35,22 +35,22 @@ const SAMPLE_CHICKEN_IMAGES = [
 
 export default function PostChickenModal({ isOpen, onClose, onAddChicken, currentUser }) {
   const [title, setTitle] = useState('');
-  const [breed, setBreed] = useState('don');
+  const [breed, setBreed] = useState('');
   const [chang, setChang] = useState('');
   const [age, setAge] = useState('');
   const [canVay, setCanVay] = useState('');
   const [loi, setLoi] = useState('');
-  const [datNuoc, setDatNuoc] = useState('Đã dạt 1 nước');
+  const [datNuoc, setDatNuoc] = useState('');
   const [isNegotiable, setIsNegotiable] = useState(false);
   const [price, setPrice] = useState('');
-  const [farm, setFarm] = useState(currentUser?.fullName || currentUser?.username || 'Trại Gà Thành Trung 01');
-  const [sellerName, setSellerName] = useState(currentUser?.fullName || currentUser?.username || 'Thành Trung 01');
+  const [farm, setFarm] = useState(currentUser?.fullName || currentUser?.username || '');
+  const [sellerName, setSellerName] = useState(currentUser?.fullName || currentUser?.username || '');
   const [phone, setPhone] = useState('');
   const [zalo, setZalo] = useState('');
-  const [location, setLocation] = useState('Hà Nội');
-  const [imageUrl, setImageUrl] = useState(SAMPLE_CHICKEN_IMAGES[0].url);
+  const [location, setLocation] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
-  const [note, setNote] = useState('Đầy đủ vắc xin, bao kiểm tra thể trạng khi nhận gà từ xe khách.');
+  const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -62,6 +62,12 @@ export default function PostChickenModal({ isOpen, onClose, onAddChicken, curren
     if (!title.trim()) errs.title = 'Vui lòng nhập tiêu đề chiến kê';
     if (!chang.trim()) errs.chang = 'Vui lòng nhập chạng cân (ví dụ: 2.90 kg)';
     if (!phone.trim()) errs.phone = 'Vui lòng nhập số điện thoại liên hệ';
+    if (!age.trim()) errs.age = 'Vui lòng nhập tuổi gà';
+    if (!canVay.trim()) errs.canVay = 'Vui lòng nhập thông tin cán vảy';
+    if (!loi.trim()) errs.loi = 'Vui lòng nhập lối đá';
+    if (!breed) errs.breed = 'Vui lòng chọn giống gà';
+    if (!farm.trim()) errs.farm = 'Vui lòng nhập tên trại';
+    if (!location) errs.location = 'Vui lòng chọn tỉnh / thành phố';
     if (!isNegotiable && (!price || isNaN(price.replace(/\D/g, '')))) {
       errs.price = 'Vui lòng nhập giá bán hoặc chọn Giá Thỏa Thuận';
     }
@@ -91,14 +97,14 @@ export default function PostChickenModal({ isOpen, onClose, onAddChicken, curren
 
     const newChicken = {
       id: 'ck_' + Date.now(),
-      ms: `MS ${Math.floor(100 + Math.random() * 900)}`,
+      ms: '',
       title: title.trim(),
       breed: breed,
-      breedName: breedNames[breed] || 'Chiến kê',
+      breedName: breedNames[breed] || '',
       chang: chang.trim(),
-      age: age.trim() || '9-11 tháng',
-      canVay: canVay.trim() || 'Huyền trâm, giáp thới',
-      loi: loi.trim() || 'Lối ôm đấm, kiềng hầu',
+      age: age.trim(),
+      canVay: canVay.trim(),
+      loi: loi.trim(),
       datNuoc: datNuoc,
       price: numericPrice,
       priceText: formattedPriceText,
@@ -107,7 +113,7 @@ export default function PostChickenModal({ isOpen, onClose, onAddChicken, curren
       phone: phone.trim(),
       zalo: zalo.trim() || phone.trim(),
       location: location,
-      image: imageUrl.trim() || SAMPLE_CHICKEN_IMAGES[0].url,
+      image: imageUrl.trim(),
       videoUrl: videoUrl.trim(),
       note: note.trim(),
       status: 'available',
@@ -177,10 +183,11 @@ export default function PostChickenModal({ isOpen, onClose, onAddChicken, curren
                   Dòng / Giống gà
                 </label>
                 <select
-                  value={breed}
+                value={breed}
                   onChange={(e) => setBreed(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-lg bg-[#151722] border border-slate-700 text-white text-xs focus:outline-none focus:border-amber-400 cursor-pointer"
                 >
+                  <option value="">Chọn giống gà</option>
                   <option value="don">Gà Đòn Long Biên Tuyển Chọn</option>
                   <option value="noi">Gà Nòi Cựa Tuyển Chọn</option>
                   <option value="tre">Gà Tre Cảnh</option>
@@ -351,6 +358,7 @@ export default function PostChickenModal({ isOpen, onClose, onAddChicken, curren
                 onChange={(e) => setLocation(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-[#0e0f14] border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400 cursor-pointer"
               >
+                <option value="">Chọn tỉnh / thành phố</option>
                 <option value="Bình Định">Bình Định (Miền Trung)</option>
                 <option value="Bến Tre">Bến Tre (Miền Tây)</option>
                 <option value="Đồng Tháp">Đồng Tháp</option>

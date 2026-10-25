@@ -20,7 +20,7 @@ import { getHlsBaseUrl } from '../config';
  * Component LivePlayer phát luồng HLS trực tiếp từ Nginx-RTMP Media Server
  * @param {string} streamKey - Mã Stream Key (OBS gửi lên)
  */
-export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
+export default function LivePlayer({ streamKey = '' }) {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const hlsRef = useRef(null);
@@ -34,27 +34,33 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
   const [retryCount, setRetryCount] = useState(0);
 
   // SRS 5 phân phối HLS tại /live/[streamKey].m3u8
-  const streamUrl = `${getHlsBaseUrl()}/live/${encodeURIComponent(streamKey.trim())}.m3u8`;
+  const safeStreamKey = typeof streamKey === 'string' ? streamKey.trim() : '';
+  const streamUrl = `${getHlsBaseUrl()}/live/${encodeURIComponent(safeStreamKey)}.m3u8`;
 
   // Hàm khởi tạo và tải luồng HLS
   const loadStream = useCallback(async () => {
     const video = videoRef.current;
-    if (!video || !streamKey) return;
+    if (!video || !safeStreamKey) {
+      setStreamStatus('offline');
+      return;
+    }
 
     // 1. Thăm dò trước qua SRS HTTP API để kiểm tra luồng active mà không gây lỗi 404 đỏ trong DevTools console
     let isSrsChecked = false;
     try {
       const srsRes = await fetch('/srs-api/v1/streams/', { cache: 'no-store' });
       if (srsRes.ok) {
-        const srsData = await srsRes.json();
-        const normKey = streamKey.trim().toLowerCase();
-        const isLiveActive = Array.isArray(srsData?.streams) && srsData.streams.some(
-          (s) => s.name?.trim().toLowerCase() === normKey && s.publish?.active
-        );
-        isSrsChecked = true;
-        if (!isLiveActive) {
-          setStreamStatus('offline');
-          return;
+        const srsData = await srsRes.json().catch(() => null);
+        if (Array.isArray(srsData?.streams)) {
+          const normKey = safeStreamKey.toLowerCase();
+          const isLiveActive = srsData.streams.some(
+            (s) => typeof s?.name === 'string' && s.name.trim().toLowerCase() === normKey && s.publish?.active === true
+          );
+          isSrsChecked = true;
+          if (!isLiveActive) {
+            setStreamStatus('offline');
+            return;
+          }
         }
       }
     } catch {
@@ -69,6 +75,12 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
         const checkRes = await fetch(loadUrl, { method: 'GET', cache: 'no-store' });
         if (!checkRes.ok) {
           setStreamStatus('offline');
+          return;
+        }
+        const manifest = await checkRes.text();
+        if (!manifest.trimStart().startsWith('#EXTM3U')) {
+          setStreamStatus('offline');
+          setErrorMessage('Máy chủ chưa trả về playlist HLS hợp lệ.');
           return;
         }
       } catch (e) {
@@ -237,7 +249,7 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
       setStreamStatus('error');
       setErrorMessage('Trình duyệt của bạn không hỗ trợ định dạng HLS.');
     }
-  }, [streamUrl, streamKey]);
+  }, [streamUrl, safeStreamKey]);
 
   // Kích hoạt khi streamKey hoặc retryCount thay đổi
   useEffect(() => {

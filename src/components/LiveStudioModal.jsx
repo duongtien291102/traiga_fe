@@ -38,7 +38,7 @@ export default function LiveStudioModal({
   isOpen, 
   onClose, 
   streamKeys = [], 
-  currentStreamKey = 'thanhtrung01',
+  currentStreamKey = '',
   onStreamStarted,
   user,
   sessions = []
@@ -96,6 +96,8 @@ export default function LiveStudioModal({
   const tokenFailedRef = useRef(false);
   const reconnectAttemptsRef = useRef(0);
   const userRef = useRef(user);
+  const videoRecoveryTimerRef = useRef(null);
+  const isRecoveringVideoRef = useRef(false);
 
   useEffect(() => {
     userRef.current = user;
@@ -479,12 +481,126 @@ export default function LiveStudioModal({
     } : null);
   };
 
+  // Keep the preview attached to the current stream and recover camera tracks
+  // that mobile browsers suspend or end while the studio remains open.
+  const attachPreviewStream = (stream) => {
+    const video = previewVideoRef.current;
+    if (!video || !stream) return;
+    if (video.srcObject !== stream) video.srcObject = stream;
+    const playResult = video.play?.();
+    if (playResult?.catch) playResult.catch(() => {});
+  };
+
+  const replaceVideoTrack = async (newTrack, stream = mediaStreamRef.current) => {
+    if (!newTrack || !stream) return;
+    const oldTrack = stream.getVideoTracks()[0];
+    const wasCameraEnabled = oldTrack ? oldTrack.enabled : true;
+    if (oldTrack && oldTrack !== newTrack) {
+      stream.removeTrack(oldTrack);
+      oldTrack.stop();
+    }
+    if (!stream.getTracks().includes(newTrack)) stream.addTrack(newTrack);
+
+    const sender = peerConnRef.current?.getSenders().find((item) => item.track?.kind === 'video');
+    newTrack.enabled = wasCameraEnabled;
+    if (sender) await sender.replaceTrack(newTrack);
+    attachPreviewStream(stream);
+    syncActualVideoSettings(newTrack);
+    setIsCameraOn(wasCameraEnabled && newTrack.readyState === 'live');
+    setHasStream(newTrack.readyState === 'live');
+  };
+
+  const recoverVideoTrack = async (reason = 'camera track ended') => {
+    if (!isOpen || sourceType !== 'camera' || isRecoveringVideoRef.current) return;
+    isRecoveringVideoRef.current = true;
+    try {
+      const dims = getDims();
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: facingMode },
+            width: { ideal: dims.width },
+            height: { ideal: dims.height },
+            aspectRatio: { ideal: dims.aspectRatio },
+            frameRate: { ideal: 30 }
+          },
+          audio: false
+        });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
+
+      const newTrack = stream.getVideoTracks()[0];
+      if (!newTrack) throw new Error('Không nhận được track video từ camera.');
+      await replaceVideoTrack(newTrack);
+      setErrorMessage('');
+      console.info(`[MEDIA] Đã khôi phục camera (${reason})`);
+    } catch (err) {
+      console.warn('Không thể tự khôi phục camera:', err);
+      setHasStream(false);
+      setIsCameraOn(false);
+      setErrorMessage('Camera bị ngắt. Hãy giữ trang đang mở và bấm “Thử Lại Camera” để kết nối lại.');
+    } finally {
+      isRecoveringVideoRef.current = false;
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen || sourceType !== 'camera') return undefined;
+    const video = previewVideoRef.current;
+    const stream = mediaStreamRef.current;
+    const track = stream?.getVideoTracks()[0];
+    if (!track) return undefined;
+
+    const queueRecovery = (reason) => {
+      clearTimeout(videoRecoveryTimerRef.current);
+      videoRecoveryTimerRef.current = setTimeout(() => {
+        const current = mediaStreamRef.current?.getVideoTracks()[0];
+        if (!current || current.readyState === 'ended') {
+          recoverVideoTrack(reason);
+        } else if (current.muted || !previewVideoRef.current?.videoWidth) {
+          // Give mobile camera pipelines a moment to resume before reopening.
+          if (document.visibilityState === 'visible') recoverVideoTrack(reason);
+        }
+      }, 1200);
+    };
+    const onEnded = () => queueRecovery('track ended');
+    const onMute = () => queueRecovery('track muted');
+    const onUnmute = () => {
+      clearTimeout(videoRecoveryTimerRef.current);
+      setErrorMessage('');
+      setHasStream(true);
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        attachPreviewStream(mediaStreamRef.current);
+        queueRecovery('page resumed without camera frames');
+      }
+    };
+
+    track.addEventListener('ended', onEnded);
+    track.addEventListener('mute', onMute);
+    track.addEventListener('unmute', onUnmute);
+    video?.addEventListener('stalled', onMute);
+    video?.addEventListener('error', onMute);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      clearTimeout(videoRecoveryTimerRef.current);
+      track.removeEventListener('ended', onEnded);
+      track.removeEventListener('mute', onMute);
+      track.removeEventListener('unmute', onUnmute);
+      video?.removeEventListener('stalled', onMute);
+      video?.removeEventListener('error', onMute);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [isOpen, sourceType, hasStream, isLive, facingMode]);
+
   // Cập nhật lại cấu hình camera khi đổi độ phân giải hoặc xoay dọc/ngang mà không mất luồng
   const updateCameraTrack = async (newRes, newOrient, currentMode = facingMode) => {
     if (sourceType !== 'camera') return;
     const dims = getDims(newRes, newOrient);
     try {
-      const oldVideoTrack = mediaStreamRef.current?.getVideoTracks()[0];
       let newStream = null;
       try {
         newStream = await navigator.mediaDevices.getUserMedia({
@@ -505,23 +621,7 @@ export default function LiveStudioModal({
       }
 
       const newVideoTrack = newStream.getVideoTracks()[0];
-      syncActualVideoSettings(newVideoTrack);
-      if (mediaStreamRef.current) {
-        if (oldVideoTrack) {
-          mediaStreamRef.current.removeTrack(oldVideoTrack);
-          oldVideoTrack.stop();
-        }
-        mediaStreamRef.current.addTrack(newVideoTrack);
-      }
-      if (previewVideoRef.current) {
-        previewVideoRef.current.srcObject = mediaStreamRef.current;
-      }
-      if (peerConnRef.current) {
-        const sender = peerConnRef.current.getSenders().find((s) => s.track && s.track.kind === 'video');
-        if (sender) {
-          await sender.replaceTrack(newVideoTrack);
-        }
-      }
+      await replaceVideoTrack(newVideoTrack);
     } catch (err) {
       console.warn('Không thể cập nhật camera với cấu hình mới:', err);
     }
@@ -667,9 +767,10 @@ export default function LiveStudioModal({
       }
 
       mediaStreamRef.current = stream;
-      if (previewVideoRef.current) {
-        previewVideoRef.current.srcObject = stream;
-      }
+      attachPreviewStream(stream);
+      stream.getVideoTracks()[0]?.addEventListener('ended', () => {
+        if (type === 'camera') recoverVideoTrack('track ended');
+      }, { once: true });
       setHasStream(true);
     } catch (err) {
       console.error('Lỗi truy cập thiết bị thu hình:', err);
@@ -707,7 +808,6 @@ export default function LiveStudioModal({
     setFacingMode(nextFacing);
 
     try {
-      const oldVideoTrack = mediaStreamRef.current?.getVideoTracks()[0];
       const dims = getDims(resolution, orientation);
       
       let newStream = null;
@@ -729,28 +829,8 @@ export default function LiveStudioModal({
       }
 
       const newVideoTrack = newStream.getVideoTracks()[0];
-      syncActualVideoSettings(newVideoTrack);
-
-      if (mediaStreamRef.current) {
-        if (oldVideoTrack) {
-          mediaStreamRef.current.removeTrack(oldVideoTrack);
-          oldVideoTrack.stop();
-        }
-        mediaStreamRef.current.addTrack(newVideoTrack);
-      }
-
-      if (previewVideoRef.current) {
-        previewVideoRef.current.srcObject = mediaStreamRef.current;
-      }
-
-      // THAY ĐỔI VIDEO TRACK TRỰC TIẾP TRÊN WEBRTC MÀ KHÔNG NGẮT LUỒNG LIVE
-      if (peerConnRef.current) {
-        const sender = peerConnRef.current.getSenders().find((s) => s.track && s.track.kind === 'video');
-        if (sender) {
-          await sender.replaceTrack(newVideoTrack);
-          console.log('[WEBRTC] Đã đổi track camera mượt mà sang:', nextFacing);
-        }
-      }
+      await replaceVideoTrack(newVideoTrack);
+      console.log('[WEBRTC] Đã đổi track camera mượt mà sang:', nextFacing);
     } catch (err) {
       console.warn('Không thể đổi camera:', err);
       setErrorMessage('Không thể chuyển đổi camera trên thiết bị này.');
@@ -762,8 +842,14 @@ export default function LiveStudioModal({
     if (!mediaStreamRef.current) return;
     const videoTrack = mediaStreamRef.current.getVideoTracks()[0];
     if (videoTrack) {
+      if (videoTrack.readyState === 'ended') {
+        recoverVideoTrack('camera re-enabled after track ended');
+        return;
+      }
       videoTrack.enabled = !videoTrack.enabled;
       setIsCameraOn(videoTrack.enabled);
+    } else if (sourceType === 'camera') {
+      recoverVideoTrack('camera track missing');
     }
   };
 
@@ -1437,9 +1523,7 @@ export default function LiveStudioModal({
                         {k.title || k.streamer || `Kênh phát sóng #${idx + 1}`}
                       </option>
                     ))}
-                    {streamKeys.length === 0 && (
-                      <option value="thanhtrung01">Kênh phát chính (Thành Trung 01)</option>
-                    )}
+                    {streamKeys.length === 0 && <option value="">Chưa có kênh phát sóng</option>}
                   </select>
                 </div>
 

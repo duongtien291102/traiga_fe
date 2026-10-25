@@ -38,7 +38,7 @@ import {
 } from 'lucide-react';
 import { getApiBaseUrl, getRtmpBaseUrl } from '../config';
 
-export default function SystemAdminDashboard({ isOpen, onClose, token, currentUser }) {
+export default function SystemAdminDashboard({ isOpen, onClose, token, currentUser, isFullPage = false }) {
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'users' | 'keys' | 'sessions' | 'logs' | 'bots'
   const [stats, setStats] = useState(null);
   const [usersList, setUsersList] = useState([]);
@@ -585,8 +585,10 @@ export default function SystemAdminDashboard({ isOpen, onClose, token, currentUs
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-0 sm:p-4 animate-fade-in font-sans">
-      <div className="relative w-full max-w-6xl h-[100dvh] sm:h-auto sm:max-h-[92vh] bg-slate-950 border-0 sm:border border-purple-500/30 rounded-none sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-100 shadow-purple-950/40">
+    <div className={isFullPage ? 'min-h-[100dvh] w-full bg-slate-950 font-sans' : 'fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-0 sm:p-4 animate-fade-in font-sans'}>
+      <div className={isFullPage
+        ? 'relative min-h-[100dvh] h-[100dvh] w-full bg-slate-950 flex flex-col overflow-hidden text-slate-100'
+        : 'relative w-full max-w-6xl h-[100dvh] sm:h-auto sm:max-h-[92vh] bg-slate-950 border-0 sm:border border-purple-500/30 rounded-none sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-100 shadow-purple-950/40'}>
         
         {/* HEADER */}
         <div className="p-3.5 sm:p-6 border-b border-slate-800/90 bg-gradient-to-r from-purple-950/80 via-slate-900/90 to-slate-950 flex items-center justify-between gap-3">
@@ -623,7 +625,7 @@ export default function SystemAdminDashboard({ isOpen, onClose, token, currentUs
             <button
               onClick={onClose}
               className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
-              title="Đóng bảng quản trị"
+              title={isFullPage ? 'Về trang chủ' : 'Đóng bảng quản trị'}
             >
               <X className="w-5 h-5" />
             </button>

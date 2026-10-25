@@ -41,7 +41,7 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
 
   // Quản lý Bot Tương Tác Phòng Live
   const [availableBots, setAvailableBots] = useState([]);
-  const [selectedRoomKey, setSelectedRoomKey] = useState(currentStreamKey || 'thanhtrung01');
+  const [selectedRoomKey, setSelectedRoomKey] = useState(currentStreamKey || '');
   const [selectedBotIds, setSelectedBotIds] = useState([]);
   const [isRoomBotsRunning, setIsRoomBotsRunning] = useState(false);
   const [roomBotsMsg, setRoomBotsMsg] = useState('');
@@ -117,7 +117,7 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
     if (isOpen) {
       loadData();
       loadAvailableBots();
-      const targetKey = selectedRoomKey || currentStreamKey || 'thanhtrung01';
+      const targetKey = selectedRoomKey || currentStreamKey || '';
       setSelectedRoomKey(targetKey);
       loadRoomBots(targetKey);
     }
@@ -527,7 +527,7 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
                           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                         },
                         body: JSON.stringify({
-                          stream_key: replayStreamKey || currentStreamKey || 'thanhtrung01',
+                          stream_key: replayStreamKey || currentStreamKey || '',
                           title: replayTitle.trim(),
                           replay_url: replayUrl.trim()
                         })

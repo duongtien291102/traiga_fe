@@ -126,7 +126,8 @@ export default function UserProfilePage({
 
   // Sao chép Stream Key
   const handleCopyStreamKey = () => {
-    const keyToCopy = myStreamKey || currentUser.username;
+    const keyToCopy = myStreamKey;
+    if (!keyToCopy) return;
     navigator.clipboard.writeText(keyToCopy);
     setCopiedKey(true);
     setTimeout(() => setCopiedKey(false), 2000);
@@ -207,7 +208,7 @@ export default function UserProfilePage({
       ? 'Chủ kênh / Streamer'
       : 'Thành viên';
 
-  const rawKey = myStreamKey || currentUser.username;
+  const rawKey = myStreamKey || '';
 
   return (
     <div className="w-full max-w-4xl mx-auto py-6 px-4 space-y-6">
@@ -376,7 +377,7 @@ export default function UserProfilePage({
                   Mã Stream Key
                 </h2>
                 <p className="text-[11px] text-zinc-500 mt-0.5">
-                  Dùng để phát trực tiếp từ OBS Studio, vMix hoặc thiết bị quay
+                  Mã bí mật dùng để phát trực tiếp. Không chia sẻ mã này cho người khác.
                 </p>
               </div>
 
@@ -394,6 +395,7 @@ export default function UserProfilePage({
                 <button
                   type="button"
                   onClick={handleCopyStreamKey}
+                  disabled={!rawKey}
                   className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
                 >
                   {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -403,7 +405,7 @@ export default function UserProfilePage({
             </div>
 
             <div className="font-mono text-xs text-zinc-300 bg-zinc-950 px-3.5 py-2.5 rounded-xl border border-white/10 select-all tracking-wider">
-              {showStreamKey ? rawKey : '••••••••••••••••••••'}
+              {showStreamKey ? (rawKey || 'Chưa được cấp mã') : '••••••••••••••••••••'}
             </div>
           </div>
         )}

@@ -1,5 +1,13 @@
 # React + Vite
 
+## Production DVR replay
+
+The `/record` rewrite in `vercel.json` currently uses the public SRS HTTP endpoint
+(`http://103.82.26.60:8080/record/$1`). If the SRS host changes, update this rewrite.
+The backend separately reads completed recordings using its `SRS_HTTP_URL` environment
+variable; its deployment workflow defaults to the same endpoint and can be overridden
+with a GitHub Actions variable.
+
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
 Currently, two official plugins are available:

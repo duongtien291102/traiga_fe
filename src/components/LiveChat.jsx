@@ -20,7 +20,7 @@ import { mergeChatMessages } from '../chatUtils';
 
 const QUICK_EMOJIS = ['❤️', '🔥', '👏', '🎉', '💯', '😂', '⭐', '🚀'];
 
-export default function LiveChat({ streamKey = 'thanhtrung01', user = null, onOpenAuth = null }) {
+export default function LiveChat({ streamKey = '', user = null, onOpenAuth = null }) {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [viewerCount, setViewerCount] = useState(1);
