@@ -2042,6 +2042,7 @@ export default function App() {
             ) : null}
 
             {/* ==================== CÁC CƠ SỞ TRẠI GÀ THÀNH TRUNG ==================== */}
+            {/* Tạm ẩn danh sách cơ sở trại gà theo yêu cầu.
             <section id="farms" className="space-y-3">
               <h2 className="text-lg font-bold text-white">
                 Các Cơ Sở Trại Gà Thành Trung
@@ -2061,6 +2062,7 @@ export default function App() {
                 {displayKeys.length === 0 && <p className="col-span-full text-sm text-gray-400">Chưa có cơ sở nào được cấu hình.</p>}
               </div>
             </section>
+            */}
 
           </div>
         )}
