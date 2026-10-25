@@ -649,7 +649,11 @@ export default function App() {
             return (
               <div
                 key={repId}
-                onClick={() => setSelectedReplay(rep)}
+                onClick={() => {
+                  setSelectedReplay(rep);
+                  setActiveNavTab('replays');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
                 className="group rounded-2xl overflow-hidden bg-[#14151b] border border-white/10 hover:border-amber-500/50 transition-all cursor-pointer flex flex-col justify-between shadow-lg"
               >
                 <div className="relative h-40 bg-gradient-to-br from-slate-900 via-[#1a1c26] to-rose-950/60 flex items-center justify-center overflow-hidden">
@@ -715,6 +719,216 @@ export default function App() {
           </div>
         )}
       </section>
+    );
+  };
+
+  // Màn hình xem lại Livestream chuyên dụng (Cinema Mode / Trang phát riêng biệt)
+  const renderDedicatedReplayScreen = () => {
+    if (!selectedReplay) return null;
+    const isDrive = selectedReplay.replay_url?.includes('drive.google.com');
+    const startedDate = selectedReplay.started_at
+      ? new Date(selectedReplay.started_at).toLocaleString('vi-VN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        })
+      : 'Gần đây';
+    const durationMin = selectedReplay.duration_seconds > 0 ? Math.max(1, Math.round(selectedReplay.duration_seconds / 60)) : null;
+    const otherReplays = replays.filter(
+      (r) => String(r.id || r._id || r.replay_url) !== String(selectedReplay.id || selectedReplay._id || selectedReplay.replay_url)
+    );
+
+    return (
+      <div className="space-y-6">
+        {/* Thanh điều hướng quay lại & Breadcrumb */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/10">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              onClick={() => {
+                setSelectedReplay(null);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-bold transition cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Tất Cả Video Xem Lại</span>
+            </button>
+            <span className="text-gray-500 hidden sm:inline">/</span>
+            <span className="text-xs sm:text-sm text-gray-300 font-semibold truncate max-w-[200px] sm:max-w-md hidden sm:inline">
+              {selectedReplay.title || `Phiên Live: ${selectedReplay.stream_key}`}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setActiveNavTab('live');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600/20 border border-rose-500/40 text-rose-300 hover:bg-rose-600 hover:text-white text-xs font-bold transition cursor-pointer"
+            >
+              <Radio className="w-3.5 h-3.5" />
+              <span>Vào Xem Trực Tiếp</span>
+            </button>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href);
+                alert('Đã sao chép liên kết video xem lại!');
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/15 text-gray-300 text-xs font-bold transition cursor-pointer"
+              title="Sao chép liên kết"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Chia Sẻ</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Bố cục Cinema: Trình phát lớn & Danh sách phát lại khác */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Cột chính: Video Player & Thông tin chi tiết */}
+          <div className="lg:col-span-8 space-y-4">
+            {/* Khung video Player 16:9 sắc nét chuẩn Cinema */}
+            <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-black border border-white/15 shadow-2xl shadow-black/80">
+              {isDrive ? (
+                <iframe
+                  src={selectedReplay.replay_url}
+                  title={selectedReplay.title || 'Replay Video'}
+                  className="w-full h-full border-0"
+                  allow="autoplay; fullscreen"
+                  allowFullScreen
+                />
+              ) : (
+                <video
+                  src={selectedReplay.replay_url}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-contain"
+                />
+              )}
+            </div>
+
+            {/* Thông tin phiên xem lại */}
+            <div className="rounded-2xl bg-[#14151b] border border-white/10 p-4 sm:p-5 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-2.5 py-1 rounded-md bg-rose-600 text-[11px] font-black uppercase tracking-wider text-white flex items-center gap-1">
+                  <Play className="w-3 h-3 fill-white" /> XEM LẠI PHIÊN LIVE
+                </span>
+                <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold ${
+                  selectedReplay.record_status === 'uploaded_drive'
+                    ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300'
+                    : 'bg-amber-500/15 border border-amber-500/30 text-amber-300'
+                }`}>
+                  {selectedReplay.record_status === 'uploaded_drive' ? '☁️ Google Drive (Lưu lâu dài)' : '📼 Bản ghi tạm DVR (7 ngày)'}
+                </span>
+                {durationMin && (
+                  <span className="px-2.5 py-1 rounded-md bg-white/10 text-[11px] font-mono text-gray-300">
+                    ⏱️ {durationMin} phút
+                  </span>
+                )}
+              </div>
+
+              <h1 className="text-lg sm:text-2xl font-black text-white leading-tight">
+                {selectedReplay.title || `Phiên Live: ${selectedReplay.stream_key}`}
+              </h1>
+
+              <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-gray-400 pt-1 border-t border-white/5">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center font-bold text-white text-xs">
+                    {(selectedReplay.streamer || 'T')[0]?.toUpperCase()}
+                  </div>
+                  <span className="font-bold text-gray-200">{selectedReplay.streamer || 'Quản trị viên / Chủ Trại'}</span>
+                </div>
+                <span>•</span>
+                <span>📅 Phát lúc: <strong className="text-gray-300">{startedDate}</strong></span>
+                {selectedReplay.stream_key && (
+                  <>
+                    <span>•</span>
+                    <span className="font-mono text-[11px] text-gray-500">Luồng: {selectedReplay.stream_key}</span>
+                  </>
+                )}
+              </div>
+
+              <p className="text-xs sm:text-sm text-gray-300/80 leading-relaxed pt-2">
+                Video được tự động lưu trữ và tối ưu hóa cho đường truyền ổn định. Bạn có thể xem lại toàn bộ các diễn biến xổ gà, báo giá và tương tác của phiên live này.
+              </p>
+
+              {(currentUser?.role === 'admin' || currentUser?.role === 'systemadmin') && selectedReplay.record_status !== 'uploaded_drive' && (
+                <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs text-amber-400">Video này đang lưu tạm trên VPS (7 ngày).</span>
+                  <button
+                    type="button"
+                    onClick={() => archiveReplay(selectedReplay)}
+                    disabled={archivingReplayId === (selectedReplay.id || selectedReplay._id || selectedReplay.replay_url)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-300 hover:bg-amber-500/20 cursor-pointer"
+                  >
+                    <Archive className="h-4 w-4" />
+                    Lưu trữ lên Google Drive ngay
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Cột phụ: Danh sách các phiên live khác (Playlist) */}
+          <div className="lg:col-span-4 space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-sm font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
+                <span>Các Video Khác</span>
+                <span className="text-xs text-gray-400 font-normal">({otherReplays.length})</span>
+              </h3>
+            </div>
+
+            <div className="space-y-2.5 max-h-[650px] overflow-y-auto pr-1">
+              {otherReplays.length > 0 ? (
+                otherReplays.map((rep) => {
+                  const repId = String(rep.id || rep._id || rep.replay_url);
+                  const dStr = rep.started_at ? new Date(rep.started_at).toLocaleDateString('vi-VN') : 'Mới đây';
+                  return (
+                    <div
+                      key={repId}
+                      onClick={() => {
+                        setSelectedReplay(rep);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="group flex gap-3 p-2.5 rounded-xl bg-[#14151b] border border-white/10 hover:border-amber-500/50 hover:bg-white/5 transition cursor-pointer"
+                    >
+                      <div className="relative w-28 h-18 rounded-lg overflow-hidden shrink-0 bg-slate-900">
+                        <img
+                          src="/img/rooster_dongtao.jpg"
+                          alt={rep.title}
+                          className="w-full h-full object-cover opacity-60 group-hover:scale-105 group-hover:opacity-85 transition"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-7 h-7 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow">
+                            <Play className="w-3.5 h-3.5 fill-white ml-0.5" />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                        <h4 className="text-xs font-bold text-white group-hover:text-amber-300 line-clamp-2 transition leading-snug">
+                          {rep.title || `Phiên Live: ${rep.stream_key}`}
+                        </h4>
+                        <div className="flex items-center justify-between text-[11px] text-gray-400">
+                          <span className="truncate">{rep.streamer || 'Chủ Trại'}</span>
+                          <span>{dStr}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="rounded-xl border border-white/10 bg-[#14151b] p-6 text-center text-xs text-gray-400">
+                  Không còn video xem lại nào khác.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     );
   };
 
@@ -928,6 +1142,7 @@ export default function App() {
               <button
                 onClick={() => {
                   setSelectedMarketChicken(null);
+                  setSelectedReplay(null);
                   setActiveNavTab('replays');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
@@ -1119,6 +1334,7 @@ export default function App() {
         <button
           onClick={() => {
             setSelectedMarketChicken(null);
+            setSelectedReplay(null);
             setActiveNavTab('replays');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
@@ -1887,7 +2103,7 @@ export default function App() {
 
         {activeNavTab === 'replays' && (
           <div className="space-y-8">
-            {renderReplaysSection()}
+            {selectedReplay ? renderDedicatedReplayScreen() : renderReplaysSection()}
           </div>
         )}
 
@@ -2242,57 +2458,7 @@ export default function App() {
         currentStreamKey={streamKey}
       />
 
-      {/* ==================== MODAL XEM LẠI LIVESTREAM (GOOGLE DRIVE / MP4) ==================== */}
-      {selectedReplay && (
-        <div
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6"
-          onClick={() => setSelectedReplay(null)}
-        >
-          <div
-            className="bg-[#14151b] border border-white/15 rounded-2xl max-w-4xl w-full overflow-hidden shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-4 py-3.5 border-b border-white/10 flex items-center justify-between gap-3">
-              <div>
-                <h3 className="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded bg-rose-600 text-[10px] uppercase tracking-wider">Xem Lại</span>
-                  <span>{selectedReplay.title || `Phiên Live: ${selectedReplay.stream_key}`}</span>
-                </h3>
-                <p className="text-[11px] text-gray-400 mt-0.5">
-                  🎙️ {selectedReplay.streamer || 'Chủ Trại'} • Phát lúc:{' '}
-                  {selectedReplay.started_at ? new Date(selectedReplay.started_at).toLocaleString('vi-VN') : 'Mới đây'}
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedReplay(null)}
-                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold cursor-pointer"
-              >
-                Đóng ✕
-              </button>
-            </div>
 
-            <div className="relative aspect-video w-full bg-black">
-              {selectedReplay.replay_url?.includes('drive.google.com') ? (
-                <iframe
-                  src={selectedReplay.replay_url}
-                  title={selectedReplay.title || 'Replay Video'}
-                  className="w-full h-full border-0"
-                  allow="autoplay; fullscreen"
-                  allowFullScreen
-                />
-              ) : (
-                <video
-                  src={selectedReplay.replay_url}
-                  controls
-                  autoPlay
-                  playsInline
-                  className="w-full h-full object-contain"
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ==================== MARKETPLACE MODALS ==================== */}
       <PostChickenModal
