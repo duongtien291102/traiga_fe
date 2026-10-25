@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import LivePlayer from './components/LivePlayer';
+import ReplayPlayer from './components/ReplayPlayer';
 import LiveChat from './components/LiveChat';
 import AuthModal from './components/AuthModal';
 import AdminPanel from './components/AdminPanel';
@@ -106,32 +107,17 @@ export default function App() {
   const [oddsVotes, setOddsVotes] = useState({ red: 18, blue: 14, userVoted: null });
   const [isCopiedBank, setIsCopiedBank] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [themeMode, setThemeMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('traiga_theme');
-        if (saved === 'light' || saved === 'dark') {
-          return saved;
-        }
-      } catch (e) {}
-    }
-    return 'dark'; // Dark Mode là mặc định theo thiết kế
-  });
+  const [themeMode] = useState('dark'); // Mặc định luôn là chế độ Tối (Dark Mode)
 
   useEffect(() => {
     if (typeof document !== 'undefined') {
-      if (themeMode === 'light') {
-        document.documentElement.classList.add('light-mode');
-        document.documentElement.classList.remove('dark');
-      } else {
-        document.documentElement.classList.remove('light-mode');
-        document.documentElement.classList.add('dark');
-      }
+      document.documentElement.classList.remove('light-mode');
+      document.documentElement.classList.add('dark');
       try {
-        localStorage.setItem('traiga_theme', themeMode);
+        localStorage.setItem('traiga_theme', 'dark');
       } catch (e) {}
     }
-  }, [themeMode]);
+  }, []);
 
   const toggleThemeMode = () => {
     setThemeMode((prev) => (prev === 'dark' ? 'light' : 'dark'));
@@ -1021,23 +1007,21 @@ export default function App() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Cột chính: Video Player & Thông tin chi tiết */}
           <div className="lg:col-span-8 space-y-4">
-            {/* Khung video Player 16:9 sắc nét chuẩn Cinema */}
-            <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-black border border-white/15 shadow-2xl shadow-black/80">
+            {/* Khung video Player 16:9 chuẩn JWPlayer như trieugadon.com */}
+            <div className="relative aspect-video w-full rounded-none overflow-hidden bg-black">
               {isDrive ? (
                 <iframe
                   src={selectedReplay.replay_url}
                   title={selectedReplay.title || 'Replay Video'}
-                  className="w-full h-full border-0"
+                  className="w-full h-full border border-white/80"
                   allow="autoplay; fullscreen"
                   allowFullScreen
                 />
               ) : (
-                <video
+                <ReplayPlayer
                   src={selectedReplay.replay_url}
-                  controls
-                  autoPlay
-                  playsInline
-                  className="w-full h-full object-contain"
+                  startedAt={selectedReplay.started_at}
+                  autoPlay={true}
                 />
               )}
             </div>
@@ -1429,24 +1413,7 @@ export default function App() {
             )}
             */}
 
-            {/* Light / Dark Mode Toggle Button */}
-            <button
-              onClick={toggleThemeMode}
-              title={themeMode === 'dark' ? 'Chuyển sang giao diện Sáng (Light Mode)' : 'Chuyển sang giao diện Tối (Dark Mode)'}
-              className="p-1.5 sm:px-2.5 sm:py-2 text-gray-300 hover:text-amber-400 hover:bg-white/5 rounded-lg border border-white/10 transition-colors flex items-center gap-1.5 cursor-pointer shrink-0"
-            >
-              {themeMode === 'dark' ? (
-                <>
-                  <Sun className="w-4 h-4 text-amber-400" />
-                  <span className="hidden xl:inline text-xs font-semibold">Sáng</span>
-                </>
-              ) : (
-                <>
-                  <Moon className="w-4 h-4 text-slate-700" />
-                  <span className="hidden xl:inline text-xs font-semibold">Tối</span>
-                </>
-              )}
-            </button>
+{/* Nút chuyển đổi Sáng / Tối đã được ẩn, mặc định giữ cố định chế độ Tối theo yêu cầu */}
 
             {/* User authenticated actions */}
             {currentUser ? (
@@ -2124,7 +2091,7 @@ export default function App() {
                 <div className="lg:col-span-8 flex flex-col gap-3">
 
                   {/* VIDEO PLAYER COMPONENT (HLS Stream) */}
-                  <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-[#13141b] shadow-2xl">
+                  <div className="relative rounded-none overflow-hidden bg-[#13141b]">
                     <div className="bg-black">
                       <LivePlayer streamKey={streamKey} />
                     </div>

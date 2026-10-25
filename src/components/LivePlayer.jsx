@@ -2,27 +2,34 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Hls from 'hls.js';
 import { 
   Radio, 
-  AlertCircle, 
-  RefreshCw, 
-  Volume2, 
   VolumeX, 
-  Maximize, 
-  Play, 
-  Pause,
-  Wifi, 
-  WifiOff, 
-  ShieldCheck,
-  Tv
+  Play
 } from 'lucide-react';
 import { getHlsBaseUrl } from '../config';
 
+function formatPlayerTime(seconds, forceHours = false) {
+  if (!Number.isFinite(seconds) || seconds < 0) return '00:00';
+  const totalSec = Math.floor(seconds);
+  const hrs = Math.floor(totalSec / 3600);
+  const mins = Math.floor((totalSec % 3600) / 60);
+  const secs = totalSec % 60;
+
+  if (hrs > 0 || forceHours) {
+    return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
 /**
  * Component LivePlayer phát luồng HLS trực tiếp từ Nginx-RTMP Media Server
+ * Giao diện điều khiển mô phỏng chuẩn JWPlayer của trieugadon.com
  * @param {string} streamKey - Mã Stream Key (OBS gửi lên)
  */
 export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
   const videoRef = useRef(null);
+  const waitingVideoRef = useRef(null);
   const containerRef = useRef(null);
+  const seekBarRef = useRef(null);
   const hlsRef = useRef(null);
 
   // Trạng thái phát sóng
@@ -30,18 +37,33 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [isMuted, setIsMuted] = useState(true);
   const [volume, setVolume] = useState(1);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(13027); // 3:37:07 mặc định hiển thị chuẩn JWPlayer khi live
+
+  // Ngày hiện tại cho bảng tỷ số cặp đấu
+  const todayStr = React.useMemo(() => {
+    const now = new Date();
+    return `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }, []);
 
   // SRS 5 phân phối HLS tại /live/[streamKey].m3u8
   const streamUrl = `${getHlsBaseUrl()}/live/${encodeURIComponent(streamKey.trim())}.m3u8`;
+
+  // Hàm lấy thẻ video đang hoạt động (luồng live hoặc video chờ)
+  const getActiveVideo = () => {
+    if (streamStatus === 'playing' && videoRef.current) {
+      return videoRef.current;
+    }
+    return waitingVideoRef.current || videoRef.current;
+  };
 
   // Hàm khởi tạo và tải luồng HLS
   const loadStream = useCallback(async () => {
     const video = videoRef.current;
     if (!video || !streamKey) return;
 
-    // 1. Thăm dò trước qua SRS HTTP API để kiểm tra luồng active mà không gây lỗi 404 đỏ trong DevTools console
     let isSrsChecked = false;
     try {
       const srsRes = await fetch('/srs-api/v1/streams/', { cache: 'no-store' });
@@ -58,146 +80,98 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
         }
       }
     } catch {
-      // Bỏ qua nếu endpoint /srs-api không khả dụng
+      // Bỏ qua nếu không gọi được SRS API
     }
 
-    const loadUrl = `${streamUrl}?_t=${Date.now()}`;
-
-    // 2. Nếu chưa kiểm tra được qua SRS API, thăm dò file m3u8
     if (!isSrsChecked) {
       try {
-        const checkRes = await fetch(loadUrl, { method: 'GET', cache: 'no-store' });
+        const checkRes = await fetch(streamUrl, { method: 'HEAD', cache: 'no-store' });
         if (!checkRes.ok) {
           setStreamStatus('offline');
           return;
         }
-      } catch (e) {
+      } catch {
         setStreamStatus('offline');
         return;
       }
     }
 
-    setErrorMessage('');
-
-    // Dọn dẹp instance HLS cũ nếu đang có
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
     }
 
-    // Hàm gọi play() an toàn chống AbortError
-    const safePlay = async () => {
+    setStreamStatus('connecting');
+    setErrorMessage('');
+
+    const safePlay = () => {
       if (!video) return;
-      try {
-        await video.play();
-      } catch (err) {
-        if (err.name === 'AbortError') {
-          // Bị ngắt bởi thao tác tải mới hoặc pause, hành vi bình thường của trình duyệt
-          return;
+      video.play().then(() => {
+        setIsPlaying(true);
+      }).catch(() => {
+        if (!video.muted) {
+          video.muted = true;
+          setIsMuted(true);
+          video.play().then(() => {
+            setIsPlaying(true);
+          }).catch(() => {
+            setIsPlaying(false);
+          });
+        } else {
+          setIsPlaying(false);
         }
-        if (err.name === 'NotAllowedError') {
-          // Trình duyệt chặn autoplay có tiếng -> chuyển sang muted và phát tiếp
-          console.warn('Autoplay có tiếng bị chặn, thử phát ở chế độ tắt tiếng (muted):', err);
-          try {
-            video.muted = true;
-            setIsMuted(true);
-            await video.play();
-          } catch (muteErr) {
-            if (muteErr.name !== 'AbortError') {
-              console.warn('Không thể tự động phát:', muteErr);
-            }
-          }
-          return;
-        }
-        console.warn('Lỗi khi phát video:', err);
-      }
+      });
     };
 
-    // Trường hợp 1: Trình duyệt hỗ trợ MediaSource Extensions (MSE) và hls.js
     if (Hls.isSupported()) {
+      let networkRecoveryCount = 0;
       let mediaRecoveryCount = 0;
-
-      // Cấu hình mức độ trễ dựa trên thiết lập kênh (Siêu nhanh / Cân bằng / Ổn định cao)
-      const delayMode = (typeof window !== 'undefined' && localStorage.getItem('traiga_stream_delay_mode')) || 'normal';
-      const syncCount = delayMode === 'low' ? 3 : delayMode === 'safe' ? 5 : 4;
-      const maxLatency = delayMode === 'low' ? 6 : delayMode === 'safe' ? 12 : 8;
-      const bufferLen = delayMode === 'low' ? 15 : delayMode === 'safe' ? 30 : 20;
 
       const hls = new Hls({
         enableWorker: true,
-        // QUAN TRỌNG: Tắt lowLatencyMode vì WebRTC-to-HLS có độ lệch PTS/DTS nhỏ,
-        // lowLatencyMode sẽ gây ra bufferAppendError và giật/đứng hình trên Chrome
         lowLatencyMode: false,
-        backBufferLength: 30,
-        maxBufferLength: bufferLen,
+        liveSyncDurationCount: 4,
+        liveMaxLatencyDurationCount: 10,
+        liveBackBufferLength: 30,
+        maxBufferLength: 30,
         maxMaxBufferLength: 60,
-        liveSyncDurationCount: syncCount,
-        liveMaxLatencyDurationCount: maxLatency,
-        liveDurationInfinity: true,
-        highBufferWatchdogPeriod: 2,
-        nudgeOffset: 0.1,
-        nudgeMaxRetry: 5,
         maxBufferHole: 0.5,
-        manifestLoadingMaxRetry: 3,
-        manifestLoadingRetryDelay: 1000,
+        nudgeOffset: 0.2,
+        nudgeMaxRetry: 5,
         manifestLoadingTimeOut: 10000,
-        fragLoadingMaxRetry: 5,
-        fragLoadingRetryDelay: 1000,
+        manifestLoadingMaxRetry: 6,
+        levelLoadingTimeOut: 10000,
+        levelLoadingMaxRetry: 6,
         fragLoadingTimeOut: 15000,
-        xhrSetup: (xhr, url) => {
-          // Ngăn ngừa trình duyệt cache file playlist m3u8
-          if (url.includes('.m3u8')) {
-            xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-            xhr.setRequestHeader('Pragma', 'no-cache');
-          }
-        }
+        fragLoadingMaxRetry: 6
       });
 
       hlsRef.current = hls;
-
-      // 1. Nạp URL luồng HLS
-      hls.loadSource(loadUrl);
-
-      // 2. Gắn kết nối vào thẻ HTML5 video
+      hls.loadSource(streamUrl);
       hls.attachMedia(video);
 
-      // Sự kiện: Phân tích thành công playlist m3u8
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        networkRecoveryCount = 0;
         setStreamStatus('playing');
         safePlay();
       });
 
-      // Sự kiện: Bắt đầu phát các phân đoạn video
-      hls.on(Hls.Events.FRAG_LOADED, () => {
-        setStreamStatus('playing');
-      });
-
-      // Xử lý các sự kiện lỗi từ luồng
       hls.on(Hls.Events.ERROR, (event, data) => {
-        // Lưu ý quan trọng: Với các lỗi không nghiêm trọng (fatal === false) như
-        // bufferStalledError, bufferSeekOverHole, fragLoadError (lỡ phân đoạn cũ):
-        // Hls.js tự động xử lý đệm thêm hoặc bỏ qua lỗ hổng. TUYỆT ĐỐI KHÔNG gọi
-        // hls.recoverMediaError() ở đây vì sẽ làm hủy kết nối media và gây loop giật lag.
-        if (!data.fatal) {
-          return;
-        }
+        if (!data.fatal) return;
 
-        console.warn('[Hls Fatal Error Event]:', data);
-
-        // Xử lý các lỗi nghiêm trọng (fatal: true)
         switch (data.type) {
           case Hls.ErrorTypes.NETWORK_ERROR:
-            // Nếu file m3u8 không tồn tại (chưa phát sóng, 404, hoặc 502 khi SRS chưa có luồng)
-            console.warn('Lỗi mạng HLS fatal (Network Error)...');
-            if (data.details === 'manifestLoadError' || data.response?.code === 404 || data.response?.code === 502) {
+            if (
+              data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR ||
+              data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT ||
+              data.details === Hls.ErrorDetails.LEVEL_LOAD_ERROR ||
+              networkRecoveryCount >= 3
+            ) {
               setStreamStatus('offline');
-              setErrorMessage('Chủ trại chưa lên sóng (Đang chờ luồng phát)...');
-              setTimeout(() => {
-                if (hlsRef.current) {
-                  hlsRef.current.startLoad();
-                }
-              }, 4000);
+              setErrorMessage('Phòng Live hiện đang tạm nghỉ hoặc vừa kết thúc.');
+              hls.destroy();
             } else {
+              networkRecoveryCount++;
               hls.startLoad();
             }
             break;
@@ -205,10 +179,8 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
           case Hls.ErrorTypes.MEDIA_ERROR:
             if (mediaRecoveryCount <= 1) {
               mediaRecoveryCount++;
-              console.log(`[HLS] Thử phục hồi Media lần ${mediaRecoveryCount}...`);
               hls.recoverMediaError();
             } else {
-              console.warn('[HLS] Lỗi Media nghiêm trọng, khởi tạo lại luồng...');
               mediaRecoveryCount = 0;
               setRetryCount((prev) => prev + 1);
             }
@@ -221,9 +193,7 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
             break;
         }
       });
-    } 
-    // Trường hợp 2: Trình duyệt hỗ trợ HLS nguyên bản (Safari trên iOS/macOS)
-    else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = `${streamUrl}?_t=${Date.now()}`;
       video.addEventListener('loadedmetadata', () => {
         setStreamStatus('playing');
@@ -239,11 +209,8 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
     }
   }, [streamUrl, streamKey]);
 
-  // Kích hoạt khi streamKey hoặc retryCount thay đổi
   useEffect(() => {
     loadStream();
-
-    // Dọn dẹp khi unmount hoặc đổi kênh
     return () => {
       if (hlsRef.current) {
         hlsRef.current.destroy();
@@ -252,71 +219,114 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
     };
   }, [loadStream, retryCount]);
 
-  // Tự động thử kết nối lại mỗi 6 giây nếu đang offline
   useEffect(() => {
     if (streamStatus === 'offline') {
       const timer = setTimeout(() => {
-        console.log('Đang tự động thăm dò luồng trực tiếp...');
         loadStream();
       }, 6000);
       return () => clearTimeout(timer);
     }
   }, [streamStatus, loadStream]);
 
-  // Bật/tắt tiếng
-  const toggleMute = () => {
-    if (!videoRef.current) return;
-    const nextMuted = !videoRef.current.muted;
-    videoRef.current.muted = nextMuted;
+  const toggleMute = (e) => {
+    if (e) e.stopPropagation();
+    const activeVid = getActiveVideo();
+    if (!activeVid) return;
+    const nextMuted = !activeVid.muted;
+    activeVid.muted = nextMuted;
     if (!nextMuted) {
-      videoRef.current.volume = volume > 0 ? volume : 1;
-      setVolume(videoRef.current.volume);
+      activeVid.volume = volume > 0 ? volume : 1;
+      setVolume(activeVid.volume);
     }
     setIsMuted(nextMuted);
   };
 
-  // Xử lý khi bấm trực tiếp vào màn hình video
-  const handleVideoClick = () => {
-    if (!videoRef.current) return;
-    // Nếu video đang tắt tiếng (Muted do autoplay), ưu tiên BẬT TIẾNG ngay
-    if (isMuted || videoRef.current.muted) {
-      videoRef.current.muted = false;
-      videoRef.current.volume = volume > 0 ? volume : 1;
-      setIsMuted(false);
-      videoRef.current.play().catch(() => {});
-      return;
-    }
-    // Nếu đã có tiếng thì chuyển đổi Tạm dừng / Phát tiếp
-    if (isPlaying) {
-      videoRef.current.pause();
+  const togglePlay = (e) => {
+    if (e) e.stopPropagation();
+    const activeVid = getActiveVideo();
+    if (!activeVid) return;
+    if (activeVid.paused) {
+      activeVid.play().then(() => setIsPlaying(true)).catch(() => {});
     } else {
-      videoRef.current.play().catch(() => {});
+      activeVid.pause();
+      setIsPlaying(false);
     }
   };
 
-  // Xem toàn màn hình (Hỗ trợ cả iOS Safari webkitEnterFullscreen)
-  const toggleFullScreen = () => {
-    const video = videoRef.current;
+  const rewind10Seconds = (e) => {
+    if (e) e.stopPropagation();
+    const activeVid = getActiveVideo();
+    if (!activeVid) return;
+    activeVid.currentTime = Math.max(0, (activeVid.currentTime || 0) - 10);
+    setCurrentTime(activeVid.currentTime || 0);
+  };
+
+  const handleSeek = (e) => {
+    if (e) e.stopPropagation();
+    const activeVid = getActiveVideo();
+    const bar = seekBarRef.current;
+    if (!activeVid || !bar || !duration) return;
+    const rect = bar.getBoundingClientRect();
+    const clickX = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+    const ratio = clickX / rect.width;
+    const targetTime = ratio * duration;
+    if (Number.isFinite(activeVid.duration) && activeVid.duration > 0) {
+      activeVid.currentTime = ratio * activeVid.duration;
+    }
+    setCurrentTime(targetTime);
+  };
+
+  const togglePiP = async (e) => {
+    if (e) e.stopPropagation();
+    const activeVid = getActiveVideo();
+    if (!activeVid) return;
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else if (document.pictureInPictureEnabled && activeVid.requestPictureInPicture) {
+        await activeVid.requestPictureInPicture();
+      }
+    } catch {}
+  };
+
+  const handleVideoClick = () => {
+    const activeVid = getActiveVideo();
+    if (!activeVid) return;
+    if (isMuted || activeVid.muted) {
+      activeVid.muted = false;
+      activeVid.volume = volume > 0 ? volume : 1;
+      setIsMuted(false);
+      activeVid.play().catch(() => {});
+      return;
+    }
+    togglePlay();
+  };
+
+  const toggleFullScreen = (e) => {
+    if (e) e.stopPropagation();
+    const activeVid = getActiveVideo();
     const container = containerRef.current;
     if (!container) return;
 
     if (document.fullscreenElement) {
-      document.exitFullscreen().catch((err) => console.error(err));
+      document.exitFullscreen().catch(() => {});
     } else if (container.requestFullscreen) {
       container.requestFullscreen().catch(() => {
-        if (video && video.webkitEnterFullscreen) {
-          video.webkitEnterFullscreen();
+        if (activeVid && activeVid.webkitEnterFullscreen) {
+          activeVid.webkitEnterFullscreen();
         }
       });
-    } else if (video && video.webkitEnterFullscreen) {
-      video.webkitEnterFullscreen();
+    } else if (activeVid && activeVid.webkitEnterFullscreen) {
+      activeVid.webkitEnterFullscreen();
     }
   };
+
+  const progressPercent = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
 
   return (
     <div 
       ref={containerRef}
-      className="relative w-full aspect-video bg-slate-950 rounded-2xl overflow-hidden shadow-2xl border border-slate-800/80 group keep-dark"
+      className="relative w-full aspect-video bg-black rounded-none overflow-hidden border border-white/80 group keep-dark select-none"
     >
       {/* Thẻ Video HTML5 chuẩn */}
       <video
@@ -329,6 +339,11 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
         onClick={handleVideoClick}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
+        onTimeUpdate={() => {
+          if (streamStatus === 'playing' && videoRef.current) {
+            setCurrentTime(videoRef.current.currentTime || 0);
+          }
+        }}
         onVolumeChange={() => {
           if (videoRef.current) {
             setIsMuted(videoRef.current.muted || videoRef.current.volume === 0);
@@ -356,7 +371,7 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
               });
             }
           }}
-          className="absolute inset-0 z-10 m-auto w-20 h-20 rounded-full bg-rose-600/90 hover:bg-rose-500 text-white flex items-center justify-center shadow-2xl backdrop-blur-md transition-all transform hover:scale-110 active:scale-95 cursor-pointer border border-rose-400/30"
+          className="absolute inset-0 z-30 m-auto w-20 h-20 rounded-full bg-rose-600/90 hover:bg-rose-500 text-white flex items-center justify-center transition-all transform hover:scale-110 active:scale-95 cursor-pointer border border-rose-400/30"
           title="Bấm để phát trực tiếp có âm thanh"
         >
           <Play className="w-9 h-9 fill-white translate-x-0.5" />
@@ -365,29 +380,42 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
 
       {/* VIDEO MÀN HÌNH CHỜ KHI CHƯA LÊN SÓNG / ĐANG KẾT NỐI */}
       {streamStatus !== 'playing' && (
-        <div className="absolute inset-0 z-20 bg-black overflow-hidden">
+        <div onClick={handleVideoClick} className="absolute inset-0 z-20 bg-black overflow-hidden cursor-pointer">
           <video
+            ref={waitingVideoRef}
             src="/waiting_screen.mp4"
             poster="/waiting_poster.jpg"
             preload="auto"
             autoPlay
             loop
-            muted
+            muted={isMuted}
             playsInline
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onTimeUpdate={() => {
+              if (waitingVideoRef.current) {
+                setCurrentTime(waitingVideoRef.current.currentTime || 0);
+              }
+            }}
+            onLoadedMetadata={() => {
+              if (waitingVideoRef.current && Number.isFinite(waitingVideoRef.current.duration)) {
+                setDuration(waitingVideoRef.current.duration || 13027);
+              }
+            }}
             className="w-full h-full object-cover"
           />
         </div>
       )}
 
-      {/* THANH ĐIỀU KHIỂN & BADGE TRÊN VIDEO */}
-      <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 flex items-center gap-2 pointer-events-none">
+      {/* THANH BADGE TRẠNG THÁI TRÊN VIDEO */}
+      <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-30 flex items-center gap-2 pointer-events-none">
         {streamStatus === 'playing' ? (
-          <div className="flex items-center gap-1.5 bg-rose-600/90 text-white text-[11px] sm:text-xs font-bold uppercase tracking-wider px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full shadow-lg backdrop-blur-sm animate-pulse">
+          <div className="flex items-center gap-1.5 bg-rose-600/90 text-white text-[11px] sm:text-xs font-bold uppercase tracking-wider px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full animate-pulse">
             <Radio className="w-3.5 h-3.5 animate-pulse" />
             <span>LIVE</span>
           </div>
         ) : (
-          <div className="flex items-center gap-1.5 bg-slate-800/90 text-slate-300 text-[11px] sm:text-xs font-semibold px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full shadow-lg backdrop-blur-sm border border-slate-700">
+          <div className="flex items-center gap-1.5 bg-slate-800/90 text-slate-300 text-[11px] sm:text-xs font-semibold px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full border border-slate-700">
             <span className="w-2 h-2 rounded-full bg-slate-500" />
             <span>OFFLINE</span>
           </div>
@@ -398,85 +426,175 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
       {streamStatus === 'playing' && isMuted && (
         <button
           onClick={toggleMute}
-          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 flex items-center gap-2 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white border border-rose-300/40 text-xs font-extrabold px-3.5 py-2 rounded-full shadow-2xl backdrop-blur-md transition-all transform hover:scale-105 active:scale-95 cursor-pointer animate-pulse"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30 flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white border border-rose-300/40 text-xs font-extrabold px-3.5 py-2 rounded-full transition-all cursor-pointer animate-pulse"
         >
           <VolumeX className="w-4 h-4 text-white" />
           <span>Chạm để bật âm thanh 🔊</span>
         </button>
       )}
 
-      {/* THANH ĐIỀU KHIỂN TÙY BIẾN DƯỚI ĐÁY VIDEO */}
-      <div className="absolute bottom-0 inset-x-0 z-10 p-2.5 sm:p-4 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-between text-white">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => {
-              if (videoRef.current) {
-                if (isPlaying) videoRef.current.pause();
-                else videoRef.current.play().catch(() => {});
-              }
-            }}
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition backdrop-blur-sm text-white cursor-pointer"
-            title={isPlaying ? "Tạm dừng" : "Phát"}
-          >
-            {isPlaying ? (
-              <Pause className="w-4 h-4" />
-            ) : (
-              <Play className="w-4 h-4 fill-white" />
-            )}
-          </button>
-
-          <div className="flex items-center gap-1.5 group/vol">
-            <button
-              onClick={toggleMute}
-              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition backdrop-blur-sm text-white cursor-pointer"
-              title={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
-            >
-              {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
-            </button>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={isMuted ? 0 : volume}
-              onChange={(e) => {
-                const val = parseFloat(e.target.value);
-                setVolume(val);
-                if (videoRef.current) {
-                  videoRef.current.volume = val;
-                  const newMuted = val === 0;
-                  videoRef.current.muted = newMuted;
-                  setIsMuted(newMuted);
-                }
-              }}
-              className="w-16 sm:w-20 accent-rose-500 cursor-pointer h-1.5 bg-white/30 rounded-lg hidden xs:inline-block"
-              title={`Âm lượng: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
-            />
-            <span className="text-[11px] font-mono text-slate-300 w-8 hidden xs:inline-block">
-              {Math.round((isMuted ? 0 : volume) * 100)}%
-            </span>
+      {/* BẢNG TỶ SỐ / CHẠNG CÂN (VÀNG | Cặp | ĐỎ) GÓC PHẢI DƯỚI NHƯ TRIEUGADON */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="absolute bottom-5 right-7 z-25 bg-black/85 rounded-[6px] px-3 py-1.5 grid grid-cols-3 items-center text-center min-w-[165px] sm:min-w-[185px] pointer-events-auto"
+      >
+        <div className="pr-2.5 sm:pr-3 border-r border-white/20">
+          <div className="text-[11px] sm:text-[12px] font-extrabold text-[#c5a028] leading-tight uppercase tracking-wide">
+            VÀNG
           </div>
-
-          <span className="text-xs text-slate-300 font-mono hidden sm:inline-block">
-            {streamStatus === 'playing' ? 'Đang phát trực tiếp 1080p@60' : 'Chưa có tín hiệu'}
-          </span>
+          <div className="text-[17px] sm:text-[20px] font-extrabold text-[#c5a028] leading-tight mt-0.5">
+            266
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setRetryCount((c) => c + 1)}
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition backdrop-blur-sm text-white"
-            title="Làm mới luồng"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-          <button
-            onClick={toggleFullScreen}
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition backdrop-blur-sm text-white"
-            title="Toàn màn hình"
-          >
-            <Maximize className="w-4 h-4" />
-          </button>
+        <div className="px-2.5 sm:px-3 border-r border-white/20 flex flex-col items-center justify-center">
+          <div className="text-[10px] font-medium text-gray-400 leading-none">
+            Cặp
+          </div>
+          <div className="text-[15px] sm:text-[17px] font-extrabold text-gray-200 leading-tight my-0.5">
+            7
+          </div>
+          <div className="text-[10px] font-bold text-gray-300 leading-none">
+            {todayStr}
+          </div>
+        </div>
+
+        <div className="pl-2.5 sm:pl-3">
+          <div className="text-[11px] sm:text-[12px] font-extrabold text-[#b91c1c] leading-tight uppercase tracking-wide">
+            ĐỎ
+          </div>
+          <div className="text-[17px] sm:text-[20px] font-extrabold text-[#b91c1c] leading-tight mt-0.5">
+            262
+          </div>
+        </div>
+      </div>
+
+      {/* THANH ĐIỀU KHIỂN JWPLAYER STYLE DƯỚI ĐÁY VIDEO */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="absolute bottom-0 inset-x-0 z-30 pt-8 pb-2.5 px-4 sm:px-5 bg-gradient-to-t from-black/80 via-black/35 to-transparent text-white"
+      >
+        {/* Hàng 1: Thanh Tua (Seekbar) mảnh nằm phía trên */}
+        <div
+          ref={seekBarRef}
+          onClick={handleSeek}
+          className="w-full py-2 mb-1.5 cursor-pointer group/seek flex items-center"
+        >
+          <div className="w-full h-[2.5px] group-hover/seek:h-[4px] bg-white/40 relative transition-all">
+            <div
+              className="h-full bg-white transition-all duration-75"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Hàng 2: Các nút điều khiển chuẩn JWPlayer */}
+        <div className="flex items-center justify-between">
+          {/* Cụm bên trái: Play/Pause, Rewind 10s, Volume, Time */}
+          <div className="flex items-center gap-4 sm:gap-5">
+            {/* Nút Play / Pause */}
+            <button
+              type="button"
+              onClick={togglePlay}
+              className="text-white/90 hover:text-white transition cursor-pointer flex items-center justify-center w-5 h-5"
+              title={isPlaying ? 'Tạm dừng' : 'Phát'}
+            >
+              {isPlaying ? (
+                <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] fill-current">
+                  <rect x="6" y="4" width="4" height="16" rx="1" />
+                  <rect x="14" y="4" width="4" height="16" rx="1" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] fill-current">
+                  <path d="M7 4v16l13-8z" />
+                </svg>
+              )}
+            </button>
+
+            {/* Nút Tua Lùi 10 Giây (Rewind 10s) chuẩn JWPlayer */}
+            <button
+              type="button"
+              onClick={rewind10Seconds}
+              className="text-white/90 hover:text-white transition cursor-pointer flex items-center justify-center w-6 h-5"
+              title="Lùi 10 giây"
+            >
+              <svg viewBox="0 0 24 24" className="w-[20px] h-[20px] fill-current">
+                <path d="M11 5V2L6 6l5 4V7h5c2.2 0 4 1.8 4 4v5c0 2.2-1.8 4-4 4h-2v2h2c3.3 0 6-2.7 6-6v-5c0-3.3-2.7-6-6-6h-5z" />
+                <text x="2" y="21" fontSize="8.5" fontWeight="800" fontFamily="sans-serif" fill="currentColor">10</text>
+              </svg>
+            </button>
+
+            {/* Nút Âm Lượng & Thanh trượt */}
+            <div className="flex items-center gap-2 group/vol">
+              <button
+                type="button"
+                onClick={toggleMute}
+                className="text-white/90 hover:text-white transition cursor-pointer flex items-center justify-center w-5 h-5"
+                title={isMuted ? 'Bật âm thanh' : 'Tắt âm thanh'}
+              >
+                {isMuted || volume === 0 ? (
+                  <svg viewBox="0 0 24 24" className="w-[19px] h-[19px] fill-current">
+                    <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" className="w-[19px] h-[19px] fill-current">
+                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                  </svg>
+                )}
+              </button>
+
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={isMuted ? 0 : volume}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  setVolume(val);
+                  const activeVid = getActiveVideo();
+                  if (activeVid) {
+                    activeVid.volume = val;
+                    activeVid.muted = val === 0;
+                    setIsMuted(val === 0);
+                  }
+                }}
+                className="w-0 group-hover/vol:w-16 opacity-0 group-hover/vol:opacity-100 transition-all duration-200 accent-white h-1 bg-white/40 cursor-pointer"
+              />
+            </div>
+
+            {/* Hiển thị Thời Gian: 00:00 / 3:37:07 */}
+            <div className="text-[12px] sm:text-[13px] font-bold text-white tracking-tight font-sans select-none">
+              {formatPlayerTime(currentTime)} / {formatPlayerTime(duration || 13027)}
+            </div>
+          </div>
+
+          {/* Cụm bên phải: Picture-in-Picture & Toàn màn hình (Mũi tên chéo) */}
+          <div className="flex items-center gap-4 sm:gap-5">
+            {/* Nút Picture-in-Picture (PiP) */}
+            <button
+              type="button"
+              onClick={togglePiP}
+              className="text-white/90 hover:text-white transition cursor-pointer flex items-center justify-center w-5 h-5"
+              title="Hình trong hình (PiP)"
+            >
+              <svg viewBox="0 0 24 24" className="w-[19px] h-[19px] fill-current">
+                <path d="M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z" />
+              </svg>
+            </button>
+
+            {/* Nút Toàn màn hình (Mũi tên chéo 2 đầu chuẩn JWPlayer) */}
+            <button
+              type="button"
+              onClick={toggleFullScreen}
+              className="text-white/90 hover:text-white transition cursor-pointer flex items-center justify-center w-5 h-5"
+              title="Toàn màn hình"
+            >
+              <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] fill-current">
+                <path d="M21 3h-6v2h2.59l-4.29 4.29 1.41 1.41L19 6.41V9h2V3zM3 21h6v-2H6.41l4.29-4.29-1.41-1.41L5 17.59V15H3v6z" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>

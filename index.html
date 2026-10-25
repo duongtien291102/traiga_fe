@@ -11,16 +11,9 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <script>
       (function() {
-        try {
-          var t = localStorage.getItem('traiga_theme');
-          if (t === 'light') {
-            document.documentElement.classList.add('light-mode');
-            document.documentElement.classList.remove('dark');
-          } else {
-            document.documentElement.classList.remove('light-mode');
-            document.documentElement.classList.add('dark');
-          }
-        } catch (e) {}
+        document.documentElement.classList.remove('light-mode');
+        document.documentElement.classList.add('dark');
+        try { localStorage.setItem('traiga_theme', 'dark'); } catch(e) {}
       })();
     </script>
   </head>
