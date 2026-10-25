@@ -11,8 +11,6 @@ import {
   AlertTriangle, 
   Radio, 
   Activity, 
-  Copy, 
-  Check,
   Bot,
   Sparkles,
   MessageSquare,
@@ -21,8 +19,6 @@ import {
   Clock,
   Send,
   Zap,
-  Eye,
-  EyeOff
 } from 'lucide-react';
 import { getApiBaseUrl } from '../config';
 
@@ -31,8 +27,6 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
   const [keys, setKeys] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [copiedSessionId, setCopiedSessionId] = useState(null);
-  const [revealedKeys, setRevealedKeys] = useState({});
-  const [copiedKeyId, setCopiedKeyId] = useState(null);
   const [newKey, setNewKey] = useState('');
   const [newTitle, setNewTitle] = useState('');
   const [newStreamer, setNewStreamer] = useState('');
@@ -426,32 +420,11 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
                     </thead>
                     <tbody className="divide-y divide-slate-800/60 font-mono">
                       {keys.map((k) => {
-                        const isRevealed = !!revealedKeys[k.key];
                         return (
                           <tr key={k.id || k.key} className="hover:bg-slate-800/30 transition">
                             <td className="py-3.5 font-bold text-white">
                               <div className="inline-flex items-center gap-1.5 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800 text-rose-400">
-                                <span>{isRevealed ? k.key : '••••••••'}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => setRevealedKeys((prev) => ({ ...prev, [k.key]: !prev[k.key] }))}
-                                  className="text-slate-400 hover:text-white ml-1"
-                                  title={isRevealed ? 'Ẩn Stream Key' : 'Hiện Stream Key'}
-                                >
-                                  {isRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(k.key);
-                                    setCopiedKeyId(k.key);
-                                    setTimeout(() => setCopiedKeyId(null), 2000);
-                                  }}
-                                  className="text-slate-400 hover:text-white"
-                                  title="Sao chép Stream Key"
-                                >
-                                  {copiedKeyId === k.key ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                                </button>
+                                <span aria-label="Stream Key đã được ẩn" title="Stream Key đã được ẩn">••••••••</span>
                               </div>
                             </td>
                             <td className="py-3.5 font-sans">
