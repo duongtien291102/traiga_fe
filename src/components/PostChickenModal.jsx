@@ -332,9 +332,9 @@ export default function PostChickenModal({ isOpen, onClose, onAddChicken, curren
                 value={phone}
                 onChange={(e) => {
                   setPhone(e.target.value);
-                  if (zalo === '0988.888.xxx' || !zalo) setZalo(e.target.value);
+                  if (zalo === '0909.999.999' || !zalo) setZalo(e.target.value);
                 }}
-                placeholder="0988.xxx.xxx"
+                placeholder="0909.xxx.xxx"
                 className={`w-full px-3.5 py-2.5 rounded-xl bg-[#0e0f14] border ${
                   errors.phone ? 'border-rose-500' : 'border-white/10'
                 } text-white text-xs placeholder-gray-500 focus:outline-none focus:border-amber-400 font-mono`}

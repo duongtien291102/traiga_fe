@@ -265,7 +265,7 @@ export default function ChickenMarketplace({
 
                   {currentUser ? (
                     <a
-                      href={`tel:${item.phone?.replace(/\D/g, '') || '0988888888'}`}
+                      href={`tel:${item.phone?.replace(/\D/g, '') || '0909999999'}`}
                       className="py-2.5 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Phone className="w-4 h-4" />
