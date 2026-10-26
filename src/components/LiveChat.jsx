@@ -253,8 +253,10 @@ export default function LiveChat({ streamKey = '', user = null, onOpenAuth = nul
     const syncHistory = async () => {
       if (document.visibilityState === 'hidden') return;
       try {
+        const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
         const response = await fetch(`${getApiBaseUrl()}/api/chat/history?streamKey=${encodeURIComponent(streamKey)}`, {
-          cache: 'no-store'
+          cache: 'no-store',
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
         if (!response.ok) return;
         const history = await response.json();

@@ -226,7 +226,7 @@ export default function ReplayPlayer({
         className="w-full h-full object-contain bg-black"
       />
 
-      {/* BẢNG TỶ SỐ / CHẠNG CÂN (VÀNG | Cặp | ĐỎ) GÓC PHẢI DƯỚI NHƯ TRIEUGADON */}
+      {/* Tạm ẩn bảng tỷ số / chạng cân (VÀNG | Cặp | ĐỎ).
       <div
         onClick={(e) => e.stopPropagation()}
         className="absolute bottom-5 right-7 z-10 bg-black/85 rounded-[6px] px-3 py-1.5 grid grid-cols-3 items-center text-center min-w-[170px] sm:min-w-[190px] pointer-events-auto"
@@ -261,6 +261,7 @@ export default function ReplayPlayer({
           </div>
         </div>
       </div>
+      */}
 
       {/* THANH ĐIỀU KHIỂN JWPLAYER STYLE DƯỚI ĐÁY */}
       <div

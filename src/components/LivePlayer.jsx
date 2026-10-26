@@ -158,9 +158,10 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: false,
-        // Keep viewers about five seconds behind the live edge.
-        liveSyncDuration: 5,
-        liveMaxLatencyDuration: 10,
+        // Always join the current live window, a few seconds behind its edge.
+        startPosition: -1,
+        liveSyncDuration: 3,
+        liveMaxLatencyDuration: 6,
         liveBackBufferLength: 30,
         maxBufferLength: 30,
         maxMaxBufferLength: 60,
@@ -255,6 +256,13 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
       }
       video.src = `${playbackUrl}?_t=${Date.now()}`;
       video.addEventListener('loadedmetadata', () => {
+        // Safari's native HLS can begin at the playlist's earliest segment.
+        // Move to the newest seekable point before starting playback.
+        const seekable = video.seekable;
+        if (seekable.length > 0) {
+          const liveEdge = seekable.end(seekable.length - 1);
+          video.currentTime = Math.max(seekable.start(seekable.length - 1), liveEdge - 3);
+        }
         setStreamStatus('playing');
         safePlay();
       });
@@ -517,6 +525,7 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
       </div>
 
       {/* NÚT BẬT TIẾNG NỔI BẬT DỄ THẤY KHI TRÌNH DUYỆT TỰ ĐỘNG TẮT TIẾNG */}
+      {/* Tạm ẩn nút bật tiếng nổi trên video.
       {streamStatus === 'playing' && isMuted && (
         <button
           onClick={toggleMute}
@@ -528,8 +537,9 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
           <span className="hidden sm:inline">Bật tiếng</span>
         </button>
       )}
+      */}
 
-      {/* BẢNG TỶ SỐ / CHẠNG CÂN (VÀNG | Cặp | ĐỎ) GÓC PHẢI DƯỚI NHƯ TRIEUGADON */}
+      {/* Tạm ẩn bảng tỷ số / chạng cân (VÀNG | Cặp | ĐỎ).
       <div
         onClick={(e) => e.stopPropagation()}
         className="absolute bottom-5 right-7 z-25 bg-black/85 rounded-[6px] px-3 py-1.5 grid grid-cols-3 items-center text-center min-w-[165px] sm:min-w-[185px] pointer-events-auto"
@@ -564,6 +574,7 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
           </div>
         </div>
       </div>
+      */}
 
       {/* THANH ĐIỀU KHIỂN JWPLAYER STYLE DƯỚI ĐÁY VIDEO */}
       <div
