@@ -817,6 +817,15 @@ export default function LiveStudioModal({
     };
   };
 
+  // Cấu hình Micro chuẩn phòng thu (Studio Audio): Giữ 100% âm sắc nguyên bản, không nghẹt tiếng / méo tiếng
+  const getAudioConstraints = () => ({
+    echoCancellation: true, // Vẫn chống dội loa ngoài
+    noiseSuppression: false, // TẮT lọc ồn hội nghị: Giữ trọn âm sắc tự nhiên, không bị nghẹt mũi / méo tiếng
+    autoGainControl: false, // TẮT nén âm tự động: Giữ dải động tự nhiên, không bị lúc to lúc nhỏ
+    channelCount: { ideal: 2 },
+    sampleRate: { ideal: 48000 }
+  });
+
   // Khởi tạo nguồn thu Webcam hoặc Màn hình
   const initMediaStream = async (type = sourceType, mode = facingMode) => {
     try {
@@ -846,11 +855,7 @@ export default function LiveStudioModal({
           frameRate: { ideal: 30, max: 30 }
         };
 
-        const audioConstraints = {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        };
+        const audioConstraints = getAudioConstraints();
 
         // 1. Yêu cầu quyền và thu nhận tín hiệu đồng thời cả Camera và Micro trong 1 lần duy nhất
         // (Cách này ngăn chặn việc mobile trình duyệt như Chrome/Safari chặn micro khi gọi getUserMedia 2 lần)
@@ -866,7 +871,7 @@ export default function LiveStudioModal({
           try {
             combinedStream = await navigator.mediaDevices.getUserMedia({
               video: { facingMode: { ideal: mode } },
-              audio: { echoCancellation: true, noiseSuppression: true }
+              audio: getAudioConstraints()
             });
             console.log('[MEDIA] Đã kết nối Camera linh hoạt và Micro');
           } catch (errFlex) {
@@ -881,7 +886,9 @@ export default function LiveStudioModal({
             combinedStream = new MediaStream(vStream.getVideoTracks());
             // Mở micro riêng nếu có thể
             try {
-              const aStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+              const aStream = await navigator.mediaDevices.getUserMedia({
+                audio: getAudioConstraints()
+              });
               aStream.getAudioTracks().forEach((track) => combinedStream.addTrack(track));
             } catch (aErr) {
               console.warn('[MIC] Thiết bị không hỗ trợ Micro hoặc bị từ chối:', aErr);
@@ -1017,11 +1024,7 @@ export default function LiveStudioModal({
       try {
         console.log('[MIC] Đang kích hoạt Micro...');
         const newAudioStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          }
+          audio: getAudioConstraints()
         });
         const newTrack = newAudioStream.getAudioTracks()[0];
         if (newTrack) {
@@ -1197,7 +1200,15 @@ export default function LiveStudioModal({
     const audioTrack = mediaStreamRef.current.getAudioTracks()[0];
     if (audioTrack) {
       audioTrack.enabled = isMicOn;
-      pc.addTransceiver(audioTrack, { direction: 'sendonly', streams: [mediaStreamRef.current] });
+      const audioTransceiver = pc.addTransceiver(audioTrack, { direction: 'sendonly', streams: [mediaStreamRef.current] });
+      try {
+        const aSender = audioTransceiver.sender;
+        const aParams = aSender.getParameters();
+        if (aParams.encodings && aParams.encodings.length > 0) {
+          aParams.encodings[0].maxBitrate = 128000;
+        }
+        aSender.setParameters(aParams).catch(() => {});
+      } catch (e) {}
     }
 
     if (videoTrack) {
@@ -1223,6 +1234,18 @@ export default function LiveStudioModal({
     await pc.setLocalDescription(offer);
     await waitForIceGatheringComplete(pc);
 
+    let rawSdp = pc.localDescription?.sdp || offer.sdp;
+    // Nâng cấp âm thanh Opus: Bật 128kbps stereo full-band để âm thanh trung thực như mic gốc
+    if (rawSdp && rawSdp.includes('opus/48000')) {
+      rawSdp = rawSdp.replace(
+        /a=fmtp:(\d+)(.*)/g,
+        (match, pt, rest) => {
+          if (rest.includes('maxaveragebitrate')) return match;
+          return `${match};stereo=1;sprop-stereo=1;maxaveragebitrate=128000;cbr=0`;
+        }
+      );
+    }
+
     const streamUrl = `webrtc://${SRS_VPS_HOST}/live/${encodeURIComponent(streamKey)}?publish_secret=${encodeURIComponent(publishSecret)}`;
     const rtcBase = isVercel() ? NGROK_HLS_URL : '';
     const apiUrl = new URL(`${rtcBase}/rtc/v1/publish/`, window.location.origin).toString();
@@ -1236,7 +1259,7 @@ export default function LiveStudioModal({
       body: JSON.stringify({
         api: apiUrl,
         streamurl: streamUrl,
-        sdp: pc.localDescription?.sdp || offer.sdp
+        sdp: rawSdp
       })
     });
 
@@ -1302,7 +1325,7 @@ export default function LiveStudioModal({
         try {
           console.log('[WEBRTC] Kiểm tra Micro trước khi live...');
           const aStream = await navigator.mediaDevices.getUserMedia({
-            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+            audio: getAudioConstraints()
           });
           const aTrack = aStream.getAudioTracks()[0];
           if (aTrack) {
