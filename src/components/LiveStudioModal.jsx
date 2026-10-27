@@ -1205,12 +1205,7 @@ export default function LiveStudioModal({
       }
     };
 
-    const audioTrack = mediaStreamRef.current.getAudioTracks()[0];
-    if (audioTrack) {
-      audioTrack.enabled = isMicOn;
-      pc.addTransceiver(audioTrack, { direction: 'sendonly', streams: [mediaStreamRef.current] });
-    }
-
+    // Ưu tiên đàm phán Video Transceiver trước để SRS khóa Keyframe ngay m-line 0
     if (videoTrack) {
       videoTrack.enabled = isCameraOn;
       if ('contentHint' in videoTrack) {
@@ -1228,6 +1223,12 @@ export default function LiveStudioModal({
       } catch (paramErr) {
         console.warn('[WEBRTC] Không thể đặt degradationPreference:', paramErr);
       }
+    }
+
+    const audioTrack = mediaStreamRef.current.getAudioTracks()[0];
+    if (audioTrack) {
+      audioTrack.enabled = isMicOn;
+      pc.addTransceiver(audioTrack, { direction: 'sendonly', streams: [mediaStreamRef.current] });
     }
 
     const offer = await pc.createOffer();
