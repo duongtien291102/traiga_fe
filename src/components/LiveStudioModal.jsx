@@ -27,6 +27,7 @@ import {
   Minimize2,
   Smartphone,
   Sliders,
+  FileText,
 } from 'lucide-react';
 import { getApiBaseUrl, getWsUrl, NGROK_HLS_URL, SRS_VPS_HOST, isVercel } from '../config';
 import { mergeChatMessages } from '../chatUtils';
@@ -85,8 +86,18 @@ export default function LiveStudioModal({
   const [videoFit, setVideoFit] = useState('contain'); // 'contain' (khớp người xem) | 'cover' (lấp đầy)
   const [, setPreviewMetadataVersion] = useState(0);
   
-  // Tab điều khiển bên dưới: 'chat' (Bình luận trực tiếp) | 'config' (Cấu hình luồng)
+  // Tab điều khiển bên dưới: 'chat' (Bình luận trực tiếp) | 'config' (Cấu hình luồng) | 'script' (Kịch bản live)
   const [activeTab, setActiveTab] = useState('chat');
+
+  // Kịch bản Live (Teleprompter) tích hợp sẵn trong Studio để Streamer đọc trực tiếp không cần Alt+Tab
+  const [liveScript, setLiveScript] = useState(() => {
+    try {
+      return localStorage.getItem('traiga_live_script') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [scriptFontSize, setScriptFontSize] = useState(15);
 
   // Trạng thái Chat trực tiếp trong Studio cho Streamer
   const [studioMessages, setStudioMessages] = useState([]);
@@ -157,6 +168,30 @@ export default function LiveStudioModal({
       setStreamDuration(0);
     }
     return () => clearInterval(timerRef.current);
+  }, [isLive]);
+
+  // Giữ màn hình luôn sáng (Screen Wake Lock) khi đang phát trực tiếp để chống ngủ máy / ngắt kết nối
+  useEffect(() => {
+    let wakeLock = null;
+    const requestLock = async () => {
+      try {
+        if ('wakeLock' in navigator && isLive) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (err) {
+        // Trình duyệt không hỗ trợ hoặc người dùng chặn quyền giữ màn hình
+      }
+    };
+
+    if (isLive) {
+      requestLock();
+    }
+
+    return () => {
+      if (wakeLock && typeof wakeLock.release === 'function') {
+        wakeLock.release().catch(() => {});
+      }
+    };
   }, [isLive]);
 
   // Bộ đo cường độ âm thanh thời gian thực từ Micro (Audio Level Meter)
@@ -587,19 +622,28 @@ export default function LiveStudioModal({
     if (!track) return undefined;
 
     const queueRecovery = (reason) => {
+      // Khi tab đang chạy ngầm (Alt+Tab), trình duyệt chặn getUserMedia nên tuyệt đối KHÔNG can thiệp
+      if (document.hidden || document.visibilityState !== 'visible') {
+        return;
+      }
       clearTimeout(videoRecoveryTimerRef.current);
       videoRecoveryTimerRef.current = setTimeout(() => {
+        if (document.hidden || document.visibilityState !== 'visible') return;
         const current = mediaStreamRef.current?.getVideoTracks()[0];
         if (!current || current.readyState === 'ended') {
           recoverVideoTrack(reason);
         } else if (current.muted || !previewVideoRef.current?.videoWidth) {
-          // Give mobile camera pipelines a moment to resume before reopening.
           if (document.visibilityState === 'visible') recoverVideoTrack(reason);
         }
-      }, 1200);
+      }, 1500);
     };
-    const onEnded = () => queueRecovery('track ended');
-    const onMute = () => queueRecovery('track muted');
+    const onEnded = () => {
+      if (document.visibilityState === 'visible') queueRecovery('track ended');
+    };
+    const onMute = () => {
+      // Khi Alt+Tab, Chrome có thể tạm mute preview, không gọi recovery gây sập luồng
+      if (document.visibilityState === 'visible') queueRecovery('track muted');
+    };
     const onUnmute = () => {
       clearTimeout(videoRecoveryTimerRef.current);
       setErrorMessage('');
@@ -608,23 +652,18 @@ export default function LiveStudioModal({
     const onVisibility = () => {
       if (document.visibilityState === 'visible') {
         attachPreviewStream(mediaStreamRef.current);
-        queueRecovery('page resumed without camera frames');
       }
     };
 
     track.addEventListener('ended', onEnded);
     track.addEventListener('mute', onMute);
     track.addEventListener('unmute', onUnmute);
-    video?.addEventListener('stalled', onMute);
-    video?.addEventListener('error', onMute);
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
       clearTimeout(videoRecoveryTimerRef.current);
       track.removeEventListener('ended', onEnded);
       track.removeEventListener('mute', onMute);
       track.removeEventListener('unmute', onUnmute);
-      video?.removeEventListener('stalled', onMute);
-      video?.removeEventListener('error', onMute);
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [isOpen, sourceType, hasStream, isLive, facingMode]);
@@ -1004,6 +1043,20 @@ export default function LiveStudioModal({
       });
       peerConnRef.current = pc;
 
+      pc.oniceconnectionstatechange = () => {
+        console.warn('📡 [WEBRTC ICE STATE]:', pc.iceConnectionState);
+        if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
+          console.error('❌ [WEBRTC ICE FAILED]: Mất kết nối ICE với SRS Media Server (UDP 8000). Hãy kiểm tra mạng hoặc tạm tắt VPN/WARP.');
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        console.warn('📡 [WEBRTC CONN STATE]:', pc.connectionState);
+        if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+          console.error('❌ [WEBRTC DISCONNECTED]: Luồng bị ngắt kết nối. Trạng thái:', pc.connectionState);
+        }
+      };
+
       const audioTrack = mediaStreamRef.current.getAudioTracks()[0];
 
       if (audioTrack) {
@@ -1056,6 +1109,9 @@ export default function LiveStudioModal({
             : `SRS từ chối phát luồng (mã lỗi ${data.code}).`
         );
       }
+
+      const candidates = data.sdp?.match(/a=candidate:.*/g) || [];
+      console.log('📡 [WEBRTC ANSWER CANDIDATES]:', candidates);
 
       await pc.setRemoteDescription(
         new RTCSessionDescription({ type: 'answer', sdp: data.sdp })
@@ -1409,11 +1465,11 @@ export default function LiveStudioModal({
           {/* CỘT PHẢI: KHUNG ĐỌC BÌNH LUẬN TRỰC TIẾP & BẢNG ĐIỀU KHIỂN */}
           <div className={`${isCamMaximized ? 'lg:col-span-4' : 'lg:col-span-5'} flex flex-col justify-between bg-[#161720] border border-white/10 rounded-2xl p-3 sm:p-4 min-h-[300px] sm:min-h-[360px] shadow-xl transition-all duration-300`}>
             
-            {/* THANH CHUYỂN TAB: BÌNH LUẬN TRỰC TIẾP <-> CẤU HÌNH PHÒNG */}
-            <div className="flex items-center p-1 rounded-xl bg-black/40 border border-white/10 mb-2 sm:mb-3">
+            {/* THANH CHUYỂN TAB: BÌNH LUẬN TRỰC TIẾP <-> KỊCH BẢN LIVE <-> CẤU HÌNH PHÒNG */}
+            <div className="flex items-center p-1 rounded-xl bg-black/40 border border-white/10 mb-2 sm:mb-3 gap-1">
               <button
                 onClick={() => setActiveTab('chat')}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1.5 ${
                   activeTab === 'chat'
                     ? 'bg-rose-600 text-white shadow-md'
                     : 'text-gray-400 hover:text-white'
@@ -1425,15 +1481,27 @@ export default function LiveStudioModal({
               </button>
 
               <button
+                onClick={() => setActiveTab('script')}
+                className={`flex-1 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                  activeTab === 'script'
+                    ? 'bg-amber-600 text-white shadow-md'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>📜 Kịch bản</span>
+              </button>
+
+              <button
                 onClick={() => setActiveTab('config')}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1.5 ${
                   activeTab === 'config'
                     ? 'bg-white/15 text-white shadow-md'
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
                 <Settings className="w-3.5 h-3.5" />
-                <span>Cấu hình kênh</span>
+                <span>Cấu hình</span>
               </button>
             </div>
 
@@ -1678,6 +1746,66 @@ export default function LiveStudioModal({
                     </span>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* TAB 3: KỊCH BẢN LIVE TRỰC TIẾP (TELEPROMPTER ĐỌC KHÔNG CẦN ALT+TAB) */}
+            {activeTab === 'script' && (
+              <div className="flex-1 flex flex-col justify-between space-y-2 max-h-[340px]">
+                <div className="flex items-center justify-between text-[11px] text-gray-400 pb-1.5 border-b border-white/10">
+                  <span className="font-bold text-amber-300 flex items-center gap-1">
+                    <FileText className="w-3.5 h-3.5" /> Kịch bản / Ghi chú live
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setScriptFontSize((prev) => Math.max(12, prev - 2))}
+                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white font-mono text-[10px] cursor-pointer"
+                      title="Thu nhỏ chữ"
+                    >
+                      A-
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setScriptFontSize((prev) => Math.min(24, prev + 2))}
+                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white font-mono text-[10px] cursor-pointer"
+                      title="Phóng to chữ"
+                    >
+                      A+
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm('Bạn có chắc muốn xóa nội dung kịch bản này?')) {
+                          setLiveScript('');
+                          try {
+                            localStorage.removeItem('traiga_live_script');
+                          } catch {}
+                        }
+                      }}
+                      className="px-2 py-0.5 rounded bg-rose-600/20 text-rose-300 hover:bg-rose-600 hover:text-white text-[10px] transition cursor-pointer"
+                    >
+                      Xóa
+                    </button>
+                  </div>
+                </div>
+
+                <textarea
+                  value={liveScript}
+                  onChange={(e) => {
+                    setLiveScript(e.target.value);
+                    try {
+                      localStorage.setItem('traiga_live_script', e.target.value);
+                    } catch {}
+                  }}
+                  style={{ fontSize: `${scriptFontSize}px` }}
+                  placeholder="Dán hoặc gõ kịch bản, lời chào, giá bán, thông số cặp đấu vào đây để đọc trực tiếp khi live mà KHÔNG CẦN Alt+Tab..."
+                  className="flex-1 w-full bg-black/60 border border-white/10 rounded-xl p-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-amber-500/60 resize-none font-sans leading-relaxed min-h-[220px]"
+                />
+
+                <p className="text-[10px] text-amber-300/80 italic">
+                  💡 Kịch bản tự lưu trên máy. Bạn có thể đọc trực tiếp cạnh camera mà không lo đứt mạng!
+                </p>
               </div>
             )}
 

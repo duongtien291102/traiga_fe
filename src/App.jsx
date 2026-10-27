@@ -950,8 +950,15 @@ export default function App() {
                     <Play className="w-5 h-5 fill-white ml-0.5" />
                   </div>
 
-                  <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-md border border-amber-500/30 text-[10px] font-bold text-amber-300">
-                    {rep.record_status === 'uploaded_drive' ? '☁️ Google Drive' : '📼 Xem Lại'}
+                  <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                    <span className="px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-md border border-amber-500/30 text-[10px] font-bold text-amber-300">
+                      {rep.record_status === 'uploaded_drive' ? '☁️ Google Drive' : '📼 Xem Lại'}
+                    </span>
+                    {rep.part_index > 0 && (
+                      <span className="px-2 py-0.5 rounded-md bg-rose-600/90 text-[10px] font-black text-white shadow-md">
+                        Phần {rep.part_index}
+                      </span>
+                    )}
                   </div>
 
                   {durationMin && (
@@ -1104,6 +1111,11 @@ export default function App() {
                 }`}>
                   {selectedReplay.record_status === 'uploaded_drive' ? '☁️ Google Drive (Lưu lâu dài)' : '📼 Bản ghi tạm DVR (7 ngày)'}
                 </span>
+                {selectedReplay.part_index > 0 && (
+                  <span className="px-2.5 py-1 rounded-md bg-rose-600/90 text-[11px] font-black uppercase text-white shadow">
+                    Phần {selectedReplay.part_index}
+                  </span>
+                )}
                 {durationMin && (
                   <span className="px-2.5 py-1 rounded-md bg-white/10 text-[11px] font-mono text-gray-300">
                     ⏱️ {durationMin} phút
