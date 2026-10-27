@@ -196,50 +196,6 @@ export default function LiveStudioModal({
     return () => clearInterval(timerRef.current);
   }, [isLive]);
 
-  // Giám sát outbound RTP WebRTC thời gian thực: Phát hiện kịp thời nếu gói tin video ngừng gửi lên máy chủ
-  useEffect(() => {
-    if (!isLive) return undefined;
-    let lastBytesSent = -1;
-    let stallCount = 0;
-
-    const statsInterval = setInterval(async () => {
-      const pc = peerConnRef.current;
-      if (!pc || pc.connectionState !== 'connected') return;
-
-      try {
-        const stats = await pc.getStats();
-        let currentBytesSent = 0;
-        let foundOutbound = false;
-
-        stats.forEach((report) => {
-          if (report.type === 'outbound-rtp' && (report.kind === 'video' || report.mediaType === 'video')) {
-            currentBytesSent = report.bytesSent || 0;
-            foundOutbound = true;
-          }
-        });
-
-        if (foundOutbound) {
-          if (lastBytesSent !== -1 && currentBytesSent <= lastBytesSent) {
-            stallCount += 1;
-            console.warn(`⚠️ [WEBRTC MONITOR]: Chưa có thêm bytes video gửi lên SRS (${stallCount}/3)`);
-            if (stallCount >= 3) {
-              console.error('🚨 [WEBRTC MONITOR]: Dòng video bị nghẽn, tự động kích hoạt kết nối lại...');
-              stallCount = 0;
-              handleStreamDisconnected('Tín hiệu video bị gián đoạn truyền tải, đang tự động nối lại...');
-            }
-          } else {
-            stallCount = 0;
-            lastBytesSent = currentBytesSent;
-          }
-        }
-      } catch (e) {
-        // bỏ qua lỗi đọc stats
-      }
-    }, 2500);
-
-    return () => clearInterval(statsInterval);
-  }, [isLive]);
-
   // Giữ màn hình luôn sáng (Screen Wake Lock) khi đang phát trực tiếp để chống ngủ máy / ngắt kết nối
   useEffect(() => {
     let wakeLock = null;
@@ -1204,15 +1160,7 @@ export default function LiveStudioModal({
     const audioTrack = mediaStreamRef.current.getAudioTracks()[0];
     if (audioTrack) {
       audioTrack.enabled = isMicOn;
-      const audioTransceiver = pc.addTransceiver(audioTrack, { direction: 'sendonly', streams: [mediaStreamRef.current] });
-      try {
-        const aSender = audioTransceiver.sender;
-        const aParams = aSender.getParameters();
-        if (aParams.encodings && aParams.encodings.length > 0) {
-          aParams.encodings[0].maxBitrate = 128000;
-        }
-        aSender.setParameters(aParams).catch(() => {});
-      } catch (e) {}
+      pc.addTransceiver(audioTrack, { direction: 'sendonly', streams: [mediaStreamRef.current] });
     }
 
     if (videoTrack) {
@@ -1224,7 +1172,7 @@ export default function LiveStudioModal({
       try {
         const sender = videoTransceiver.sender;
         const params = sender.getParameters();
-        params.degradationPreference = 'maintain-framerate';
+        params.degradationPreference = 'maintain-resolution';
         if (params.encodings && params.encodings.length > 0) {
           params.encodings[0].scaleResolutionDownBy = 1.0;
         }
