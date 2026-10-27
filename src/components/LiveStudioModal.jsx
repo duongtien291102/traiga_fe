@@ -125,6 +125,7 @@ export default function LiveStudioModal({
   const userRef = useRef(user);
   const videoRecoveryTimerRef = useRef(null);
   const isRecoveringVideoRef = useRef(false);
+  const audioCtxRef = useRef(null);
 
   // Giám sát kết nối WebRTC & Tự động kết nối lại (Auto-Reconnect)
   const [streamConnStatus, setStreamConnStatus] = useState('connected'); // 'connected' | 'reconnecting' | 'recovered'
@@ -267,23 +268,30 @@ export default function LiveStudioModal({
   useEffect(() => {
     if (!isOpen || !isMicOn || !mediaStreamRef.current) {
       setMicVolume(0);
-      return;
+      return undefined;
     }
 
     const audioTrack = mediaStreamRef.current.getAudioTracks()[0];
     if (!audioTrack || audioTrack.readyState === 'ended' || !audioTrack.enabled) {
       setMicVolume(0);
-      return;
+      return undefined;
     }
 
-    let audioCtx = null;
     let analyser = null;
     let animId = null;
 
     try {
       const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtxClass) return;
-      audioCtx = new AudioCtxClass();
+      if (!AudioCtxClass) return undefined;
+      
+      if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+        audioCtxRef.current = new AudioCtxClass();
+      }
+      const audioCtx = audioCtxRef.current;
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume?.().catch(() => {});
+      }
+
       const source = audioCtx.createMediaStreamSource(new MediaStream([audioTrack]));
       analyser = audioCtx.createAnalyser();
       analyser.fftSize = 64;
@@ -313,11 +321,9 @@ export default function LiveStudioModal({
 
     return () => {
       if (animId) cancelAnimationFrame(animId);
-      if (audioCtx && audioCtx.state !== 'closed') {
-        audioCtx.close().catch(() => {});
-      }
+      // Tuyệt đối không gọi audioCtx.close() ở đây vì Chromium sẽ mute luôn audioTrack vật lý
     };
-  }, [isOpen, isMicOn, hasStream, isLive]);
+  }, [isOpen, isMicOn, hasStream]);
 
   // Khởi tạo kết nối WebSocket phòng Chat với Auto-Reconnect và Fallback chế độ Guest
   const connectChat = () => {
@@ -821,9 +827,7 @@ export default function LiveStudioModal({
   const getAudioConstraints = () => ({
     echoCancellation: true, // Vẫn chống dội loa ngoài
     noiseSuppression: false, // TẮT lọc ồn hội nghị: Giữ trọn âm sắc tự nhiên, không bị nghẹt mũi / méo tiếng
-    autoGainControl: false, // TẮT nén âm tự động: Giữ dải động tự nhiên, không bị lúc to lúc nhỏ
-    channelCount: { ideal: 2 },
-    sampleRate: { ideal: 48000 }
+    autoGainControl: false // TẮT nén âm tự động: Giữ dải động tự nhiên, không bị lúc to lúc nhỏ
   });
 
   // Khởi tạo nguồn thu Webcam hoặc Màn hình
@@ -1234,18 +1238,6 @@ export default function LiveStudioModal({
     await pc.setLocalDescription(offer);
     await waitForIceGatheringComplete(pc);
 
-    let rawSdp = pc.localDescription?.sdp || offer.sdp;
-    // Nâng cấp âm thanh Opus: Bật 128kbps stereo full-band để âm thanh trung thực như mic gốc
-    if (rawSdp && rawSdp.includes('opus/48000')) {
-      rawSdp = rawSdp.replace(
-        /a=fmtp:(\d+)(.*)/g,
-        (match, pt, rest) => {
-          if (rest.includes('maxaveragebitrate')) return match;
-          return `${match};stereo=1;sprop-stereo=1;maxaveragebitrate=128000;cbr=0`;
-        }
-      );
-    }
-
     const streamUrl = `webrtc://${SRS_VPS_HOST}/live/${encodeURIComponent(streamKey)}?publish_secret=${encodeURIComponent(publishSecret)}`;
     const rtcBase = isVercel() ? NGROK_HLS_URL : '';
     const apiUrl = new URL(`${rtcBase}/rtc/v1/publish/`, window.location.origin).toString();
@@ -1259,7 +1251,7 @@ export default function LiveStudioModal({
       body: JSON.stringify({
         api: apiUrl,
         streamurl: streamUrl,
-        sdp: rawSdp
+        sdp: pc.localDescription?.sdp || offer.sdp
       })
     });
 
