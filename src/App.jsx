@@ -51,7 +51,9 @@ import {
   Volume2,
   CreditCard,
   Server,
-  AlertCircle
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { getApiBaseUrl, getHlsBaseUrl, getRtmpBaseUrl, getHost } from './config';
 
@@ -197,6 +199,7 @@ export default function App() {
   const [archivingReplayId, setArchivingReplayId] = useState('');
   const [replayArchiveNotice, setReplayArchiveNotice] = useState(null);
   const [selectedReplay, setSelectedReplay] = useState(null);
+  const [replayPage, setReplayPage] = useState(1);
 
   // Điều hướng trang chính vs Phòng Live xổ gà
   const [activeNavTab, setActiveNavTab] = useState('home'); // home | live | replays | market | profile
@@ -892,119 +895,287 @@ export default function App() {
     );
   };
 
-  // Component hiển thị danh sách Video Xem Lại (Google Drive / SRS DVR) dùng chung cho Trang Chủ & Phòng Live
-  const renderReplaysSection = () => {
+  // Component hiển thị danh sách Video Xem Lại (Google Drive / SRS DVR) với phân trang: 5 cái ở Trang chủ/Live, 10 cái ở Trang Replay
+  const renderReplaysSection = (isFullPage = activeNavTab === 'replays') => {
     const hasReplays = replays && replays.length > 0;
+    const pageSize = isFullPage ? 10 : 5;
+    const totalPages = Math.max(1, Math.ceil((replays?.length || 0) / pageSize));
+    const currentPage = isFullPage ? Math.min(Math.max(1, replayPage), totalPages) : 1;
+
+    const displayedReplays = hasReplays
+      ? (isFullPage
+          ? replays.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+          : replays.slice(0, 5))
+      : [];
+
     return (
-      <section className="space-y-3 sm:space-y-4">
-        <div className="flex items-center justify-between">
+      <section className="space-y-4">
+        {/* Tiêu đề & thanh tóm tắt */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-start sm:items-center gap-2.5 sm:gap-3">
             <div className="w-1.5 h-6 bg-rose-500 rounded-full shrink-0 mt-0.5 sm:mt-0"></div>
             <div>
               <h2 className="text-base sm:text-xl font-extrabold tracking-tight text-white uppercase flex flex-wrap items-center gap-2">
-                <span>🎬 Xem Lại Các Phiên Live</span>
+                <span>{isFullPage ? '🎬 Kho Video Xem Lại Phiên Live' : '🎬 Xem Lại Các Phiên Live'}</span>
                 <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
-                  {replays.length} Video
+                  {replays?.length || 0} Video
                 </span>
+                {isFullPage && totalPages > 1 && (
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/10 text-gray-300 border border-white/10 font-medium">
+                    Trang {currentPage}/{totalPages}
+                  </span>
+                )}
               </h2>
               <p className="text-[11px] sm:text-xs text-gray-400">
-                Lưu video đã phát lên Google Drive để xem lại lâu dài. Bản ghi tạm được giữ 7 ngày.
+                {isFullPage
+                  ? 'Toàn bộ các buổi phát sóng đã lưu trên hệ thống (10 video mỗi trang).'
+                  : 'Lưu video đã phát lên Google Drive để xem lại lâu dài. Bản ghi tạm được giữ 7 ngày.'}
               </p>
             </div>
           </div>
+
+          {!isFullPage && replays?.length > 5 && (
+            <button
+              onClick={() => {
+                setSelectedReplay(null);
+                setReplayPage(1);
+                setActiveNavTab('replays');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-rose-600 hover:text-white text-xs font-bold text-gray-200 transition cursor-pointer shadow-sm shrink-0"
+            >
+              <span>Xem tất cả ({replays.length})</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
-        {hasReplays ? <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {replays.map((rep) => {
-            const repId = String(rep.id || rep._id || rep.replay_url);
-            const dateStr = rep.started_at
-              ? new Date(rep.started_at).toLocaleString('vi-VN', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric'
-                })
-              : 'Mới đây';
-            const durationMin = rep.duration_seconds > 0 ? Math.max(1, Math.round(rep.duration_seconds / 60)) : null;
+        {/* Lưới hiển thị Video */}
+        {hasReplays ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+            {displayedReplays.map((rep) => {
+              const repId = String(rep.id || rep._id || rep.replay_url);
+              const dateStr = rep.started_at
+                ? new Date(rep.started_at).toLocaleString('vi-VN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                  })
+                : 'Mới đây';
+              const durationMin = rep.duration_seconds > 0 ? Math.max(1, Math.round(rep.duration_seconds / 60)) : null;
 
-            return (
-              <div
-                key={repId}
-                onClick={() => {
-                  setSelectedReplay(rep);
-                  setActiveNavTab('replays');
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                className="group rounded-2xl overflow-hidden bg-[#14151b] border border-white/10 hover:border-amber-500/50 transition-all cursor-pointer flex flex-col justify-between shadow-lg"
-              >
-                <div className="relative h-40 bg-gradient-to-br from-slate-900 via-[#1a1c26] to-rose-950/60 flex items-center justify-center overflow-hidden">
-                  <img
-                    src="/img/rooster_dongtao.jpg"
-                    alt={rep.title}
-                    className="w-full h-full object-cover opacity-55 group-hover:scale-105 group-hover:opacity-75 transition duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#14151b] via-black/30 to-transparent" />
+              return (
+                <div
+                  key={repId}
+                  onClick={() => {
+                    setSelectedReplay(rep);
+                    setActiveNavTab('replays');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="group rounded-2xl overflow-hidden bg-[#14151b] border border-white/10 hover:border-amber-500/50 transition-all cursor-pointer flex flex-col justify-between shadow-lg"
+                >
+                  <div className="relative h-36 sm:h-40 bg-gradient-to-br from-slate-900 via-[#1a1c26] to-rose-950/60 flex items-center justify-center overflow-hidden">
+                    <img
+                      src="/img/rooster_dongtao.jpg"
+                      alt={rep.title}
+                      className="w-full h-full object-cover opacity-55 group-hover:scale-105 group-hover:opacity-75 transition duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#14151b] via-black/30 to-transparent" />
 
-                  <div className="absolute w-12 h-12 rounded-full bg-rose-600/90 group-hover:bg-rose-500 text-white flex items-center justify-center shadow-xl group-hover:scale-110 transition">
-                    <Play className="w-5 h-5 fill-white ml-0.5" />
-                  </div>
-
-                  <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                    <span className="px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-md border border-amber-500/30 text-[10px] font-bold text-amber-300">
-                      {rep.record_status === 'uploaded_drive' ? '☁️ Google Drive' : '📼 Xem Lại'}
-                    </span>
-                    {rep.part_index > 0 && (
-                      <span className="px-2 py-0.5 rounded-md bg-rose-600/90 text-[10px] font-black text-white shadow-md">
-                        Phần {rep.part_index}
-                      </span>
-                    )}
-                  </div>
-
-                  {durationMin && (
-                    <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded bg-black/80 text-[10px] font-mono text-gray-200">
-                      ⏱️ {durationMin} phút
+                    <div className="absolute w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-rose-600/90 group-hover:bg-rose-500 text-white flex items-center justify-center shadow-xl group-hover:scale-110 transition">
+                      <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-white ml-0.5" />
                     </div>
-                  )}
-                </div>
 
-                <div className="p-3.5 space-y-2">
-                  <h4 className="font-bold text-sm text-white group-hover:text-amber-300 transition line-clamp-1">
-                    {rep.title || `Phiên Live: ${rep.stream_key}`}
-                  </h4>
-                  <div className="flex items-center justify-between text-[11px] text-gray-400">
-                    <span className="truncate font-semibold text-gray-300">🎙️ {rep.streamer || 'Chủ Trại'}</span>
-                    <span>{dateStr}</span>
-                  </div>
-                  {(currentUser?.role === 'admin' || currentUser?.role === 'systemadmin') && (
-                    <div className="flex items-center justify-between gap-2 pt-1" onClick={(event) => event.stopPropagation()}>
-                      {rep.record_status === 'uploaded_drive' ? (
-                        <span className="text-[11px] font-semibold text-emerald-400">Đã lưu trữ lâu dài</span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => archiveReplay(rep)}
-                          disabled={archivingReplayId === repId}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-bold text-amber-300 transition hover:bg-amber-500/20 disabled:cursor-wait disabled:opacity-60"
-                        >
-                          <Archive className="h-3.5 w-3.5" />
-                          {archivingReplayId === repId ? 'Đang lưu...' : 'Lưu trữ video'}
-                        </button>
-                      )}
-                      {replayArchiveNotice?.id === repId && (
-                        <span className={`text-[10px] ${replayArchiveNotice.error ? 'text-rose-400' : 'text-emerald-400'}`}>
-                          {replayArchiveNotice.error || replayArchiveNotice.message}
+                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
+                      <span className="px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-md border border-amber-500/30 text-[10px] font-bold text-amber-300">
+                        {rep.record_status === 'uploaded_drive' ? '☁️ Drive' : '📼 Xem Lại'}
+                      </span>
+                      {rep.part_index > 0 && (
+                        <span className="px-2 py-0.5 rounded-md bg-rose-600/90 text-[10px] font-black text-white shadow-md">
+                          Phần {rep.part_index}
                         </span>
                       )}
                     </div>
-                  )}
+
+                    {durationMin && (
+                      <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded bg-black/80 text-[10px] font-mono text-gray-200">
+                        ⏱️ {durationMin}p
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-3 sm:p-3.5 space-y-2">
+                    <h4 className="font-bold text-xs sm:text-sm text-white group-hover:text-amber-300 transition line-clamp-1">
+                      {rep.title || `Phiên Live: ${rep.stream_key}`}
+                    </h4>
+                    <div className="flex items-center justify-between text-[11px] text-gray-400">
+                      <span className="truncate font-semibold text-gray-300">🎙️ {rep.streamer || 'Chủ Trại'}</span>
+                      <span className="text-[10px] sm:text-[11px]">{dateStr}</span>
+                    </div>
+                    {(currentUser?.role === 'admin' || currentUser?.role === 'systemadmin') && (
+                      <div className="flex items-center justify-between gap-2 pt-1" onClick={(event) => event.stopPropagation()}>
+                        {rep.record_status === 'uploaded_drive' ? (
+                          <span className="text-[11px] font-semibold text-emerald-400">Đã lưu Drive</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => archiveReplay(rep)}
+                            disabled={archivingReplayId === repId}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] sm:text-[11px] font-bold text-amber-300 transition hover:bg-amber-500/20 disabled:cursor-wait disabled:opacity-60"
+                          >
+                            <Archive className="h-3 w-3" />
+                            {archivingReplayId === repId ? 'Đang lưu...' : 'Lưu trữ'}
+                          </button>
+                        )}
+                        {replayArchiveNotice?.id === repId && (
+                          <span className={`text-[10px] ${replayArchiveNotice.error ? 'text-rose-400' : 'text-emerald-400'}`}>
+                            {replayArchiveNotice.error || replayArchiveNotice.message}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div> : (
+              );
+            })}
+          </div>
+        ) : (
           <div className="rounded-2xl border border-white/10 bg-[#14151b] px-5 py-12 text-center text-sm text-gray-400">
             Chưa có video phát lại nào được lưu.
+          </div>
+        )}
+
+        {/* Nút Xem Thêm ở Trang Chủ (nếu có hơn 5 video) */}
+        {!isFullPage && replays?.length > 5 && (
+          <div className="pt-2 text-center">
+            <button
+              onClick={() => {
+                setSelectedReplay(null);
+                setReplayPage(1);
+                setActiveNavTab('replays');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-xs sm:text-sm shadow-lg hover:shadow-rose-600/30 transition-all cursor-pointer"
+            >
+              <span>Xem thêm {replays.length - 5} phiên live khác</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Thanh Phân Trang (Chỉ hiện khi ở Trang Xem Lại Chuyên Dụng) */}
+        {isFullPage && hasReplays && totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-white/10">
+            <div className="text-xs text-gray-400">
+              Hiển thị video <span className="text-white font-bold">{(currentPage - 1) * pageSize + 1}</span> -{' '}
+              <span className="text-white font-bold">{Math.min(currentPage * pageSize, replays.length)}</span> trên tổng số{' '}
+              <span className="text-amber-300 font-bold">{replays.length}</span> video
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap justify-center">
+              {/* Nút Trang Trước */}
+              <button
+                onClick={() => {
+                  if (currentPage > 1) {
+                    setReplayPage(currentPage - 1);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
+                disabled={currentPage <= 1}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/15 text-xs font-semibold text-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                title="Trang trước"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Trước</span>
+              </button>
+
+              {/* Danh sách các số trang */}
+              {(() => {
+                const pages = [];
+                const maxShown = 5;
+                let startPage = Math.max(1, currentPage - 2);
+                let endPage = Math.min(totalPages, startPage + maxShown - 1);
+                if (endPage - startPage < maxShown - 1) {
+                  startPage = Math.max(1, endPage - maxShown + 1);
+                }
+
+                if (startPage > 1) {
+                  pages.push(
+                    <button
+                      key={1}
+                      onClick={() => {
+                        setReplayPage(1);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="w-8 h-8 rounded-lg text-xs font-bold border border-white/10 bg-white/5 hover:bg-white/15 text-gray-300 transition cursor-pointer"
+                    >
+                      1
+                    </button>
+                  );
+                  if (startPage > 2) {
+                    pages.push(<span key="dots-start" className="px-1 text-gray-500 text-xs select-none">...</span>);
+                  }
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                  const isActive = i === currentPage;
+                  pages.push(
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setReplayPage(i);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className={`w-8 h-8 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        isActive
+                          ? 'bg-rose-600 text-white shadow-md border border-rose-500 font-extrabold'
+                          : 'border border-white/10 bg-white/5 hover:bg-white/15 text-gray-300'
+                      }`}
+                    >
+                      {i}
+                    </button>
+                  );
+                }
+
+                if (endPage < totalPages) {
+                  if (endPage < totalPages - 1) {
+                    pages.push(<span key="dots-end" className="px-1 text-gray-500 text-xs select-none">...</span>);
+                  }
+                  pages.push(
+                    <button
+                      key={totalPages}
+                      onClick={() => {
+                        setReplayPage(totalPages);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="w-8 h-8 rounded-lg text-xs font-bold border border-white/10 bg-white/5 hover:bg-white/15 text-gray-300 transition cursor-pointer"
+                    >
+                      {totalPages}
+                    </button>
+                  );
+                }
+
+                return pages;
+              })()}
+
+              {/* Nút Trang Sau */}
+              <button
+                onClick={() => {
+                  if (currentPage < totalPages) {
+                    setReplayPage(currentPage + 1);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
+                disabled={currentPage >= totalPages}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/15 text-xs font-semibold text-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                title="Trang sau"
+              >
+                <span className="hidden sm:inline">Sau</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
       </section>
@@ -1832,8 +2003,8 @@ export default function App() {
 
             </div>
 
-            {/* ==================== XEM LẠI PHIÊN LIVE ĐÃ PHÁT ==================== */}
-            {renderReplaysSection()}
+            {/* ==================== XEM LẠI PHIÊN LIVE ĐÃ PHÁT (5 VIDEO) ==================== */}
+            {renderReplaysSection(false)}
 
             {/* ==================== DANH SÁCH GÀ ĐANG BÁN (CÓ ẢNH RÕ RÀNG, BẤM XEM CHI TIẾT) ==================== */}
             {/* Tạm ẩn danh sách gà mua bán/giao lưu trên trang chủ. */}
@@ -2235,15 +2406,15 @@ export default function App() {
               })()}
             </section>
 
-            {/* ==================== XEM LẠI CÁC PHIÊN LIVE TRƯỚC ĐÓ ==================== */}
-            {renderReplaysSection()}
+            {/* ==================== XEM LẠI CÁC PHIÊN LIVE TRƯỚC ĐÓ (5 VIDEO) ==================== */}
+            {renderReplaysSection(false)}
 
           </div>
         )}
 
         {activeNavTab === 'replays' && (
           <div className="space-y-8">
-            {selectedReplay ? renderDedicatedReplayScreen() : renderReplaysSection()}
+            {selectedReplay ? renderDedicatedReplayScreen() : renderReplaysSection(true)}
           </div>
         )}
 
