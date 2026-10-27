@@ -115,6 +115,7 @@ export default function LiveStudioModal({
   const [localBackupBlob, setLocalBackupBlob] = useState(null);
   const [localBackupUrl, setLocalBackupUrl] = useState('');
   const [localBackupSize, setLocalBackupSize] = useState(0);
+  const [localBackupExt, setLocalBackupExt] = useState('mp4');
   const mediaRecorderRef = useRef(null);
   const recordedChunksRef = useRef([]);
 
@@ -1341,13 +1342,19 @@ export default function LiveStudioModal({
           });
           setLocalBackupSize(0);
 
+          // Ưu tiên chuẩn MP4 để điện thoại iPhone và Android mở được trực tiếp trong Thư Viện Ảnh
           const mimeTypes = [
-            'video/webm;codecs=vp8,opus',
+            'video/mp4;codecs=avc1,mp4a.40.2',
+            'video/mp4;codecs=h264,aac',
+            'video/mp4',
             'video/webm;codecs=h264,opus',
-            'video/webm',
-            'video/mp4'
+            'video/webm;codecs=vp8,opus',
+            'video/webm'
           ];
           const supportedMime = mimeTypes.find((m) => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(m)) || '';
+          const isMp4 = supportedMime.includes('mp4');
+          setLocalBackupExt(isMp4 ? 'mp4' : 'webm');
+
           const options = supportedMime ? { mimeType: supportedMime } : undefined;
           const recorder = new MediaRecorder(mediaStreamRef.current, options);
           recorder.ondataavailable = (e) => {
@@ -1357,12 +1364,12 @@ export default function LiveStudioModal({
           };
           recorder.onstop = () => {
             if (recordedChunksRef.current.length > 0) {
-              const blob = new Blob(recordedChunksRef.current, { type: supportedMime || 'video/webm' });
+              const blob = new Blob(recordedChunksRef.current, { type: supportedMime || (isMp4 ? 'video/mp4' : 'video/webm') });
               setLocalBackupBlob(blob);
               const url = URL.createObjectURL(blob);
               setLocalBackupUrl(url);
               setLocalBackupSize(blob.size);
-              console.log('[RECORDER] Đã lưu bản ghi dự phòng HD trên máy:', (blob.size / 1024 / 1024).toFixed(2), 'MB');
+              console.log(`[RECORDER] Đã lưu bản ghi dự phòng HD (.${isMp4 ? 'mp4' : 'webm'}):`, (blob.size / 1024 / 1024).toFixed(2), 'MB');
             }
           };
           recorder.start(3000); // Lưu mỗi đoạn 3s
@@ -1562,11 +1569,11 @@ export default function LiveStudioModal({
             <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
               <a
                 href={localBackupUrl}
-                download={`traiga_${selectedKey || 'live'}_${new Date().toISOString().slice(0, 10)}.webm`}
+                download={`traiga_${selectedKey || 'live'}_${new Date().toISOString().slice(0, 10)}.${localBackupExt}`}
                 className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 transition text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-950/50 cursor-pointer"
               >
                 <Download className="w-4 h-4" />
-                <span>Tải Bản Ghi Về Máy</span>
+                <span>Tải Bản Ghi Về Máy (.{localBackupExt.toUpperCase()})</span>
               </a>
               <button
                 onClick={() => {

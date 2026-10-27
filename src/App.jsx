@@ -53,7 +53,8 @@ import {
   Server,
   AlertCircle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Download
 } from 'lucide-react';
 import { getApiBaseUrl, getHlsBaseUrl, getRtmpBaseUrl, getHost } from './config';
 
@@ -1291,6 +1292,19 @@ export default function App() {
                   <span className="px-2.5 py-1 rounded-md bg-white/10 text-[11px] font-mono text-gray-300">
                     ⏱️ {durationMin} phút
                   </span>
+                )}
+                {selectedReplay.replay_url && (
+                  <a
+                    href={selectedReplay.replay_url}
+                    download={`${selectedReplay.stream_key || 'video'}.mp4`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="ml-auto px-3 py-1 rounded-md bg-emerald-600/30 hover:bg-emerald-600 text-emerald-200 hover:text-white border border-emerald-500/40 text-[11px] font-bold flex items-center gap-1.5 transition cursor-pointer shadow"
+                    title="Tải video MP4 chuẩn mở được trên mọi dòng iPhone và Android"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Tải Video MP4 Về Điện Thoại</span>
+                  </a>
                 )}
               </div>
 
