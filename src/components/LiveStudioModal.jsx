@@ -195,6 +195,50 @@ export default function LiveStudioModal({
     return () => clearInterval(timerRef.current);
   }, [isLive]);
 
+  // Giám sát outbound RTP WebRTC thời gian thực: Phát hiện kịp thời nếu gói tin video ngừng gửi lên máy chủ
+  useEffect(() => {
+    if (!isLive) return undefined;
+    let lastBytesSent = -1;
+    let stallCount = 0;
+
+    const statsInterval = setInterval(async () => {
+      const pc = peerConnRef.current;
+      if (!pc || pc.connectionState !== 'connected') return;
+
+      try {
+        const stats = await pc.getStats();
+        let currentBytesSent = 0;
+        let foundOutbound = false;
+
+        stats.forEach((report) => {
+          if (report.type === 'outbound-rtp' && (report.kind === 'video' || report.mediaType === 'video')) {
+            currentBytesSent = report.bytesSent || 0;
+            foundOutbound = true;
+          }
+        });
+
+        if (foundOutbound) {
+          if (lastBytesSent !== -1 && currentBytesSent <= lastBytesSent) {
+            stallCount += 1;
+            console.warn(`⚠️ [WEBRTC MONITOR]: Chưa có thêm bytes video gửi lên SRS (${stallCount}/3)`);
+            if (stallCount >= 3) {
+              console.error('🚨 [WEBRTC MONITOR]: Dòng video bị nghẽn, tự động kích hoạt kết nối lại...');
+              stallCount = 0;
+              handleStreamDisconnected('Tín hiệu video bị gián đoạn truyền tải, đang tự động nối lại...');
+            }
+          } else {
+            stallCount = 0;
+            lastBytesSent = currentBytesSent;
+          }
+        }
+      } catch (e) {
+        // bỏ qua lỗi đọc stats
+      }
+    }, 2500);
+
+    return () => clearInterval(statsInterval);
+  }, [isLive]);
+
   // Giữ màn hình luôn sáng (Screen Wake Lock) khi đang phát trực tiếp để chống ngủ máy / ngắt kết nối
   useEffect(() => {
     let wakeLock = null;
@@ -583,15 +627,23 @@ export default function LiveStudioModal({
     if (!newTrack || !stream) return;
     const oldTrack = stream.getVideoTracks()[0];
     const wasCameraEnabled = oldTrack ? oldTrack.enabled : true;
+
+    // Thay thế video track trên RTCRtpSender TRƯỚC để luồng phát liên tục không bị gián đoạn
+    const sender = peerConnRef.current?.getSenders().find((item) => item.track?.kind === 'video');
+    newTrack.enabled = wasCameraEnabled;
+    if (sender) {
+      try {
+        await sender.replaceTrack(newTrack);
+      } catch (err) {
+        console.warn('[WEBRTC] Không thể thay thế track video trên WebRTC sender:', err);
+      }
+    }
+
     if (oldTrack && oldTrack !== newTrack) {
       stream.removeTrack(oldTrack);
       oldTrack.stop();
     }
     if (!stream.getTracks().includes(newTrack)) stream.addTrack(newTrack);
-
-    const sender = peerConnRef.current?.getSenders().find((item) => item.track?.kind === 'video');
-    newTrack.enabled = wasCameraEnabled;
-    if (sender) await sender.replaceTrack(newTrack);
 
     // Bắt buộc reset srcObject của thẻ video trên Safari/iOS để vẽ lại camera mới
     if (previewVideoRef.current) {
@@ -608,6 +660,11 @@ export default function LiveStudioModal({
 
   const recoverVideoTrack = async (reason = 'camera track ended') => {
     if (!isOpen || sourceType !== 'camera' || isRecoveringVideoRef.current) return;
+    // TUYỆT ĐỐI KHÔNG auto-recover khi đang phát trực tiếp vì sẽ dừng capture của WebRTC gây cụt video 3s
+    if (isLiveRef.current) {
+      console.warn(`[MEDIA] Đang trong phiên live trực tiếp, bỏ qua recoverVideoTrack (${reason})`);
+      return;
+    }
     isRecoveringVideoRef.current = true;
     try {
       const dims = getDims();
@@ -650,12 +707,15 @@ export default function LiveStudioModal({
     if (!track) return undefined;
 
     const queueRecovery = (reason) => {
+      // TUYỆT ĐỐI KHÔNG can thiệp khôi phục khi đang live
+      if (isLiveRef.current) return;
       // Khi tab đang chạy ngầm (Alt+Tab), trình duyệt chặn getUserMedia nên tuyệt đối KHÔNG can thiệp
       if (document.hidden || document.visibilityState !== 'visible') {
         return;
       }
       clearTimeout(videoRecoveryTimerRef.current);
       videoRecoveryTimerRef.current = setTimeout(() => {
+        if (isLiveRef.current) return;
         if (document.hidden || document.visibilityState !== 'visible') return;
         const current = mediaStreamRef.current?.getVideoTracks()[0];
         if (!current || current.readyState === 'ended') {
@@ -666,11 +726,11 @@ export default function LiveStudioModal({
       }, 1500);
     };
     const onEnded = () => {
-      if (document.visibilityState === 'visible') queueRecovery('track ended');
+      if (!isLiveRef.current && document.visibilityState === 'visible') queueRecovery('track ended');
     };
     const onMute = () => {
-      // Khi Alt+Tab, Chrome có thể tạm mute preview, không gọi recovery gây sập luồng
-      if (document.visibilityState === 'visible') queueRecovery('track muted');
+      // Khi Alt+Tab hoặc khi bắt đầu WebRTC, Chrome có thể phát sinh mute tạm thời, không gọi recovery khi đang live
+      if (!isLiveRef.current && document.visibilityState === 'visible') queueRecovery('track muted');
     };
     const onUnmute = () => {
       clearTimeout(videoRecoveryTimerRef.current);
@@ -694,7 +754,7 @@ export default function LiveStudioModal({
       track.removeEventListener('unmute', onUnmute);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [isOpen, sourceType, hasStream, isLive, facingMode]);
+  }, [isOpen, sourceType, hasStream, facingMode]);
 
   // Cập nhật lại cấu hình camera khi đổi độ phân giải hoặc xoay dọc/ngang mà không mất luồng
   const updateCameraTrack = async (newRes, newOrient, currentMode = facingMode) => {
@@ -1142,7 +1202,18 @@ export default function LiveStudioModal({
 
     if (videoTrack) {
       videoTrack.enabled = isCameraOn;
-      pc.addTransceiver(videoTrack, { direction: 'sendonly', streams: [mediaStreamRef.current] });
+      const videoTransceiver = pc.addTransceiver(videoTrack, { direction: 'sendonly', streams: [mediaStreamRef.current] });
+      try {
+        const sender = videoTransceiver.sender;
+        const params = sender.getParameters();
+        params.degradationPreference = 'maintain-resolution';
+        if (params.encodings && params.encodings.length > 0) {
+          params.encodings[0].scaleResolutionDownBy = 1.0;
+        }
+        sender.setParameters(params).catch(() => {});
+      } catch (paramErr) {
+        console.warn('[WEBRTC] Không thể đặt degradationPreference:', paramErr);
+      }
     }
 
     const offer = await pc.createOffer();
