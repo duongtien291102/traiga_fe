@@ -676,7 +676,7 @@ export default function LiveStudioModal({
             width: { ideal: dims.width },
             height: { ideal: dims.height },
             aspectRatio: { ideal: dims.aspectRatio },
-            frameRate: { ideal: 60 }
+            frameRate: { ideal: 30, max: 30 }
           },
           audio: false
         });
@@ -769,7 +769,7 @@ export default function LiveStudioModal({
             width: { ideal: dims.width },
             height: { ideal: dims.height },
             aspectRatio: { ideal: dims.aspectRatio },
-            frameRate: { ideal: 60 }
+            frameRate: { ideal: 30, max: 30 }
           },
           audio: false
         });
@@ -843,7 +843,7 @@ export default function LiveStudioModal({
           width: { ideal: dims.width },
           height: { ideal: dims.height },
           aspectRatio: { ideal: dims.aspectRatio },
-          frameRate: { ideal: 60 }
+          frameRate: { ideal: 30, max: 30 }
         };
 
         const audioConstraints = {
@@ -904,7 +904,7 @@ export default function LiveStudioModal({
       } else {
         // Chia sẻ màn hình
         stream = await navigator.mediaDevices.getDisplayMedia({
-          video: { frameRate: { ideal: 60 } },
+          video: { frameRate: { ideal: 30, max: 30 } },
           audio: true
         });
 
@@ -1202,11 +1202,14 @@ export default function LiveStudioModal({
 
     if (videoTrack) {
       videoTrack.enabled = isCameraOn;
+      if ('contentHint' in videoTrack) {
+        videoTrack.contentHint = 'motion';
+      }
       const videoTransceiver = pc.addTransceiver(videoTrack, { direction: 'sendonly', streams: [mediaStreamRef.current] });
       try {
         const sender = videoTransceiver.sender;
         const params = sender.getParameters();
-        params.degradationPreference = 'maintain-resolution';
+        params.degradationPreference = 'maintain-framerate';
         if (params.encodings && params.encodings.length > 0) {
           params.encodings[0].scaleResolutionDownBy = 1.0;
         }

@@ -173,7 +173,10 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
         levelLoadingTimeOut: 10000,
         levelLoadingMaxRetry: 6,
         fragLoadingTimeOut: 15000,
-        fragLoadingMaxRetry: 6
+        fragLoadingMaxRetry: 6,
+        // Khóa chặt đồng bộ âm thanh và hình ảnh, chống trễ hình so với tiếng
+        maxAudioFramesDrift: 1,
+        stretchShortVideoTrack: true
       });
 
       hlsRef.current = hls;
