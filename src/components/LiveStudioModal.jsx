@@ -802,18 +802,19 @@ export default function LiveStudioModal({
   const getAudioConstraints = (mode = audioMode) => {
     if (mode === 'studio') {
       return {
-        echoCancellation: true, // Vẫn chống dội loa
-        noiseSuppression: false, // TẮT lọc ồn hội nghị để giữ trọn âm sắc thực, không nghẹt giọng
-        autoGainControl: false, // TẮT nén âm tự động để không bị méo tiếng / lúc to lúc nhỏ
+        echoCancellation: false, // TẮT triệt âm vọng: Mở toang dải âm, KHÔNG bao giờ bị cản / nghẹt tiếng
+        noiseSuppression: false, // TẮT lọc ồn: Giữ trọn âm sắc thực, tiếng gà gáy, tiếng nói tự nhiên
+        autoGainControl: true, // BẬT AGC nhẹ: Tự động cân bằng gain, chống rè/dè (clipping) khi nói to
         sampleRate: 48000,
-        channelCount: { ideal: 2 }
+        channelCount: 1 // Kênh Mono chuẩn: 100% băng thông tập trung vào giọng nói, triệt tiêu rè lệch pha
       };
     }
     return {
-      echoCancellation: true,
+      echoCancellation: true, // Bật chống dội khi mở loa ngoài máy tính to
       noiseSuppression: true, // BẬT lọc tạp âm môi trường (tiếng gió, xe cộ, quạt)
       autoGainControl: true,
-      sampleRate: 48000
+      sampleRate: 48000,
+      channelCount: 1
     };
   };
 
@@ -2111,9 +2112,9 @@ export default function LiveStudioModal({
                     >
                       <div className="flex items-center gap-1.5 text-[11px]">
                         <Mic className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Âm thanh Studio</span>
+                        <span>Âm thanh Studio (Trong trẻo)</span>
                       </div>
-                      <span className="text-[9px] opacity-75 font-normal">Giữ 100% âm mộc, ấm, không méo tiếng</span>
+                      <span className="text-[9px] opacity-75 font-normal">Mở toang dải âm, không cản tiếng, chống rè vỡ giọng</span>
                     </button>
                     <button
                       type="button"
@@ -2126,9 +2127,9 @@ export default function LiveStudioModal({
                     >
                       <div className="flex items-center gap-1.5 text-[11px]">
                         <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Lọc tạp âm</span>
+                        <span>Chống dội & Lọc ồn</span>
                       </div>
-                      <span className="text-[9px] opacity-75 font-normal">Giảm tiếng gió, quạt và tiếng ồn lớn</span>
+                      <span className="text-[9px] opacity-75 font-normal">Dùng khi bật loa ngoài to hoặc có tiếng quạt gió</span>
                     </button>
                   </div>
                 </div>
