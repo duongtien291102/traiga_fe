@@ -32,12 +32,12 @@ export default defineConfig({
       : {}),
     proxy: {
       '/api': {
-        target: 'https://demo-webtraiga.proudsky-59d95604.southeastasia.azurecontainerapps.io',
+        target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
       },
       '/ws': {
-        target: 'wss://demo-webtraiga.proudsky-59d95604.southeastasia.azurecontainerapps.io',
+        target: 'ws://localhost:8000',
         ws: true,
         changeOrigin: true,
         secure: false,

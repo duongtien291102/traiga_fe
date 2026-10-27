@@ -34,10 +34,14 @@ export const getApiBaseUrl = () => {
   return `http://${getHost()}:8000`;
 };
 
-// WebSocket Base URL: Ưu tiên VITE_WS_URL, nếu không kết nối thẳng Azure WebSocket Server
+// WebSocket Base URL: Ưu tiên VITE_WS_URL, nếu local thì đi qua proxy cùng domain, nếu không kết nối thẳng Azure WebSocket Server
 export const getWsUrl = (streamKey) => {
   if (import.meta.env?.VITE_WS_URL) {
     return `${import.meta.env.VITE_WS_URL}/ws/chat?streamKey=${encodeURIComponent(streamKey)}`;
+  }
+  if (typeof window !== 'undefined' && window.location.host && !isVercel()) {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}/ws/chat?streamKey=${encodeURIComponent(streamKey)}`;
   }
   return `${AZURE_WS_URL}/ws/chat?streamKey=${encodeURIComponent(streamKey)}`;
 };
