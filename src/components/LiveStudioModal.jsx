@@ -126,9 +126,28 @@ export default function LiveStudioModal({
   const videoRecoveryTimerRef = useRef(null);
   const isRecoveringVideoRef = useRef(false);
 
+  // Giám sát kết nối WebRTC & Tự động kết nối lại (Auto-Reconnect)
+  const [streamConnStatus, setStreamConnStatus] = useState('connected'); // 'connected' | 'reconnecting' | 'recovered'
+  const [reconnectCountdown, setReconnectCountdown] = useState(15);
+  const streamConnStatusRef = useRef('connected');
+  const isLiveRef = useRef(false);
+  const isReconnectingWebRTCRef = useRef(false);
+  const webrtcReconnectTimerRef = useRef(null);
+  const webrtcCountdownIntervalRef = useRef(null);
+  const selectedKeyRef = useRef(selectedKey);
+  const publishSecretsRef = useRef(publishSecrets);
+
   useEffect(() => {
     userRef.current = user;
   }, [user]);
+
+  useEffect(() => {
+    selectedKeyRef.current = selectedKey;
+  }, [selectedKey]);
+
+  useEffect(() => {
+    publishSecretsRef.current = publishSecrets;
+  }, [publishSecrets]);
 
   const acceptStudioMessages = (incoming) => {
     if (!Array.isArray(incoming) || incoming.length === 0) return;
@@ -156,8 +175,9 @@ export default function LiveStudioModal({
     }
   }, [currentStreamKey]);
 
-  // Bộ đếm thời gian phát sóng trực tiếp
+  // Bộ đếm thời gian phát sóng trực tiếp & đồng bộ trạng thái
   useEffect(() => {
+    isLiveRef.current = isLive;
     if (isLive) {
       timerRef.current = setInterval(() => {
         setStreamDuration((prev) => prev + 1);
@@ -166,6 +186,11 @@ export default function LiveStudioModal({
     } else {
       clearInterval(timerRef.current);
       setStreamDuration(0);
+      setStreamConnStatus('connected');
+      streamConnStatusRef.current = 'connected';
+      clearInterval(webrtcCountdownIntervalRef.current);
+      clearTimeout(webrtcReconnectTimerRef.current);
+      isReconnectingWebRTCRef.current = false;
     }
     return () => clearInterval(timerRef.current);
   }, [isLive]);
@@ -417,6 +442,9 @@ export default function LiveStudioModal({
       isMountedRef.current = false;
       clearTimeout(reconnectTimerRef.current);
       clearTimeout(pendingStudioMessageTimerRef.current);
+      clearInterval(webrtcCountdownIntervalRef.current);
+      clearTimeout(webrtcReconnectTimerRef.current);
+      isReconnectingWebRTCRef.current = false;
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handlePageShow);
       window.removeEventListener('online', handleOnline);
@@ -987,6 +1015,181 @@ export default function LiveStudioModal({
     initMediaStream(type, facingMode);
   };
 
+  // HÀM XỬ LÝ PHỤC HỒI / AUTO-RECONNECT KHI MẤT KẾT NỐI WEBRTC
+  const handleStreamDisconnected = (reason) => {
+    if (!isLiveRef.current) return;
+    if (streamConnStatusRef.current === 'reconnecting') return;
+
+    console.warn('⚠️ [WEBRTC DISCONNECTED]:', reason);
+    setStreamConnStatus('reconnecting');
+    streamConnStatusRef.current = 'reconnecting';
+    setReconnectCountdown(15);
+
+    clearInterval(webrtcCountdownIntervalRef.current);
+    let remaining = 15;
+    webrtcCountdownIntervalRef.current = setInterval(() => {
+      remaining -= 1;
+      setReconnectCountdown(remaining);
+      if (remaining <= 0) {
+        clearInterval(webrtcCountdownIntervalRef.current);
+        clearTimeout(webrtcReconnectTimerRef.current);
+        console.error('❌ [WEBRTC TIMEOUT]: Đã quá 15s không thể phục hồi luồng.');
+        stopLivestream('Mất kết nối mạng quá 15 giây. Buổi live đã dừng để đảm bảo an toàn cho video đã ghi hình.');
+      }
+    }, 1000);
+
+    triggerWebRTCReconnect();
+  };
+
+  const handleStreamRecovered = () => {
+    if (streamConnStatusRef.current === 'connected') return;
+    console.log('🎉 [WEBRTC RECOVERED]: Luồng WebRTC đã khôi phục thành công!');
+    clearInterval(webrtcCountdownIntervalRef.current);
+    clearTimeout(webrtcReconnectTimerRef.current);
+    isReconnectingWebRTCRef.current = false;
+    setStreamConnStatus('recovered');
+    streamConnStatusRef.current = 'recovered';
+    setTimeout(() => {
+      if (streamConnStatusRef.current === 'recovered') {
+        setStreamConnStatus('connected');
+        streamConnStatusRef.current = 'connected';
+      }
+    }, 3500);
+  };
+
+  const triggerWebRTCReconnect = async () => {
+    if (!isLiveRef.current || isReconnectingWebRTCRef.current) return;
+    if (streamConnStatusRef.current !== 'reconnecting') return;
+
+    isReconnectingWebRTCRef.current = true;
+    console.log('🔄 [WEBRTC AUTO-RECONNECT]: Bắt đầu thử tái lập kết nối WebRTC...');
+
+    try {
+      await publishWebRTC({ isReconnect: true });
+      console.log('✅ [WEBRTC AUTO-RECONNECT]: Tái lập thành công!');
+      handleStreamRecovered();
+    } catch (err) {
+      console.warn('⚠️ [WEBRTC AUTO-RECONNECT]: Thử lại thất bại, sẽ thử lại sau 3s:', err);
+      if (isLiveRef.current && streamConnStatusRef.current === 'reconnecting') {
+        clearTimeout(webrtcReconnectTimerRef.current);
+        webrtcReconnectTimerRef.current = setTimeout(() => {
+          isReconnectingWebRTCRef.current = false;
+          triggerWebRTCReconnect();
+        }, 3000);
+      }
+    } finally {
+      isReconnectingWebRTCRef.current = false;
+    }
+  };
+
+  // CORE WEBRTC PUBLISHER HANDSHAKE VỚI SRS
+  const publishWebRTC = async ({ isReconnect = false } = {}) => {
+    const streamKey = String(selectedKeyRef.current || selectedKey || '').trim();
+    if (!streamKey) {
+      throw new Error('Vui lòng chọn kênh có Stream Key.');
+    }
+    const publishSecret = publishSecretsRef.current?.[streamKey] || publishSecrets[streamKey];
+    if (!publishSecret) {
+      throw new Error('Chưa tải được khóa phát an toàn.');
+    }
+
+    if (!mediaStreamRef.current) {
+      throw new Error('Chưa có nguồn video để phát sóng.');
+    }
+
+    const videoTrack = mediaStreamRef.current.getVideoTracks()[0];
+    if (!videoTrack || videoTrack.readyState !== 'live') {
+      throw new Error('Camera chưa sẵn sàng.');
+    }
+
+    if (peerConnRef.current) {
+      try {
+        peerConnRef.current.close();
+      } catch (e) {}
+      peerConnRef.current = null;
+    }
+
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    });
+    peerConnRef.current = pc;
+
+    pc.oniceconnectionstatechange = () => {
+      const ice = pc.iceConnectionState;
+      console.warn('📡 [WEBRTC ICE STATE]:', ice);
+      if (ice === 'disconnected' || ice === 'failed') {
+        handleStreamDisconnected('Mất kết nối ICE với SRS Media Server (UDP 8000).');
+      } else if (ice === 'connected' || ice === 'completed') {
+        handleStreamRecovered();
+      }
+    };
+
+    pc.onconnectionstatechange = () => {
+      const conn = pc.connectionState;
+      console.warn('📡 [WEBRTC CONN STATE]:', conn);
+      if (conn === 'disconnected' || conn === 'failed') {
+        handleStreamDisconnected('Luồng phát bị ngắt kết nối với máy chủ.');
+      } else if (conn === 'connected') {
+        handleStreamRecovered();
+      }
+    };
+
+    const audioTrack = mediaStreamRef.current.getAudioTracks()[0];
+    if (audioTrack) {
+      audioTrack.enabled = isMicOn;
+      pc.addTransceiver(audioTrack, { direction: 'sendonly', streams: [mediaStreamRef.current] });
+    }
+
+    if (videoTrack) {
+      videoTrack.enabled = isCameraOn;
+      pc.addTransceiver(videoTrack, { direction: 'sendonly', streams: [mediaStreamRef.current] });
+    }
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    await waitForIceGatheringComplete(pc);
+
+    const streamUrl = `webrtc://${SRS_VPS_HOST}/live/${encodeURIComponent(streamKey)}?publish_secret=${encodeURIComponent(publishSecret)}`;
+    const rtcBase = isVercel() ? NGROK_HLS_URL : '';
+    const apiUrl = new URL(`${rtcBase}/rtc/v1/publish/`, window.location.origin).toString();
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
+      },
+      body: JSON.stringify({
+        api: apiUrl,
+        streamurl: streamUrl,
+        sdp: pc.localDescription?.sdp || offer.sdp
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Máy chủ phản hồi HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (data.code !== 0) {
+      const serverReason = data.message || data.error || data.reason || data.msg;
+      throw new Error(
+        serverReason
+          ? `SRS từ chối phát luồng (mã lỗi ${data.code}): ${serverReason}`
+          : `SRS từ chối phát luồng (mã lỗi ${data.code}).`
+      );
+    }
+
+    const candidates = data.sdp?.match(/a=candidate:.*/g) || [];
+    console.log('📡 [WEBRTC ANSWER CANDIDATES]:', candidates);
+
+    await pc.setRemoteDescription(
+      new RTCSessionDescription({ type: 'answer', sdp: data.sdp })
+    );
+
+    return pc;
+  };
+
   // BẮT ĐẦU PHÁT SÓNG TRỰC TIẾP QUA WEBRTC LÊN SRS
   const startLivestream = async () => {
     if (!user || user.role !== 'admin') {
@@ -1038,86 +1241,12 @@ export default function LiveStudioModal({
         }
       }
 
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-      });
-      peerConnRef.current = pc;
-
-      pc.oniceconnectionstatechange = () => {
-        console.warn('📡 [WEBRTC ICE STATE]:', pc.iceConnectionState);
-        if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
-          console.error('❌ [WEBRTC ICE FAILED]: Mất kết nối ICE với SRS Media Server (UDP 8000). Hãy kiểm tra mạng hoặc tạm tắt VPN/WARP.');
-        }
-      };
-
-      pc.onconnectionstatechange = () => {
-        console.warn('📡 [WEBRTC CONN STATE]:', pc.connectionState);
-        if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-          console.error('❌ [WEBRTC DISCONNECTED]: Luồng bị ngắt kết nối. Trạng thái:', pc.connectionState);
-        }
-      };
-
-      const audioTrack = mediaStreamRef.current.getAudioTracks()[0];
-
-      if (audioTrack) {
-        audioTrack.enabled = isMicOn;
-        pc.addTransceiver(audioTrack, { direction: 'sendonly', streams: [mediaStreamRef.current] });
-        console.log('[WEBRTC] Đã gắn Audio Track vào bộ phát sendonly:', audioTrack.label);
-      }
-
-      if (videoTrack) {
-        videoTrack.enabled = isCameraOn;
-        pc.addTransceiver(videoTrack, { direction: 'sendonly', streams: [mediaStreamRef.current] });
-        console.log('[WEBRTC] Đã gắn Video Track vào bộ phát sendonly:', videoTrack.label);
-      }
-
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      // The legacy SRS JSON publish API exchanges one complete SDP offer rather than
-      // trickled ICE candidates, so wait for gathering and send the final local SDP.
-      await waitForIceGatheringComplete(pc);
-
-      const streamUrl = `webrtc://${SRS_VPS_HOST}/live/${encodeURIComponent(streamKey)}?publish_secret=${encodeURIComponent(publishSecret)}`;
-      
-      // Use the same-origin Vercel/Vite rewrite so HTTPS pages do not make mixed-content requests.
-      const rtcBase = isVercel() ? NGROK_HLS_URL : '';
-      const apiUrl = new URL(`${rtcBase}/rtc/v1/publish/`, window.location.origin).toString();
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true'
-        },
-        body: JSON.stringify({
-          api: apiUrl,
-          streamurl: streamUrl,
-          sdp: pc.localDescription?.sdp || offer.sdp
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Máy chủ phản hồi HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.code !== 0) {
-        const serverReason = data.message || data.error || data.reason || data.msg;
-        throw new Error(
-          serverReason
-            ? `SRS từ chối phát luồng (mã lỗi ${data.code}): ${serverReason}`
-            : `SRS từ chối phát luồng (mã lỗi ${data.code}).`
-        );
-      }
-
-      const candidates = data.sdp?.match(/a=candidate:.*/g) || [];
-      console.log('📡 [WEBRTC ANSWER CANDIDATES]:', candidates);
-
-      await pc.setRemoteDescription(
-        new RTCSessionDescription({ type: 'answer', sdp: data.sdp })
-      );
+      await publishWebRTC({ isReconnect: false });
 
       setIsLive(true);
+      isLiveRef.current = true;
+      setStreamConnStatus('connected');
+      streamConnStatusRef.current = 'connected';
       setIsPublishing(false);
       setActiveTab('chat');
       onStreamStarted && onStreamStarted(selectedKey);
@@ -1126,6 +1255,7 @@ export default function LiveStudioModal({
       setErrorMessage(err.message || 'Không thể kết nối đến máy chủ SRS để phát sóng.');
       setIsPublishing(false);
       setIsLive(false);
+      isLiveRef.current = false;
       if (peerConnRef.current) {
         peerConnRef.current.close();
         peerConnRef.current = null;
@@ -1134,13 +1264,26 @@ export default function LiveStudioModal({
   };
 
   // DỪNG PHÁT SÓNG TRỰC TIẾP
-  const stopLivestream = () => {
+  const stopLivestream = (customError = '') => {
+    clearInterval(webrtcCountdownIntervalRef.current);
+    clearTimeout(webrtcReconnectTimerRef.current);
+    isReconnectingWebRTCRef.current = false;
+    setStreamConnStatus('connected');
+    streamConnStatusRef.current = 'connected';
+
     if (peerConnRef.current) {
-      peerConnRef.current.close();
+      try {
+        peerConnRef.current.close();
+      } catch (e) {}
       peerConnRef.current = null;
     }
     setIsLive(false);
+    isLiveRef.current = false;
     setIsPublishing(false);
+
+    if (customError && typeof customError === 'string') {
+      setErrorMessage(customError);
+    }
   };
 
   const formatTimer = (seconds) => {
@@ -1200,7 +1343,18 @@ export default function LiveStudioModal({
                 )}
               </div>
               <p className="text-[10px] sm:text-[11px] text-gray-400 truncate max-w-[170px] sm:max-w-xs">
-                Trạng thái: <span className="text-rose-400 font-bold">{isLive ? 'Đang phát sóng trực tiếp' : 'Sẵn sàng lên sóng'}</span>
+                Trạng thái:{' '}
+                {isLive ? (
+                  streamConnStatus === 'reconnecting' ? (
+                    <span className="text-amber-400 font-bold animate-pulse">⚠️ Đang kết nối lại ({reconnectCountdown}s)</span>
+                  ) : streamConnStatus === 'recovered' ? (
+                    <span className="text-emerald-400 font-bold">✅ Đã khôi phục</span>
+                  ) : (
+                    <span className="text-rose-400 font-bold">Đang phát sóng</span>
+                  )
+                ) : (
+                  <span className="text-gray-400 font-bold">Sẵn sàng lên sóng</span>
+                )}
               </p>
             </div>
           </div>
@@ -1277,6 +1431,44 @@ export default function LiveStudioModal({
                 className={`w-full h-full ${videoFit === 'contain' ? 'object-contain' : 'object-cover'} object-center bg-black transition-all duration-200`}
               />
 
+              {/* CẢNH BÁO MẤT KẾT NỐI VÀ TỰ ĐỘNG RECONNECT TRỰC TIẾP TRÊN CAMERA */}
+              {isLive && streamConnStatus === 'reconnecting' && (
+                <div className="absolute inset-x-2.5 sm:inset-x-4 top-14 z-40 p-2.5 sm:p-3 rounded-xl bg-amber-950/95 border-2 border-amber-500 backdrop-blur-md shadow-2xl flex items-center justify-between gap-2.5 animate-pulse">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <RefreshCw className="w-5 h-5 text-amber-400 shrink-0 animate-spin" />
+                    <div className="text-left min-w-0">
+                      <p className="text-xs sm:text-sm font-extrabold text-amber-200 flex items-center gap-1.5 truncate">
+                        <span>⚠️ Mạng gián đoạn!</span>
+                        <span className="text-[11px] font-normal text-amber-300/90 hidden sm:inline">Đang tự nối lại luồng...</span>
+                      </p>
+                      <p className="text-[10px] sm:text-[11px] text-amber-300/80">
+                        Hệ thống đang tự nối lại vào máy chủ, vui lòng giữ nguyên màn hình.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="px-2.5 py-1 rounded-lg bg-black/75 font-mono text-xs sm:text-sm font-black text-amber-300 border border-amber-500/50 shadow-inner">
+                      {reconnectCountdown}s
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* THÔNG BÁO KHÔI PHỤC KẾT NỐI THÀNH CÔNG */}
+              {isLive && streamConnStatus === 'recovered' && (
+                <div className="absolute inset-x-2.5 sm:inset-x-4 top-14 z-40 p-2 sm:p-2.5 rounded-xl bg-emerald-950/95 border border-emerald-500/80 backdrop-blur-md shadow-2xl flex items-center gap-2.5">
+                  <Check className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 shrink-0" />
+                  <div className="text-left">
+                    <p className="text-xs sm:text-sm font-bold text-emerald-200">
+                      ✅ Đã khôi phục kết nối luồng phát sóng!
+                    </p>
+                    <p className="text-[10px] text-emerald-300/80">
+                      Buổi trực tiếp tiếp tục bình thường không bị mất phiên ghi hình.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* FLOATING REACTION EMOJIS BAY LÊN KHI KHÁN GIẢ THẢ TIM */}
               <div className="absolute inset-y-0 right-3 pointer-events-none flex flex-col justify-end pb-16 z-30 overflow-hidden">
                 {floatingEmojis.map((item) => (
@@ -1292,10 +1484,20 @@ export default function LiveStudioModal({
                 {/* Góc trái: Trạng thái xem trước hoặc Live */}
                 <div className="pointer-events-auto flex items-center gap-1.5">
                   <span className={`px-2 py-1 rounded-full backdrop-blur-md text-[10px] font-black border flex items-center gap-1 shadow-md ${
-                    isLive ? 'bg-rose-600/90 text-white border-rose-400 animate-pulse' : 'bg-black/70 text-gray-300 border-white/20'
+                    isLive
+                      ? streamConnStatus === 'reconnecting'
+                        ? 'bg-amber-600/90 text-white border-amber-400 animate-pulse'
+                        : 'bg-rose-600/90 text-white border-rose-400 animate-pulse'
+                      : 'bg-black/70 text-gray-300 border-white/20'
                   }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-white' : 'bg-cyan-400'}`} />
-                    <span>{isLive ? 'LIVE' : 'XEM TRƯỚC'}</span>
+                    <span className={`w-1.5 h-1.5 rounded-full ${
+                      isLive
+                        ? streamConnStatus === 'reconnecting'
+                          ? 'bg-amber-200 animate-ping'
+                          : 'bg-white'
+                        : 'bg-cyan-400'
+                    }`} />
+                    <span>{isLive ? (streamConnStatus === 'reconnecting' ? 'ĐANG NỐI LẠI' : 'LIVE') : 'XEM TRƯỚC'}</span>
                   </span>
                 </div>
 
