@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Video, 
-  VideoOff, 
-  Mic, 
-  MicOff, 
-  Radio, 
-  Monitor, 
-  Camera, 
-  X, 
-  AlertCircle, 
-  Check, 
-  Sparkles, 
-  Activity, 
+import {
+  Video,
+  VideoOff,
+  Mic,
+  MicOff,
+  Radio,
+  Monitor,
+  Camera,
+  X,
+  AlertCircle,
+  Check,
+  Sparkles,
+  Activity,
   Play,
   Square,
   Clock,
@@ -28,6 +28,8 @@ import {
   Smartphone,
   Sliders,
   FileText,
+  Download,
+  Volume2,
 } from 'lucide-react';
 import { getApiBaseUrl, getWsUrl, NGROK_HLS_URL, SRS_VPS_HOST, isVercel } from '../config';
 import { mergeChatMessages } from '../chatUtils';
@@ -53,10 +55,10 @@ const waitForIceGatheringComplete = (peerConnection, timeoutMs = 8000) => new Pr
   onStateChange();
 });
 
-export default function LiveStudioModal({ 
-  isOpen, 
-  onClose, 
-  streamKeys = [], 
+export default function LiveStudioModal({
+  isOpen,
+  onClose,
+  streamKeys = [],
   currentStreamKey = '',
   publishSecrets = {},
   onStreamStarted,
@@ -80,12 +82,12 @@ export default function LiveStudioModal({
   const [resolution, setResolution] = useState('720p'); // '1080p' | '720p' | '480p' | '360p'
   const [actualVideoSettings, setActualVideoSettings] = useState(null);
   const [orientation, setOrientation] = useState('landscape'); // 'landscape' (Ngang 16:9) | 'portrait' (Dọc 9:16) | 'square' (Vuông 1:1)
-  
+
   // Chế độ phóng to toàn màn hình camera cho Streamer
   const [isCamMaximized, setIsCamMaximized] = useState(false);
   const [videoFit, setVideoFit] = useState('contain'); // 'contain' (khớp người xem) | 'cover' (lấp đầy)
   const [, setPreviewMetadataVersion] = useState(0);
-  
+
   // Tab điều khiển bên dưới: 'chat' (Bình luận trực tiếp) | 'config' (Cấu hình luồng) | 'script' (Kịch bản live)
   const [activeTab, setActiveTab] = useState('chat');
 
@@ -98,6 +100,23 @@ export default function LiveStudioModal({
     }
   });
   const [scriptFontSize, setScriptFontSize] = useState(15);
+
+  // Chế độ thu âm Micro: 'studio' (Âm mộc không méo tiếng) | 'speech' (Lọc tạp âm thông minh)
+  const [audioMode, setAudioMode] = useState(() => {
+    try {
+      return localStorage.getItem('traiga_audio_mode') || 'studio';
+    } catch {
+      return 'studio';
+    }
+  });
+
+  // Ghi hình sao lưu HD tại thiết bị (Local Backup Recording qua MediaRecorder)
+  const [enableLocalBackup, setEnableLocalBackup] = useState(true);
+  const [localBackupBlob, setLocalBackupBlob] = useState(null);
+  const [localBackupUrl, setLocalBackupUrl] = useState('');
+  const [localBackupSize, setLocalBackupSize] = useState(0);
+  const mediaRecorderRef = useRef(null);
+  const recordedChunksRef = useRef([]);
 
   // Trạng thái Chat trực tiếp trong Studio cho Streamer
   const [studioMessages, setStudioMessages] = useState([]);
@@ -215,7 +234,7 @@ export default function LiveStudioModal({
 
     return () => {
       if (wakeLock && typeof wakeLock.release === 'function') {
-        wakeLock.release().catch(() => {});
+        wakeLock.release().catch(() => { });
       }
     };
   }, [isLive]);
@@ -239,13 +258,13 @@ export default function LiveStudioModal({
     try {
       const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtxClass) return undefined;
-      
+
       if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
         audioCtxRef.current = new AudioCtxClass();
       }
       const audioCtx = audioCtxRef.current;
       if (audioCtx.state === 'suspended') {
-        audioCtx.resume?.().catch(() => {});
+        audioCtx.resume?.().catch(() => { });
       }
 
       const source = audioCtx.createMediaStreamSource(new MediaStream([audioTrack]));
@@ -370,7 +389,7 @@ export default function LiveStudioModal({
                 localStorage.removeItem('auth_token');
                 try {
                   ws.send(JSON.stringify({ type: 'auth_guest', guest_name: streamerName }));
-                } catch (e) {}
+                } catch (e) { }
               } else {
                 setStudioChatError(errStr || 'Gửi bình luận thất bại.');
                 pendingStudioMessageRef.current = null;
@@ -379,7 +398,7 @@ export default function LiveStudioModal({
               }
             }
           }
-        } catch (e) {}
+        } catch (e) { }
       };
     } catch (e) {
       if (isMountedRef.current && !isPageHiddenRef.current) {
@@ -397,7 +416,7 @@ export default function LiveStudioModal({
       if (studioWsRef.current) {
         try {
           studioWsRef.current.close(1000, 'Studio closed');
-        } catch (e) {}
+        } catch (e) { }
         studioWsRef.current = null;
       }
       return;
@@ -457,7 +476,7 @@ export default function LiveStudioModal({
       if (studioWsRef.current) {
         try {
           studioWsRef.current.close(1000, 'Unmount');
-        } catch (e) {}
+        } catch (e) { }
         studioWsRef.current = null;
       }
     };
@@ -512,7 +531,7 @@ export default function LiveStudioModal({
       connectChat();
       return;
     }
-    
+
     const payload = {
       type: 'chat',
       message: text,
@@ -576,12 +595,12 @@ export default function LiveStudioModal({
     try {
       video.srcObject = stream;
       const playResult = video.play?.();
-      if (playResult?.catch) playResult.catch(() => {});
+      if (playResult?.catch) playResult.catch(() => { });
     } catch {
       try {
         video.srcObject = new MediaStream(stream.getTracks());
-        video.play?.().catch(() => {});
-      } catch {}
+        video.play?.().catch(() => { });
+      } catch { }
     }
   };
 
@@ -611,7 +630,7 @@ export default function LiveStudioModal({
     if (previewVideoRef.current) {
       previewVideoRef.current.srcObject = null;
       previewVideoRef.current.srcObject = stream;
-      previewVideoRef.current.play?.().catch(() => {});
+      previewVideoRef.current.play?.().catch(() => { });
     }
 
     attachPreviewStream(stream);
@@ -779,12 +798,41 @@ export default function LiveStudioModal({
     };
   };
 
-  // Cấu hình Micro chuẩn phòng thu (Studio Audio): Giữ 100% âm sắc nguyên bản, không nghẹt tiếng / méo tiếng
-  const getAudioConstraints = () => ({
-    echoCancellation: true, // Vẫn chống dội loa ngoài
-    noiseSuppression: false, // TẮT lọc ồn hội nghị: Giữ trọn âm sắc tự nhiên, không bị nghẹt mũi / méo tiếng
-    autoGainControl: false // TẮT nén âm tự động: Giữ dải động tự nhiên, không bị lúc to lúc nhỏ
-  });
+  // Cấu hình Micro: 'studio' (Âm thanh mộc, ấm, 100% nguyên bản) hoặc 'speech' (Lọc tạp âm quạt/gió)
+  const getAudioConstraints = (mode = audioMode) => {
+    if (mode === 'studio') {
+      return {
+        echoCancellation: true, // Vẫn chống dội loa
+        noiseSuppression: false, // TẮT lọc ồn hội nghị để giữ trọn âm sắc thực, không nghẹt giọng
+        autoGainControl: false, // TẮT nén âm tự động để không bị méo tiếng / lúc to lúc nhỏ
+        sampleRate: 48000,
+        channelCount: { ideal: 2 }
+      };
+    }
+    return {
+      echoCancellation: true,
+      noiseSuppression: true, // BẬT lọc tạp âm môi trường (tiếng gió, xe cộ, quạt)
+      autoGainControl: true,
+      sampleRate: 48000
+    };
+  };
+
+  const handleAudioModeChange = async (newMode) => {
+    setAudioMode(newMode);
+    try {
+      localStorage.setItem('traiga_audio_mode', newMode);
+    } catch { }
+
+    const audioTrack = mediaStreamRef.current?.getAudioTracks()[0];
+    if (audioTrack && audioTrack.readyState === 'live') {
+      try {
+        await audioTrack.applyConstraints(getAudioConstraints(newMode));
+        console.log('[AUDIO] Đã đổi chế độ Micro mượt mà sang:', newMode);
+      } catch (err) {
+        console.warn('[AUDIO] applyConstraints không thành công:', err);
+      }
+    }
+  };
 
   // Khởi tạo nguồn thu Webcam hoặc Màn hình
   const initMediaStream = async (type = sourceType, mode = facingMode) => {
@@ -929,7 +977,7 @@ export default function LiveStudioModal({
 
     try {
       const dims = getDims(resolution, orientation);
-      
+
       let newStream = null;
       try {
         newStream = await navigator.mediaDevices.getUserMedia({
@@ -976,9 +1024,9 @@ export default function LiveStudioModal({
   // Bật/tắt micro (Tự động xin cấp quyền và kết nối thiết bị nếu chưa có track)
   const toggleMic = async () => {
     if (!mediaStreamRef.current) return;
-    
+
     let audioTrack = mediaStreamRef.current.getAudioTracks()[0];
-    
+
     // Nếu chưa có Audio Track hoặc track đã dừng -> Yêu cầu quyền và thu Micro
     if (!audioTrack || audioTrack.readyState === 'ended') {
       try {
@@ -1128,7 +1176,7 @@ export default function LiveStudioModal({
     if (peerConnRef.current) {
       try {
         peerConnRef.current.close();
-      } catch (e) {}
+      } catch (e) { }
       peerConnRef.current = null;
     }
 
@@ -1176,7 +1224,7 @@ export default function LiveStudioModal({
         if (params.encodings && params.encodings.length > 0) {
           params.encodings[0].scaleResolutionDownBy = 1.0;
         }
-        sender.setParameters(params).catch(() => {});
+        sender.setParameters(params).catch(() => { });
       } catch (paramErr) {
         console.warn('[WEBRTC] Không thể đặt degradationPreference:', paramErr);
       }
@@ -1280,6 +1328,49 @@ export default function LiveStudioModal({
 
       await publishWebRTC({ isReconnect: false });
 
+      // Khởi động ghi hình dự phòng cục bộ (Local Backup Recording bằng MediaRecorder)
+      if (enableLocalBackup && mediaStreamRef.current) {
+        try {
+          recordedChunksRef.current = [];
+          setLocalBackupBlob(null);
+          setLocalBackupUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return '';
+          });
+          setLocalBackupSize(0);
+
+          const mimeTypes = [
+            'video/webm;codecs=vp8,opus',
+            'video/webm;codecs=h264,opus',
+            'video/webm',
+            'video/mp4'
+          ];
+          const supportedMime = mimeTypes.find((m) => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(m)) || '';
+          const options = supportedMime ? { mimeType: supportedMime } : undefined;
+          const recorder = new MediaRecorder(mediaStreamRef.current, options);
+          recorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) {
+              recordedChunksRef.current.push(e.data);
+            }
+          };
+          recorder.onstop = () => {
+            if (recordedChunksRef.current.length > 0) {
+              const blob = new Blob(recordedChunksRef.current, { type: supportedMime || 'video/webm' });
+              setLocalBackupBlob(blob);
+              const url = URL.createObjectURL(blob);
+              setLocalBackupUrl(url);
+              setLocalBackupSize(blob.size);
+              console.log('[RECORDER] Đã lưu bản ghi dự phòng HD trên máy:', (blob.size / 1024 / 1024).toFixed(2), 'MB');
+            }
+          };
+          recorder.start(3000); // Lưu mỗi đoạn 3s
+          mediaRecorderRef.current = recorder;
+          console.log('[RECORDER] Đã kích hoạt ghi hình dự phòng HD tại máy');
+        } catch (recErr) {
+          console.warn('[RECORDER] Không thể kích hoạt MediaRecorder:', recErr);
+        }
+      }
+
       setIsLive(true);
       isLiveRef.current = true;
       setStreamConnStatus('connected');
@@ -1308,10 +1399,16 @@ export default function LiveStudioModal({
     setStreamConnStatus('connected');
     streamConnStatusRef.current = 'connected';
 
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (e) { }
+    }
+
     if (peerConnRef.current) {
       try {
         peerConnRef.current.close();
-      } catch (e) {}
+      } catch (e) { }
       peerConnRef.current = null;
     }
     setIsLive(false);
@@ -1356,7 +1453,7 @@ export default function LiveStudioModal({
   return (
     <div className="min-h-[100dvh] w-full bg-[#0c0d11]">
       <div className={`relative mx-auto w-full ${isCamMaximized ? 'max-w-[1800px]' : 'max-w-[1600px]'} bg-[#111218] border-0 sm:border-x border-white/10 shadow-2xl overflow-hidden flex flex-col min-h-[100dvh] transition-all duration-300`}>
-        
+
         {/* ================= HEADER MODAL ================= */}
         <div className="flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3 border-b border-white/10 bg-[#161720]">
           <div className="flex items-center gap-2 sm:gap-3">
@@ -1441,23 +1538,65 @@ export default function LiveStudioModal({
         )}
 
         {/* ================= BODY STUDIO ================= */}
+        {/* Banner thông báo tải bản ghi HD sao lưu tại máy (Local Backup) khi kết thúc live */}
+        {localBackupUrl && !isLive && (
+          <div className="mx-2 sm:mx-4 mt-2.5 p-3 bg-gradient-to-r from-emerald-950/90 to-teal-950/90 border border-emerald-500/50 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xl animate-fadeIn">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
+                <Check className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-bold text-white text-xs sm:text-sm flex items-center gap-2">
+                  <span>Bản ghi HD dự phòng sẵn sàng!</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/30 text-emerald-200 border border-emerald-400/40">
+                    {(localBackupSize / 1024 / 1024).toFixed(1)} MB
+                  </span>
+                </p>
+                <p className="text-[11px] text-emerald-300/80">
+                  Đã ghi song song trực tiếp từ máy của bạn. Không sợ mất video kể cả khi mạng 4G/Wifi bị lag hay đứt!
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <a
+                href={localBackupUrl}
+                download={`traiga_${selectedKey || 'live'}_${new Date().toISOString().slice(0, 10)}.webm`}
+                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 transition text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-950/50 cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>Tải Bản Ghi Về Máy</span>
+              </a>
+              <button
+                onClick={() => {
+                  if (localBackupUrl) URL.revokeObjectURL(localBackupUrl);
+                  setLocalBackupUrl('');
+                  setLocalBackupBlob(null);
+                }}
+                className="p-2 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition cursor-pointer"
+                title="Đóng thông báo"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Hỗ trợ Responsive linh hoạt: Khi xoay ngang điện thoại (landscape) tự động chia 2 cột trái-phải */}
         <div className="p-2 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 overflow-y-auto flex-1">
-          
+
           {/* CỘT TRÁI: CAMERA VIEWPORT CHUẨN THẲNG MẶT & ĐIỀU KHIỂN */}
           <div className={`${isCamMaximized ? 'lg:col-span-8' : 'lg:col-span-7'} flex flex-col gap-2.5 transition-all duration-300`}>
-            
+
             {/* KHUNG CAMERA CHUẨN GÓC RỘNG - HỖ TRỢ XOAY DỌC 9:16, NGANG 16:9 VÀ VUÔNG 1:1 */}
-            <div ref={previewFrameRef} className={`relative w-full ${
-              orientation === 'portrait'
+            <div ref={previewFrameRef} className={`relative w-full ${orientation === 'portrait'
                 ? 'max-w-[280px] mx-auto aspect-[9/16] h-[360px] sm:h-[430px]'
                 : orientation === 'square'
-                ? 'max-w-[340px] mx-auto aspect-square'
-                : isCamMaximized 
-                ? 'h-[62vh] xs:h-[68vh] sm:h-[480px]' 
-                : 'aspect-video sm:h-[360px]'
-            } bg-black rounded-2xl overflow-hidden border border-white/15 shadow-2xl flex items-center justify-center transition-all duration-300 group keep-dark`}>
-              
+                  ? 'max-w-[340px] mx-auto aspect-square'
+                  : isCamMaximized
+                    ? 'h-[62vh] xs:h-[68vh] sm:h-[480px]'
+                    : 'aspect-video sm:h-[360px]'
+              } bg-black rounded-2xl overflow-hidden border border-white/15 shadow-2xl flex items-center justify-center transition-all duration-300 group keep-dark`}>
+
               <video
                 ref={previewVideoRef}
                 autoPlay
@@ -1517,30 +1656,28 @@ export default function LiveStudioModal({
 
               {/* THANH ĐIỀU KHIỂN TRÊN CÙNG CỦA VIDEO - BỐ TRÍ KHÔNG BAO GIỜ BỊ CHỒNG CHÉO */}
               <div className="absolute top-2.5 inset-x-2.5 z-30 flex items-center justify-between gap-1.5 pointer-events-none">
-                
+
                 {/* Góc trái: Trạng thái xem trước hoặc Live */}
                 <div className="pointer-events-auto flex items-center gap-1.5">
-                  <span className={`px-2 py-1 rounded-full backdrop-blur-md text-[10px] font-black border flex items-center gap-1 shadow-md ${
-                    isLive
+                  <span className={`px-2 py-1 rounded-full backdrop-blur-md text-[10px] font-black border flex items-center gap-1 shadow-md ${isLive
                       ? streamConnStatus === 'reconnecting'
                         ? 'bg-amber-600/90 text-white border-amber-400 animate-pulse'
                         : 'bg-rose-600/90 text-white border-rose-400 animate-pulse'
                       : 'bg-black/70 text-gray-300 border-white/20'
-                  }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${
-                      isLive
+                    }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${isLive
                         ? streamConnStatus === 'reconnecting'
                           ? 'bg-amber-200 animate-ping'
                           : 'bg-white'
                         : 'bg-cyan-400'
-                    }`} />
+                      }`} />
                     <span>{isLive ? (streamConnStatus === 'reconnecting' ? 'ĐANG NỐI LẠI' : 'LIVE') : 'XEM TRƯỚC'}</span>
                   </span>
                 </div>
 
                 {/* Góc phải: Nút Phóng to Cam + Nút Lật Cam + Nút Tỉ lệ */}
                 <div className="pointer-events-auto flex items-center gap-1.5">
-                  
+
                   {/* NÚT PHÓNG TO / THU NHỎ CAMERA */}
                   <button
                     onClick={() => setIsCamMaximized(!isCamMaximized)}
@@ -1608,9 +1745,8 @@ export default function LiveStudioModal({
                 <div className="absolute bottom-3 inset-x-0 flex items-center justify-center gap-3 z-20">
                   <button
                     onClick={toggleMic}
-                    className={`px-3 py-2 sm:py-2.5 rounded-full transition shadow-lg backdrop-blur-md cursor-pointer flex items-center gap-2 ${
-                      isMicOn ? 'bg-black/75 text-white hover:bg-black/90 border border-white/20' : 'bg-rose-600 text-white border border-rose-400'
-                    }`}
+                    className={`px-3 py-2 sm:py-2.5 rounded-full transition shadow-lg backdrop-blur-md cursor-pointer flex items-center gap-2 ${isMicOn ? 'bg-black/75 text-white hover:bg-black/90 border border-white/20' : 'bg-rose-600 text-white border border-rose-400'
+                      }`}
                     title={isMicOn ? `Micro đang bật (Âm lượng: ${micVolume}%)` : "Bật Micro"}
                   >
                     {isMicOn ? <Mic className="w-4 h-4 text-emerald-400" /> : <MicOff className="w-4 h-4 text-white" />}
@@ -1626,9 +1762,8 @@ export default function LiveStudioModal({
 
                   <button
                     onClick={toggleCamera}
-                    className={`p-2.5 sm:p-3 rounded-full transition shadow-lg backdrop-blur-md cursor-pointer ${
-                      isCameraOn ? 'bg-black/60 text-white hover:bg-black/80 border border-white/20' : 'bg-rose-600 text-white border border-rose-400'
-                    }`}
+                    className={`p-2.5 sm:p-3 rounded-full transition shadow-lg backdrop-blur-md cursor-pointer ${isCameraOn ? 'bg-black/60 text-white hover:bg-black/80 border border-white/20' : 'bg-rose-600 text-white border border-rose-400'
+                      }`}
                     title={isCameraOn ? "Tắt Camera" : "Bật Camera"}
                   >
                     {isCameraOn ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
@@ -1675,11 +1810,10 @@ export default function LiveStudioModal({
               <button
                 onClick={() => handleSwitchSource('camera')}
                 disabled={isLive}
-                className={`py-1.5 sm:py-2 px-3 rounded-xl border text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition ${
-                  sourceType === 'camera'
+                className={`py-1.5 sm:py-2 px-3 rounded-xl border text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition ${sourceType === 'camera'
                     ? 'bg-rose-600/20 border-rose-500/50 text-rose-300'
                     : 'bg-[#161720] border-white/5 text-gray-400 hover:text-white'
-                } disabled:opacity-50`}
+                  } disabled:opacity-50`}
               >
                 <Camera className="w-3.5 h-3.5" />
                 <span>Camera Điện Thoại / Webcam</span>
@@ -1688,11 +1822,10 @@ export default function LiveStudioModal({
               <button
                 onClick={() => handleSwitchSource('screen')}
                 disabled={isLive}
-                className={`py-1.5 sm:py-2 px-3 rounded-xl border text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition ${
-                  sourceType === 'screen'
+                className={`py-1.5 sm:py-2 px-3 rounded-xl border text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition ${sourceType === 'screen'
                     ? 'bg-rose-600/20 border-rose-500/50 text-rose-300'
                     : 'bg-[#161720] border-white/5 text-gray-400 hover:text-white'
-                } disabled:opacity-50`}
+                  } disabled:opacity-50`}
               >
                 <Monitor className="w-3.5 h-3.5" />
                 <span>Chia sẻ màn hình</span>
@@ -1703,16 +1836,15 @@ export default function LiveStudioModal({
 
           {/* CỘT PHẢI: KHUNG ĐỌC BÌNH LUẬN TRỰC TIẾP & BẢNG ĐIỀU KHIỂN */}
           <div className={`${isCamMaximized ? 'lg:col-span-4' : 'lg:col-span-5'} flex flex-col justify-between bg-[#161720] border border-white/10 rounded-2xl p-3 sm:p-4 min-h-[300px] sm:min-h-[360px] shadow-xl transition-all duration-300`}>
-            
+
             {/* THANH CHUYỂN TAB: BÌNH LUẬN TRỰC TIẾP <-> KỊCH BẢN LIVE <-> CẤU HÌNH PHÒNG */}
             <div className="flex items-center p-1 rounded-xl bg-black/40 border border-white/10 mb-2 sm:mb-3 gap-1">
               <button
                 onClick={() => setActiveTab('chat')}
-                className={`flex-1 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                  activeTab === 'chat'
+                className={`flex-1 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1.5 ${activeTab === 'chat'
                     ? 'bg-rose-600 text-white shadow-md'
                     : 'text-gray-400 hover:text-white'
-                }`}
+                  }`}
               >
                 <span className={`w-2 h-2 rounded-full ${isChatConnected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`} />
                 <MessageSquare className="w-3.5 h-3.5" />
@@ -1721,11 +1853,10 @@ export default function LiveStudioModal({
 
               <button
                 onClick={() => setActiveTab('script')}
-                className={`flex-1 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                  activeTab === 'script'
+                className={`flex-1 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1.5 ${activeTab === 'script'
                     ? 'bg-amber-600 text-white shadow-md'
                     : 'text-gray-400 hover:text-white'
-                }`}
+                  }`}
               >
                 <FileText className="w-3.5 h-3.5" />
                 <span>📜 Kịch bản</span>
@@ -1733,11 +1864,10 @@ export default function LiveStudioModal({
 
               <button
                 onClick={() => setActiveTab('config')}
-                className={`flex-1 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                  activeTab === 'config'
+                className={`flex-1 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1.5 ${activeTab === 'config'
                     ? 'bg-white/15 text-white shadow-md'
                     : 'text-gray-400 hover:text-white'
-                }`}
+                  }`}
               >
                 <Settings className="w-3.5 h-3.5" />
                 <span>Cấu hình</span>
@@ -1747,7 +1877,7 @@ export default function LiveStudioModal({
             {/* TAB 1: KHUNG ĐỌC BÌNH LUẬN TRỰC TIẾP CHO STREAMER */}
             {activeTab === 'chat' && (
               <div className="flex-1 flex flex-col justify-between min-h-[220px]">
-                
+
                 {/* Trạng thái phòng chat trực tiếp */}
                 <div className="flex items-center justify-between px-2.5 py-1 mb-2 bg-black/40 rounded-lg border border-white/5 text-[11px] text-gray-400">
                   <div className="flex items-center gap-1.5">
@@ -1775,8 +1905,8 @@ export default function LiveStudioModal({
                       <MessageSquare className="w-8 h-8 stroke-1 text-gray-600 mb-2" />
                       <p className="font-semibold text-gray-400">Chưa có bình luận nào</p>
                       <p className="text-[11px] text-gray-500 mt-0.5 max-w-[260px]">
-                        {isChatConnected 
-                          ? `Đã kết nối phòng "${selectedKey}". Bình luận từ khán giả sẽ hiện ngay tại đây!` 
+                        {isChatConnected
+                          ? `Đã kết nối phòng "${selectedKey}". Bình luận từ khán giả sẽ hiện ngay tại đây!`
                           : `Đang kết nối vào phòng trò chuyện kênh "${selectedKey}"...`}
                       </p>
                       {!isChatConnected && (
@@ -1807,9 +1937,8 @@ export default function LiveStudioModal({
                               ) : (
                                 <span className="bg-rose-500/20 text-rose-300 font-bold px-1.5 py-0.5 rounded text-[9px] border border-rose-500/30">KHÁCH</span>
                               )}
-                              <span className={`font-bold truncate max-w-[140px] ${
-                                isSysAdmin ? 'text-purple-400' : isStreamer ? 'text-amber-400' : 'text-rose-400'
-                              }`}>
+                              <span className={`font-bold truncate max-w-[140px] ${isSysAdmin ? 'text-purple-400' : isStreamer ? 'text-amber-400' : 'text-rose-400'
+                                }`}>
                                 {sender}
                               </span>
                             </div>
@@ -1828,8 +1957,8 @@ export default function LiveStudioModal({
                 </div>
 
                 {/* Form gõ phản hồi nhanh cho khán giả */}
-                <form 
-                  onSubmit={handleSendStudioChat} 
+                <form
+                  onSubmit={handleSendStudioChat}
                   className="flex items-center gap-1.5 pt-2 border-t border-white/10 mt-2 relative z-20"
                 >
                   <input
@@ -1895,11 +2024,10 @@ export default function LiveStudioModal({
                     <button
                       type="button"
                       onClick={() => handleOrientationChange('landscape')}
-                      className={`py-2 px-2 rounded-xl text-center font-bold text-[11px] transition border cursor-pointer flex flex-col items-center gap-1 ${
-                        orientation === 'landscape'
+                      className={`py-2 px-2 rounded-xl text-center font-bold text-[11px] transition border cursor-pointer flex flex-col items-center gap-1 ${orientation === 'landscape'
                           ? 'bg-rose-500/20 text-rose-300 border-rose-500 shadow-sm shadow-rose-950/40'
                           : 'bg-black/40 text-gray-400 border-white/5 hover:text-white hover:border-white/20'
-                      }`}
+                        }`}
                     >
                       <Monitor className="w-4 h-4" />
                       <span>Ngang (16:9)</span>
@@ -1907,11 +2035,10 @@ export default function LiveStudioModal({
                     <button
                       type="button"
                       onClick={() => handleOrientationChange('portrait')}
-                      className={`py-2 px-2 rounded-xl text-center font-bold text-[11px] transition border cursor-pointer flex flex-col items-center gap-1 ${
-                        orientation === 'portrait'
+                      className={`py-2 px-2 rounded-xl text-center font-bold text-[11px] transition border cursor-pointer flex flex-col items-center gap-1 ${orientation === 'portrait'
                           ? 'bg-rose-500/20 text-rose-300 border-rose-500 shadow-sm shadow-rose-950/40'
                           : 'bg-black/40 text-gray-400 border-white/5 hover:text-white hover:border-white/20'
-                      }`}
+                        }`}
                     >
                       <Smartphone className="w-4 h-4" />
                       <span>Dọc (9:16)</span>
@@ -1919,11 +2046,10 @@ export default function LiveStudioModal({
                     <button
                       type="button"
                       onClick={() => handleOrientationChange('square')}
-                      className={`py-2 px-2 rounded-xl text-center font-bold text-[11px] transition border cursor-pointer flex flex-col items-center gap-1 ${
-                        orientation === 'square'
+                      className={`py-2 px-2 rounded-xl text-center font-bold text-[11px] transition border cursor-pointer flex flex-col items-center gap-1 ${orientation === 'square'
                           ? 'bg-rose-500/20 text-rose-300 border-rose-500 shadow-sm shadow-rose-950/40'
                           : 'bg-black/40 text-gray-400 border-white/5 hover:text-white hover:border-white/20'
-                      }`}
+                        }`}
                     >
                       <Square className="w-4 h-4" />
                       <span>Vuông (1:1)</span>
@@ -1951,11 +2077,10 @@ export default function LiveStudioModal({
                         key={item.key}
                         type="button"
                         onClick={() => handleResolutionChange(item.key)}
-                        className={`py-1.5 px-1.5 rounded-xl text-center font-bold transition border cursor-pointer flex flex-col items-center ${
-                          resolution === item.key
+                        className={`py-1.5 px-1.5 rounded-xl text-center font-bold transition border cursor-pointer flex flex-col items-center ${resolution === item.key
                             ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500 shadow-sm shadow-cyan-950/40'
                             : 'bg-black/40 text-gray-400 border-white/5 hover:text-white hover:border-white/20'
-                        }`}
+                          }`}
                       >
                         <span className="text-xs font-mono">{item.label}</span>
                         <span className="text-[9px] opacity-70 font-normal">{item.desc}</span>
@@ -1964,11 +2089,84 @@ export default function LiveStudioModal({
                   </div>
                 </div>
 
-                {/* 4. THÔNG SỐ TÓM TẮT REALTIME */}
+                {/* 4. CHẾ ĐỘ MICROPHONE */}
+                <div>
+                  <label className="text-gray-400 mb-1.5 block font-semibold text-[11px] flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Chất lượng âm thanh Micro:</span>
+                    </span>
+                    <span className="text-[10px] text-emerald-400/90 font-mono">48 kHz • Không trễ</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleAudioModeChange('studio')}
+                      className={`py-2 px-2.5 rounded-xl text-left font-bold transition border cursor-pointer flex flex-col gap-0.5 ${
+                        audioMode === 'studio'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500 shadow-sm shadow-emerald-950/40'
+                          : 'bg-black/40 text-gray-400 border-white/5 hover:text-white hover:border-white/20'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 text-[11px]">
+                        <Mic className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Âm thanh Studio</span>
+                      </div>
+                      <span className="text-[9px] opacity-75 font-normal">Giữ 100% âm mộc, ấm, không méo tiếng</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAudioModeChange('speech')}
+                      className={`py-2 px-2.5 rounded-xl text-left font-bold transition border cursor-pointer flex flex-col gap-0.5 ${
+                        audioMode === 'speech'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500 shadow-sm shadow-emerald-950/40'
+                          : 'bg-black/40 text-gray-400 border-white/5 hover:text-white hover:border-white/20'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 text-[11px]">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Lọc tạp âm</span>
+                      </div>
+                      <span className="text-[9px] opacity-75 font-normal">Giảm tiếng gió, quạt và tiếng ồn lớn</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 5. GHI HÌNH DỰ PHÒNG CỤC BỘ (LOCAL BACKUP) */}
+                <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between gap-2">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-200">
+                      <Download className="w-3.5 h-3.5 text-rose-400" />
+                      <span>Ghi hình dự phòng HD tại máy</span>
+                    </div>
+                    <p className="text-[10px] text-gray-400 leading-relaxed">
+                      Lưu song song bản HD vào máy để tải về ngay sau khi live, chống mất video khi đứt mạng.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEnableLocalBackup(!enableLocalBackup)}
+                    disabled={isLive}
+                    className={`w-10 h-6 rounded-full transition-colors p-0.5 flex items-center cursor-pointer shrink-0 ${
+                      enableLocalBackup ? 'bg-rose-600 justify-end' : 'bg-gray-700 justify-start'
+                    } disabled:opacity-50`}
+                    title={enableLocalBackup ? "Đang bật sao lưu HD" : "Đã tắt sao lưu"}
+                  >
+                    <div className="w-5 h-5 rounded-full bg-white shadow-md" />
+                  </button>
+                </div>
+
+                {/* 6. THÔNG SỐ TÓM TẮT REALTIME */}
                 <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 space-y-1.5 font-mono text-[11px] text-gray-400">
                   <div className="flex justify-between">
                     <span>Giao thức phát:</span>
                     <span className="text-cyan-400 font-bold">HLS • delay khoảng 5 giây</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Âm thanh & Sao lưu:</span>
+                    <span className="text-emerald-400 font-bold">
+                      {audioMode === 'studio' ? 'Mic Studio' : 'Mic Lọc Ồn'} • {enableLocalBackup ? 'Sao lưu HD Bật' : 'Tắt Sao lưu'}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Khung hình / Cam:</span>
@@ -2019,7 +2217,7 @@ export default function LiveStudioModal({
                           setLiveScript('');
                           try {
                             localStorage.removeItem('traiga_live_script');
-                          } catch {}
+                          } catch { }
                         }
                       }}
                       className="px-2 py-0.5 rounded bg-rose-600/20 text-rose-300 hover:bg-rose-600 hover:text-white text-[10px] transition cursor-pointer"
@@ -2035,7 +2233,7 @@ export default function LiveStudioModal({
                     setLiveScript(e.target.value);
                     try {
                       localStorage.setItem('traiga_live_script', e.target.value);
-                    } catch {}
+                    } catch { }
                   }}
                   style={{ fontSize: `${scriptFontSize}px` }}
                   placeholder="Dán hoặc gõ kịch bản, lời chào, giá bán, thông số cặp đấu vào đây để đọc trực tiếp khi live mà KHÔNG CẦN Alt+Tab..."
