@@ -114,7 +114,7 @@ export default function App() {
   const [showAllRooms, setShowAllRooms] = useState(false); // false: chỉ hiện phòng đang live thực tế, true: hiện tất cả kênh đăng ký
   const [previewSelectedChannel, setPreviewSelectedChannel] = useState(null); // Kênh người dùng chủ động chọn xem khi không có live tự động
   const [activeServer, setActiveServer] = useState('hd1'); // 'hd1' | 'hd2' | 'hd3'
-  const [oddsVotes, setOddsVotes] = useState({ red: 18, blue: 14, userVoted: null });
+  const [oddsVotes, setOddsVotes] = useState({ red: 0, blue: 0, userVoted: null });
   const [isCopiedBank, setIsCopiedBank] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [themeMode] = useState('dark'); // Mặc định luôn là chế độ Tối (Dark Mode)
@@ -686,8 +686,8 @@ export default function App() {
   // Component tiện ích phòng Live (Học hỏi & nâng cấp từ trieugadon.com: Server HD1/2/3, Odds, STK chuyển khoản, Nội quy)
   const renderLiveUtilitiesSection = (section = 'all') => {
     const totalVotes = oddsVotes.red + oddsVotes.blue;
-    const redPercent = totalVotes > 0 ? Math.round((oddsVotes.red / totalVotes) * 100) : 50;
-    const bluePercent = 100 - redPercent;
+    const redPercent = totalVotes > 0 ? Math.round((oddsVotes.red / totalVotes) * 100) : 0;
+    const bluePercent = totalVotes > 0 ? (100 - redPercent) : 0;
     const showRoomControls = section !== 'details';
     const showDetails = section !== 'controls';
 
@@ -921,7 +921,7 @@ export default function App() {
                 <h2 className="text-base sm:text-2xl font-black text-white tracking-tight uppercase flex flex-wrap items-center gap-2.5">
                   <span>{isFullPage ? 'Kho Video Xem Lại Phiên Live' : '🎬 Xem Lại Các Phiên Live'}</span>
                   <span className="text-xs px-3 py-1 rounded-full bg-[#e6b744]/15 text-[#e6b744] border border-[#e6b744]/30 font-bold">
-                    {replays?.length || 24} Video HD
+                    {replays?.length || 0} Video HD
                   </span>
                   {isFullPage && totalPages > 1 && (
                     <span className="text-xs px-3 py-1 rounded-full bg-white/10 text-zinc-300 border border-white/10 font-medium">
@@ -954,33 +954,33 @@ export default function App() {
           )}
         </div>
 
-        {/* SPOTLIGHT HERO CARD: CHỈ HIỆN Ở TRANG XEM LẠI CHUYÊN DỤNG */}
-        {isFullPage && hasReplays && (
+        {/* SPOTLIGHT HERO CARD: SỬ DỤNG DỮ LIỆU THỰC TẾ CỦA REPLAY ĐẦU TIÊN */}
+        {isFullPage && hasReplays && replays[0] && (
           <div 
             onClick={() => {
-              if (replays && replays.length > 0) {
-                setSelectedReplay(replays[0]);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }
+              setSelectedReplay(replays[0]);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className="rounded-3xl overflow-hidden glass-panel border border-white/15 shadow-2xl relative group cursor-pointer"
           >
             <div className="relative h-[260px] sm:h-[340px] w-full overflow-hidden bg-black">
               <img 
-                src="https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1600&auto=format&fit=crop"
-                alt="Featured Rooster Replay" 
+                src="/img/rooster_dongtao.jpg"
+                alt={replays[0].title || 'Replay'} 
                 className="w-full h-full object-cover opacity-60 group-hover:scale-105 group-hover:opacity-75 transition duration-700" 
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#0c0d12] via-[#0c0d12]/40 to-transparent" />
 
-              {/* Badges */}
+              {/* Badges thực tế */}
               <div className="absolute top-5 left-5 flex items-center gap-2">
                 <span className="px-3 py-1 rounded-full bg-[#e6b744] text-black text-xs font-black uppercase tracking-wider shadow-lg">
-                  ★ PHIÊN LIVE NỔI BẬT NHẤT TUẦN
+                  ★ PHIÊN LIVE TIÊU BIỂU
                 </span>
-                <span className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-xs text-white font-mono">
-                  ⏱️ 48 phút • Full HD 1080p
-                </span>
+                {replays[0].duration_seconds > 0 && (
+                  <span className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-xs text-white font-mono">
+                    ⏱️ {Math.max(1, Math.round(replays[0].duration_seconds / 60))} phút
+                  </span>
+                )}
               </div>
 
               {/* Play Floating Center Button */}
@@ -990,20 +990,19 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Bottom Content */}
+              {/* Bottom Content với dữ liệu thực tế */}
               <div className="absolute bottom-6 left-6 right-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div className="space-y-2 max-w-2xl">
                   <div className="flex items-center gap-2 text-xs text-zinc-300">
-                    <span>🎙️ Chủ Trại Nguyễn Thành Trung</span>
+                    <span>🎙️ {replays[0].streamer || 'Chủ Trại'}</span>
                     <span>•</span>
-                    <span className="text-emerald-400 font-semibold">☁️ Đã sao lưu vĩnh viễn Drive</span>
+                    <span className="text-emerald-400 font-semibold">
+                      {replays[0].record_status === 'uploaded_drive' ? '☁️ Đã sao lưu Google Drive' : '📼 Bản ghi tạm 7 ngày'}
+                    </span>
                   </div>
                   <h3 className="text-xl sm:text-3xl font-extrabold text-white tracking-tight">
-                    {replays[0]?.title || 'Trận Xổ Gà Đỉnh Cao: Ô Chân Trắng vs Tía Lửa 3.1kg'}
+                    {replays[0].title || `Phiên Live: ${replays[0].stream_key}`}
                   </h3>
-                  <p className="text-xs text-zinc-300 line-clamp-2">
-                    Trận đòn nghệ thuật đỉnh cao với những đòn dọc hiểm hóc và thế đá mé chuẩn xác. Xem lại trọn vẹn không bị gián đoạn.
-                  </p>
                 </div>
 
                 <button className="px-6 py-2.5 rounded-full bg-white text-black font-bold text-xs apple-pill-btn shrink-0 flex items-center gap-2 shadow-xl">
@@ -1915,29 +1914,6 @@ export default function App() {
                   <div className="relative w-full h-full min-h-[340px] sm:min-h-[380px] flex flex-col justify-between bg-black">
                     <div className="relative w-full aspect-video bg-black overflow-hidden flex items-center justify-center">
                       <LivePlayer streamKey={topLiveRoom.id} />
-
-                      {/* Top Overlay: Live Pill & Multi-Angle Badges */}
-                      <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between pointer-events-none z-10">
-                        <div className="flex items-center gap-2 pointer-events-auto">
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e63946] text-white text-[11px] font-black tracking-wider shadow-lg">
-                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
-                            TRỰC TIẾP
-                          </span>
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 border border-white/10 backdrop-blur-xl text-zinc-300 text-[11px] font-semibold">
-                            <Eye className="w-3.5 h-3.5 text-zinc-400" />
-                            {topLiveRoom.viewers ? `${topLiveRoom.viewers.toLocaleString('vi-VN')} Đang Xem` : 'Đang Phát'}
-                          </span>
-                        </div>
-
-                        <div className="hidden sm:flex items-center gap-2 pointer-events-auto">
-                          <span className="px-2.5 py-1 rounded-full bg-black/60 border border-white/10 backdrop-blur-xl text-[11px] font-bold text-zinc-300">
-                            4K ULTRA HD
-                          </span>
-                          <span className="px-2.5 py-1 rounded-full bg-white/10 border border-white/10 backdrop-blur-xl text-[11px] font-medium text-zinc-300">
-                            Toàn Cảnh Bàn 01
-                          </span>
-                        </div>
-                      </div>
                     </div>
 
                     <div className="p-5 sm:p-6 bg-gradient-to-b from-[#111216]/95 to-[#0b0c0f]/98 border-t border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1969,7 +1945,7 @@ export default function App() {
                   <div className="relative w-full h-full min-h-[300px] sm:min-h-[380px] flex flex-col justify-end p-6 sm:p-8 rounded-3xl overflow-hidden bg-black">
                     <div
                       className="absolute inset-0 bg-cover bg-center pointer-events-none opacity-40 scale-100 group-hover:scale-105 transition-transform duration-700 ease-out"
-                      style={{ backgroundImage: `url('https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1400&auto=format&fit=crop')` }}
+                      style={{ backgroundImage: `url('/img/rooster_dongtao.jpg')` }}
                     ></div>
                     <div className="absolute inset-0 bg-gradient-to-t from-[#090a0d] via-[#090a0d]/80 to-black/30"></div>
                     <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-black/40"></div>
@@ -2408,24 +2384,6 @@ export default function App() {
                     <div className="w-full h-full bg-black">
                       <LivePlayer streamKey={streamKey} />
                     </div>
-                    {/* Top Left Floating Badges */}
-                    <div className="absolute top-4 left-4 z-20 flex items-center gap-2 pointer-events-none">
-                      <span className="px-3.5 py-1.5 rounded-full bg-[#ff3b30] text-white text-xs font-black tracking-wider flex items-center gap-2 shadow-xl">
-                        <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
-                        TRỰC TIẾP
-                      </span>
-                      <span className="px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-xs text-[#e6b744] font-bold flex items-center gap-1.5 shadow-xl">
-                        <span>{actualLiveRooms?.find(r => r.id === streamKey)?.viewers || 1428} đang xem</span>
-                      </span>
-                    </div>
-                    {/* Top Right Quality Badge */}
-                    <div className="absolute top-4 right-4 z-20 flex items-center gap-2 pointer-events-none">
-                      <span className="px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-xs font-mono text-zinc-300">
-                        1080p • 60 FPS
-                      </span>
-                    </div>
-
-
                   </div>
 
                   {/* PHÒNG BÌNH LUẬN TRỰC TIẾP TRÊN MOBILE */}

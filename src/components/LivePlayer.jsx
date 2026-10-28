@@ -42,7 +42,7 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
   const [retryCount, setRetryCount] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [liveElapsed, setLiveElapsed] = useState(0);
-  const [duration, setDuration] = useState(13027); // Thời lượng mặc định khi video chờ chưa tải metadata
+  const [duration, setDuration] = useState(0);
   const [qualityLevels, setQualityLevels] = useState([]);
   const [selectedQuality, setSelectedQuality] = useState('auto');
 
@@ -504,7 +504,7 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
             }}
             onLoadedMetadata={() => {
               if (waitingVideoRef.current && Number.isFinite(waitingVideoRef.current.duration)) {
-                setDuration(waitingVideoRef.current.duration || 13027);
+                setDuration(waitingVideoRef.current.duration || 0);
               }
             }}
             className="w-full h-full object-cover"
@@ -512,16 +512,16 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
         </div>
       )}
 
-      {/* THANH BADGE TRẠNG THÁI TRÊN VIDEO */}
+      {/* THANH BADGE TRẠNG THÁI TRÊN VIDEO CHUẨN APPLE TITAN */}
       <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-30 flex items-center gap-2 pointer-events-none">
         {streamStatus === 'playing' ? (
-          <div className="flex items-center gap-1.5 bg-rose-600/90 text-white text-[11px] sm:text-xs font-bold uppercase tracking-wider px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full animate-pulse">
-            <Radio className="w-3.5 h-3.5 animate-pulse" />
-            <span>LIVE</span>
+          <div className="flex items-center gap-1.5 bg-[#ff3b30] text-white text-[11px] sm:text-xs font-black uppercase tracking-wider px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full shadow-lg">
+            <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+            <span>TRỰC TIẾP</span>
           </div>
         ) : (
-          <div className="flex items-center gap-1.5 bg-slate-800/90 text-slate-300 text-[11px] sm:text-xs font-semibold px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full border border-slate-700">
-            <span className="w-2 h-2 rounded-full bg-slate-500" />
+          <div className="flex items-center gap-1.5 bg-black/70 backdrop-blur-md text-zinc-300 text-[11px] sm:text-xs font-semibold px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full border border-white/15 shadow-md">
+            <span className="w-2 h-2 rounded-full bg-zinc-500" />
             <span>OFFLINE</span>
           </div>
         )}
@@ -677,7 +677,7 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
             <div className="text-[12px] sm:text-[13px] font-bold text-white tracking-tight font-sans select-none">
               {streamStatus === 'playing'
                 ? `${formatPlayerTime(liveElapsed)} / LIVE`
-                : `${formatPlayerTime(currentTime)} / ${formatPlayerTime(duration || 13027)}`}
+                : `${formatPlayerTime(currentTime)} / ${formatPlayerTime(duration || 0)}`}
             </div>
           </div>
 

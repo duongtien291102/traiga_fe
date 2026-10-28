@@ -14,7 +14,7 @@ const QUICK_EMOJIS = ['❤️', '🔥', '🐓', '👏', '🎉', '💯', '⭐', '
 export default function LiveChat({ streamKey = '', user = null, onOpenAuth = null }) {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
-  const [viewerCount, setViewerCount] = useState(1);
+  const [viewerCount, setViewerCount] = useState(0);
   const [guestName] = useState(() => {
     return localStorage.getItem('chat_guest_name') || `Khách_${Math.floor(1000 + Math.random() * 9000)}`;
   });
@@ -300,25 +300,13 @@ export default function LiveChat({ streamKey = '', user = null, onOpenAuth = nul
     spawnFloatingReaction(emoji, user.username);
   };
 
-  // Hàm tính toán Level hiển thị theo user hoặc tên
+  // Hiển thị vai trò thật của người gửi tin nhắn (BQT, Chủ Trại, Trại Chủ, Thành Viên, Khách)
   const getUserLevel = (msg) => {
     if (msg.role === 'systemadmin') return { label: 'BQT', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40', isStaff: true };
     if (msg.role === 'admin' || msg.username === 'admin01') return { label: 'Chủ Trại', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40', isStaff: true };
     if (msg.role === 'streamer' || msg.username === streamKey) return { label: 'Trại Chủ', color: 'bg-rose-500/20 text-rose-300 border-rose-500/40', isStaff: true };
-    
-    // Hash username ra level từ 1 đến 12 để tạo không khí sôi nổi như CakhiaTV
-    let hash = 0;
-    const str = msg.username || 'user';
-    for (let i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const lv = Math.abs(hash % 12) + 1;
-    if (lv >= 8) {
-      return { label: `Lv.${lv}`, color: 'bg-amber-500/15 text-amber-400 border-amber-500/30', isStaff: false };
-    } else if (lv >= 4) {
-      return { label: `Lv.${lv}`, color: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30', isStaff: false };
-    }
-    return { label: `Lv.${lv}`, color: 'bg-slate-800 text-slate-400 border-slate-700/60', isStaff: false };
+    if (msg.role === 'user' || msg.userId) return { label: 'Thành Viên', color: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30', isStaff: false };
+    return { label: 'Khách', color: 'bg-white/10 text-zinc-300 border-white/10', isStaff: false };
   };
 
   return (
