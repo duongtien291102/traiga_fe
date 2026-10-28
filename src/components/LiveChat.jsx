@@ -345,7 +345,7 @@ export default function LiveChat({ streamKey = '', user = null, onOpenAuth = nul
         </div>
 
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-center text-zinc-500 gap-2 py-6">
+          <div className="flex flex-col items-center justify-center h-32 text-center text-zinc-500 gap-1.5 py-2">
             <Sparkles className="w-5 h-5 text-zinc-600 animate-pulse" />
             <p className="text-xs">Chưa có bình luận nào trong phiên live này.</p>
             <p className="text-[11px] text-zinc-600">Hãy gửi lời chào mở màn tới anh em xem live!</p>

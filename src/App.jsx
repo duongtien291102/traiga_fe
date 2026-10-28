@@ -2370,25 +2370,41 @@ export default function App() {
             {(effectiveIsLive || previewSelectedChannel) && (
               <section ref={playerSectionRef} id="main-player-section" className="space-y-4 pt-1">
 
-              {/* KHUNG MAIN VIDEO VÀ LIVE CHAT (Desktop 8-4 cols, Mobile full-stack) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                {/* Tên trại, chia sẻ, đổi server và tỉ lệ cược nằm trên cùng toàn màn hình */}
+                {renderLiveUtilitiesSection('controls')}
 
-                {/* Cột trái: LivePlayer + CakhiaTV Controls & Icon Tab Bar (8 cols) */}
-                <div className="lg:col-span-8 flex flex-col gap-3">
+                {/* KHUNG MAIN VIDEO VÀ LIVE CHAT (Desktop 8-4 cols, Mobile full-stack) */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
 
-                  {/* Tên trại, chia sẻ và đổi server nằm trước player */}
-                  {renderLiveUtilitiesSection('controls')}
+                  {/* Cột trái: LivePlayer + CakhiaTV Controls & Icon Tab Bar (8 cols) */}
+                  <div className="lg:col-span-8 flex flex-col gap-3">
 
-                  {/* VIDEO PLAYER COMPONENT (HLS Stream) */}
-                  <div className="relative w-full aspect-video rounded-3xl overflow-hidden bg-black border border-white/15 shadow-2xl flex items-center justify-center group min-h-[380px] sm:min-h-[460px] lg:min-h-[500px]">
-                    <div className="w-full h-full bg-black">
-                      <LivePlayer streamKey={streamKey} />
+                    {/* VIDEO PLAYER COMPONENT (HLS Stream) */}
+                    <div className="relative w-full aspect-video rounded-3xl overflow-hidden bg-black border border-white/15 shadow-2xl flex items-center justify-center group min-h-[360px] sm:min-h-[420px] lg:min-h-[460px]">
+                      <div className="w-full h-full bg-black">
+                        <LivePlayer streamKey={streamKey} />
+                      </div>
                     </div>
+
+                    {/* PHÒNG BÌNH LUẬN TRỰC TIẾP TRÊN MOBILE */}
+                    <div className="block lg:hidden">
+                      <div className="h-[380px] w-full rounded-2xl overflow-hidden border border-white/10 bg-[#16171d] shadow-xl">
+                        <LiveChat
+                          streamKey={streamKey}
+                          user={currentUser}
+                          onOpenAuth={() => setIsAuthModalOpen(true)}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Quy định và thông tin chuyển khoản nằm sau khu vực chat trên mobile. */}
+                    {renderLiveUtilitiesSection('details')}
+
                   </div>
 
-                  {/* PHÒNG BÌNH LUẬN TRỰC TIẾP TRÊN MOBILE */}
-                  <div className="block lg:hidden">
-                    <div className="h-[430px] w-full rounded-2xl overflow-hidden border border-white/10 bg-[#16171d] shadow-xl">
+                  {/* Cột phải (Desktop 4 cols): Phòng bình luận trực tiếp */}
+                  <div className="hidden lg:flex lg:col-span-4 flex-col gap-3">
+                    <div className="h-[440px] lg:h-[460px] w-full rounded-3xl overflow-hidden border border-white/10 bg-[#121318]/90 backdrop-blur-2xl shadow-2xl">
                       <LiveChat
                         streamKey={streamKey}
                         user={currentUser}
@@ -2397,25 +2413,9 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Quy định và thông tin chuyển khoản nằm sau khu vực chat trên mobile. */}
-                  {renderLiveUtilitiesSection('details')}
-
                 </div>
 
-                {/* Cột phải (Desktop 4 cols): Phòng bình luận trực tiếp */}
-                <div className="hidden lg:flex lg:col-span-4 flex-col gap-3">
-                  <div className="h-[560px] lg:h-[600px] w-full rounded-3xl overflow-hidden border border-white/10 bg-[#121318]/90 backdrop-blur-2xl shadow-2xl">
-                    <LiveChat
-                      streamKey={streamKey}
-                      user={currentUser}
-                      onOpenAuth={() => setIsAuthModalOpen(true)}
-                    />
-                  </div>
-                </div>
-
-              </div>
-
-            </section>
+              </section>
             )}
 
             {/* ==================== SECTION 1: CÁC PHÒNG LIVE XỔ GÀ (ẢNH 3 KHI CHƯA CÓ AI LIVE) ==================== */}
