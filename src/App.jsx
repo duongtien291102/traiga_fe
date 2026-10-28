@@ -1338,9 +1338,15 @@ export default function App() {
                 <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold ${
                   selectedReplay.record_status === 'uploaded_drive'
                     ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300'
+                    : selectedReplay.replay_url?.startsWith('/api/uploads/')
+                    ? 'bg-blue-500/15 border border-blue-500/30 text-blue-300'
                     : 'bg-amber-500/15 border border-amber-500/30 text-amber-300'
                 }`}>
-                  {selectedReplay.record_status === 'uploaded_drive' ? '☁️ Google Drive (Lưu lâu dài)' : '📼 Bản ghi tạm DVR (7 ngày)'}
+                  {selectedReplay.record_status === 'uploaded_drive'
+                    ? '☁️ Google Drive (Lưu lâu dài)'
+                    : selectedReplay.replay_url?.startsWith('/api/uploads/')
+                    ? '🚀 Video MP4 Gốc (Chất lượng cao)'
+                    : '📼 Bản ghi tạm DVR (7 ngày)'}
                 </span>
                 {selectedReplay.part_index > 0 && (
                   <span className="px-2.5 py-1 rounded-md bg-rose-600/90 text-[11px] font-black uppercase text-white shadow">
