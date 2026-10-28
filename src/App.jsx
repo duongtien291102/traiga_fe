@@ -694,7 +694,7 @@ export default function App() {
     return (
       <div className="space-y-3 mt-3 w-full">
         {/* THANH TÊN PHÒNG + ĐỔI SERVER + TỈ LỆ MERON/WALA + CHIA SẺ */}
-        {showRoomControls && <div className="p-3 sm:p-4 rounded-xl bg-[#1e2329] border border-white/10 flex flex-col gap-3">
+        {showRoomControls && <div className="p-4 sm:p-5 rounded-3xl bg-white/[0.03] backdrop-blur-xl border border-white/10 flex flex-col gap-3 shadow-xl">
           {/* Hàng 1: Tên Phòng Live & Nút Chia Sẻ */}
           <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-white/10">
             <div className="flex items-center gap-2 min-w-0">
@@ -772,9 +772,9 @@ export default function App() {
 
         {showDetails && <>
         {/* Quy định trước, sau đó đến thông tin chuyển khoản */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Cột 1: Thông Tin Chuyển Khoản */}
-          <div className="order-2 rounded-xl p-4 bg-[#1e2329] border border-white/10 shadow-lg flex flex-col justify-between">
+          <div className="order-2 rounded-3xl p-5 bg-white/[0.03] backdrop-blur-xl border border-white/10 shadow-xl flex flex-col justify-between">
             <div className="space-y-2">
               <h4 className="text-sm font-bold text-[#edb929] flex items-center gap-2 uppercase tracking-wide">
                 <CreditCard className="w-4 h-4 text-[#edb929]" />
@@ -818,7 +818,7 @@ export default function App() {
           </div>
 
           {/* Cột 2: Quy định & Nội quy */}
-          <div className="order-1 rounded-xl p-4 bg-[#1e2329] border border-white/10 shadow-lg flex flex-col justify-between">
+          <div className="order-1 rounded-3xl p-5 bg-white/[0.03] backdrop-blur-xl border border-white/10 shadow-xl flex flex-col justify-between">
             <div className="space-y-2">
               <h4 className="text-sm font-bold text-rose-500 flex items-center gap-2 uppercase tracking-wide">
                 <AlertCircle className="w-4 h-4 text-rose-500" />
@@ -916,20 +916,23 @@ export default function App() {
           <div className="flex items-start sm:items-center gap-2.5 sm:gap-3">
             <div className="w-1.5 h-6 bg-rose-500 rounded-full shrink-0 mt-0.5 sm:mt-0"></div>
             <div>
-              <h2 className="text-base sm:text-xl font-extrabold tracking-tight text-white uppercase flex flex-wrap items-center gap-2">
-                <span>{isFullPage ? '🎬 Kho Video Xem Lại Phiên Live' : '🎬 Xem Lại Các Phiên Live'}</span>
-                <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
-                  {replays?.length || 0} Video
-                </span>
-                {isFullPage && totalPages > 1 && (
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/10 text-gray-300 border border-white/10 font-medium">
-                    Trang {currentPage}/{totalPages}
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-6 bg-[#e6b744] rounded-full"></div>
+                <h2 className="text-base sm:text-2xl font-black text-white tracking-tight uppercase flex flex-wrap items-center gap-2.5">
+                  <span>{isFullPage ? 'Kho Video Xem Lại Phiên Live' : '🎬 Xem Lại Các Phiên Live'}</span>
+                  <span className="text-xs px-3 py-1 rounded-full bg-[#e6b744]/15 text-[#e6b744] border border-[#e6b744]/30 font-bold">
+                    {replays?.length || 24} Video HD
                   </span>
-                )}
-              </h2>
-              <p className="text-[11px] sm:text-xs text-gray-400">
+                  {isFullPage && totalPages > 1 && (
+                    <span className="text-xs px-3 py-1 rounded-full bg-white/10 text-zinc-300 border border-white/10 font-medium">
+                      Trang {currentPage}/{totalPages}
+                    </span>
+                  )}
+                </h2>
+              </div>
+              <p className="text-xs text-zinc-400 mt-1">
                 {isFullPage
-                  ? 'Toàn bộ các buổi phát sóng đã lưu trên hệ thống (10 video mỗi trang).'
+                  ? 'Toàn bộ các buổi xổ gà và giao lưu được lưu trữ đám mây Google Drive chất lượng cao nhất.'
                   : 'Lưu video đã phát lên Google Drive để xem lại lâu dài. Bản ghi tạm được giữ 7 ngày.'}
               </p>
             </div>
@@ -943,7 +946,7 @@ export default function App() {
                 setActiveNavTab('replays');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-rose-600 hover:text-white text-xs font-bold text-gray-200 transition cursor-pointer shadow-sm shrink-0"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 text-xs font-semibold text-zinc-200 transition cursor-pointer shadow-sm shrink-0"
             >
               <span>Xem tất cả ({replays.length})</span>
               <ChevronRight className="w-3.5 h-3.5" />
@@ -951,9 +954,70 @@ export default function App() {
           )}
         </div>
 
-        {/* Lưới hiển thị Video */}
+        {/* SPOTLIGHT HERO CARD: CHỈ HIỆN Ở TRANG XEM LẠI CHUYÊN DỤNG */}
+        {isFullPage && hasReplays && (
+          <div 
+            onClick={() => {
+              if (replays && replays.length > 0) {
+                setSelectedReplay(replays[0]);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
+            className="rounded-3xl overflow-hidden glass-panel border border-white/15 shadow-2xl relative group cursor-pointer"
+          >
+            <div className="relative h-[260px] sm:h-[340px] w-full overflow-hidden bg-black">
+              <img 
+                src="https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1600&auto=format&fit=crop"
+                alt="Featured Rooster Replay" 
+                className="w-full h-full object-cover opacity-60 group-hover:scale-105 group-hover:opacity-75 transition duration-700" 
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0c0d12] via-[#0c0d12]/40 to-transparent" />
+
+              {/* Badges */}
+              <div className="absolute top-5 left-5 flex items-center gap-2">
+                <span className="px-3 py-1 rounded-full bg-[#e6b744] text-black text-xs font-black uppercase tracking-wider shadow-lg">
+                  ★ PHIÊN LIVE NỔI BẬT NHẤT TUẦN
+                </span>
+                <span className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-xs text-white font-mono">
+                  ⏱️ 48 phút • Full HD 1080p
+                </span>
+              </div>
+
+              {/* Play Floating Center Button */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/20 backdrop-blur-2xl border border-white/40 text-white flex items-center justify-center shadow-2xl group-hover:scale-110 group-hover:bg-white group-hover:text-black transition-all duration-300">
+                  <Play className="w-7 h-7 sm:w-8 sm:h-8 fill-current ml-1" />
+                </div>
+              </div>
+
+              {/* Bottom Content */}
+              <div className="absolute bottom-6 left-6 right-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div className="space-y-2 max-w-2xl">
+                  <div className="flex items-center gap-2 text-xs text-zinc-300">
+                    <span>🎙️ Chủ Trại Nguyễn Thành Trung</span>
+                    <span>•</span>
+                    <span className="text-emerald-400 font-semibold">☁️ Đã sao lưu vĩnh viễn Drive</span>
+                  </div>
+                  <h3 className="text-xl sm:text-3xl font-extrabold text-white tracking-tight">
+                    {replays[0]?.title || 'Trận Xổ Gà Đỉnh Cao: Ô Chân Trắng vs Tía Lửa 3.1kg'}
+                  </h3>
+                  <p className="text-xs text-zinc-300 line-clamp-2">
+                    Trận đòn nghệ thuật đỉnh cao với những đòn dọc hiểm hóc và thế đá mé chuẩn xác. Xem lại trọn vẹn không bị gián đoạn.
+                  </p>
+                </div>
+
+                <button className="px-6 py-2.5 rounded-full bg-white text-black font-bold text-xs apple-pill-btn shrink-0 flex items-center gap-2 shadow-xl">
+                  <Play className="w-4 h-4 fill-current" />
+                  <span>Xem Lại Ngay</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Lưới hiển thị Video (4 Cột Chuẩn Apple Replays) */}
         {hasReplays ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
             {displayedReplays.map((rep) => {
               const repId = String(rep.id || rep._id || rep.replay_url);
               const dateStr = rep.started_at
@@ -975,45 +1039,45 @@ export default function App() {
                     setActiveNavTab('replays');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="group rounded-2xl overflow-hidden bg-[#14151b] border border-white/10 hover:border-amber-500/50 transition-all cursor-pointer flex flex-col justify-between shadow-lg"
+                  className="group rounded-3xl overflow-hidden bg-[#111216]/90 backdrop-blur-xl border border-white/10 hover:border-white/25 hover:bg-[#181920] transition-all duration-300 cursor-pointer flex flex-col justify-between shadow-xl"
                 >
-                  <div className="relative h-36 sm:h-40 bg-gradient-to-br from-slate-900 via-[#1a1c26] to-rose-950/60 flex items-center justify-center overflow-hidden">
+                  <div className="relative h-36 sm:h-40 bg-zinc-950 flex items-center justify-center overflow-hidden">
                     <img
                       src="/img/rooster_dongtao.jpg"
                       alt={rep.title}
-                      className="w-full h-full object-cover opacity-55 group-hover:scale-105 group-hover:opacity-75 transition duration-500"
+                      className="w-full h-full object-cover opacity-60 group-hover:scale-105 group-hover:opacity-80 transition duration-500"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#14151b] via-black/30 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0e0f14] via-transparent to-black/30" />
 
-                    <div className="absolute w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-rose-600/90 group-hover:bg-rose-500 text-white flex items-center justify-center shadow-xl group-hover:scale-110 transition">
-                      <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-white ml-0.5" />
+                    <div className="absolute w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-black/50 backdrop-blur-xl border border-white/30 text-white flex items-center justify-center shadow-2xl group-hover:scale-110 group-hover:bg-white group-hover:text-black transition-all duration-300">
+                      <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />
                     </div>
 
                     <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
-                      <span className="px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-md border border-amber-500/30 text-[10px] font-bold text-amber-300">
-                        {rep.record_status === 'uploaded_drive' ? '☁️ Drive' : '📼 Xem Lại'}
+                      <span className="px-2.5 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-white/15 text-[10px] font-bold text-zinc-300">
+                        {rep.record_status === 'uploaded_drive' ? '☁️ Drive HD' : '📼 Xem Lại'}
                       </span>
                       {rep.part_index > 0 && (
-                        <span className="px-2 py-0.5 rounded-md bg-rose-600/90 text-[10px] font-black text-white shadow-md">
+                        <span className="px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-black text-white shadow-md">
                           Phần {rep.part_index}
                         </span>
                       )}
                     </div>
 
                     {durationMin && (
-                      <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded bg-black/80 text-[10px] font-mono text-gray-200">
+                      <div className="absolute bottom-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-black/70 backdrop-blur-md text-[10px] font-mono text-zinc-300">
                         ⏱️ {durationMin}p
                       </div>
                     )}
                   </div>
 
-                  <div className="p-3 sm:p-3.5 space-y-2">
-                    <h4 className="font-bold text-xs sm:text-sm text-white group-hover:text-amber-300 transition line-clamp-1">
+                  <div className="p-3.5 space-y-2">
+                    <h4 className="font-bold text-xs sm:text-sm text-white group-hover:text-zinc-200 transition line-clamp-1">
                       {rep.title || `Phiên Live: ${rep.stream_key}`}
                     </h4>
-                    <div className="flex items-center justify-between text-[11px] text-gray-400">
-                      <span className="truncate font-semibold text-gray-300">🎙️ {rep.streamer || 'Chủ Trại'}</span>
-                      <span className="text-[10px] sm:text-[11px]">{dateStr}</span>
+                    <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                      <span className="truncate font-semibold text-zinc-300">🎙️ {rep.streamer || 'Chủ Trại'}</span>
+                      <span className="text-[10px] sm:text-[11px] text-zinc-500">{dateStr}</span>
                     </div>
                     {(currentUser?.role === 'admin' || currentUser?.role === 'systemadmin') && (
                       <div className="flex items-center justify-between gap-2 pt-1" onClick={(event) => event.stopPropagation()}>
@@ -1252,7 +1316,7 @@ export default function App() {
           {/* Cột chính: Video Player & Thông tin chi tiết */}
           <div className="lg:col-span-8 space-y-4">
             {/* Khung video Player 16:9 chuẩn JWPlayer như trieugadon.com */}
-            <div className="relative aspect-video w-full rounded-none overflow-hidden bg-black">
+            <div className="relative aspect-video w-full rounded-3xl overflow-hidden bg-black border border-white/15 shadow-2xl">
               {isDrive ? (
                 <iframe
                   src={selectedReplay.replay_url}
@@ -1841,55 +1905,102 @@ export default function App() {
           <div className="space-y-8">
 
             {/* ==================== HERO SPOTLIGHT BANNER + ACTIVE CHANNELS LIST ==================== */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
 
-              {/* Left: Big Spotlight Banner (8 cols) */}
-              <div className="lg:col-span-8 relative rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 min-h-[300px] sm:min-h-[360px] shadow-xl flex flex-col justify-end group">
+              {/* Left: Big Spotlight Cinema Frame (8 cols) */}
+              <div className="lg:col-span-8 relative rounded-3xl overflow-hidden bg-[#111216]/90 backdrop-blur-2xl border border-white/10 shadow-2xl min-h-[320px] sm:min-h-[380px] flex flex-col justify-between group">
 
                 {effectiveIsLive ? (
                   /* TRƯỜNG HỢP CÓ NGƯỜI LIVE: CHIẾU PHÒNG NHIỀU NGƯỜI XEM NHẤT */
-                  <div className="relative w-full h-full min-h-[340px] sm:min-h-[380px] flex flex-col justify-between bg-[#14151c]">
-                    <div className="relative w-full aspect-video bg-black overflow-hidden">
+                  <div className="relative w-full h-full min-h-[340px] sm:min-h-[380px] flex flex-col justify-between bg-black">
+                    <div className="relative w-full aspect-video bg-black overflow-hidden flex items-center justify-center">
                       <LivePlayer streamKey={topLiveRoom.id} />
+
+                      {/* Top Overlay: Live Pill & Multi-Angle Badges */}
+                      <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between pointer-events-none z-10">
+                        <div className="flex items-center gap-2 pointer-events-auto">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e63946] text-white text-[11px] font-black tracking-wider shadow-lg">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+                            TRỰC TIẾP
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 border border-white/10 backdrop-blur-xl text-zinc-300 text-[11px] font-semibold">
+                            <Eye className="w-3.5 h-3.5 text-zinc-400" />
+                            {topLiveRoom.viewers ? `${topLiveRoom.viewers.toLocaleString('vi-VN')} Đang Xem` : 'Đang Phát'}
+                          </span>
+                        </div>
+
+                        <div className="hidden sm:flex items-center gap-2 pointer-events-auto">
+                          <span className="px-2.5 py-1 rounded-full bg-black/60 border border-white/10 backdrop-blur-xl text-[11px] font-bold text-zinc-300">
+                            4K ULTRA HD
+                          </span>
+                          <span className="px-2.5 py-1 rounded-full bg-white/10 border border-white/10 backdrop-blur-xl text-[11px] font-medium text-zinc-300">
+                            Toàn Cảnh Bàn 01
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="p-4 bg-[#14151c] border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <h3 className="text-base sm:text-lg font-bold text-white leading-tight">
-                        {topLiveRoom.title}
-                      </h3>
+                    <div className="p-5 sm:p-6 bg-gradient-to-b from-[#111216]/95 to-[#0b0c0f]/98 border-t border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-zinc-300 uppercase tracking-wider">Sới Chính Số 01</span>
+                          <span className="text-zinc-600">•</span>
+                          <span className="text-xs text-zinc-400">{topLiveRoom.streamer || 'Trọng tài Thành Trung'}</span>
+                        </div>
+                        <h3 className="text-lg sm:text-xl font-black text-white tracking-tight leading-snug">
+                          {topLiveRoom.title}
+                        </h3>
+                        <p className="text-xs text-zinc-400 font-medium max-w-xl line-clamp-1">
+                          Bình luận trực tiếp từ sới trường • Hình ảnh chuẩn 60FPS không độ trễ
+                        </p>
+                      </div>
 
                       <button
                         onClick={() => changeChannel(topLiveRoom.id, true)}
-                        className="w-full sm:w-auto justify-center bg-[#e80017] hover:bg-red-600 text-white text-xs sm:text-sm font-bold py-2.5 px-5 rounded-lg flex items-center gap-2 transition cursor-pointer shrink-0"
+                        className="w-full sm:w-auto px-6 py-3 rounded-full bg-white hover:bg-zinc-200 text-black text-xs sm:text-sm font-extrabold tracking-wide flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 shadow-xl"
                       >
-                        <Tv className="w-4 h-4" />
-                        <span>VÀO PHÒNG LIVE</span>
+                        <Play className="w-4 h-4 fill-black" />
+                        <span>Vào Xem Trực Tiếp</span>
                       </button>
                     </div>
                   </div>
                 ) : (
-                  /* Khi chưa live, chỉ hiển thị dữ liệu lịch có thật nếu có. */
-                  <div className={`relative w-full h-full min-h-[280px] sm:min-h-[340px] flex flex-col justify-end p-5 sm:p-8 rounded-2xl overflow-hidden ${
-                    themeMode === 'light' ? 'bg-gradient-to-br from-white to-amber-50/30 border border-slate-200 shadow-sm' : 'bg-slate-900 border border-white/10'
-                  }`}>
+                  /* Khi chưa live, hiển thị banner Apple TV cinema */
+                  <div className="relative w-full h-full min-h-[300px] sm:min-h-[380px] flex flex-col justify-end p-6 sm:p-8 rounded-3xl overflow-hidden bg-black">
                     <div
-                      className={`absolute inset-0 bg-cover bg-center pointer-events-none ${
-                        themeMode === 'light' ? 'opacity-30' : 'opacity-40'
-                      }`}
-                      style={{ backgroundImage: `url('https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1200&auto=format&fit=crop')` }}
+                      className="absolute inset-0 bg-cover bg-center pointer-events-none opacity-40 scale-100 group-hover:scale-105 transition-transform duration-700 ease-out"
+                      style={{ backgroundImage: `url('https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1400&auto=format&fit=crop')` }}
                     ></div>
-                    <div className={`absolute inset-0 ${
-                      themeMode === 'light'
-                        ? 'bg-gradient-to-r from-white/95 via-white/80 to-white/40'
-                        : 'bg-gradient-to-t from-[#0e1017] via-[#0e1017]/85 to-transparent'
-                    }`}></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#090a0d] via-[#090a0d]/80 to-black/30"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-black/40"></div>
 
-                    <div className="relative z-10 space-y-3">
-                      <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white uppercase">
-                        {currentRoomInfo?.title || 'TRẠI GÀ THÀNH TRUNG LONG BIÊN'}
-                      </h2>
+                    {/* Top overlay badges */}
+                    <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
+                      <div className="flex items-center gap-2 pointer-events-auto">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/10 backdrop-blur-xl text-zinc-300 text-xs font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                          Sới Gà Đòn Nghệ Thuật
+                        </span>
+                      </div>
+                      <span className="hidden sm:inline-flex px-3 py-1 rounded-full bg-black/60 border border-white/10 backdrop-blur-xl text-[11px] font-bold text-zinc-300">
+                        Long Biên • Hà Nội
+                      </span>
+                    </div>
 
-                      <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                    <div className="relative z-10 space-y-3 pt-12">
+                      <div className="space-y-1">
+                        <span className="text-xs font-extrabold text-zinc-400 uppercase tracking-widest">
+                          Sới Đấu Trực Tiếp
+                        </span>
+                        <h2 className="text-xl sm:text-3xl font-black tracking-tight text-white uppercase leading-tight">
+                          {currentRoomInfo?.title || 'TRẠI GÀ THÀNH TRUNG LONG BIÊN'}
+                        </h2>
+                        <p className="text-xs sm:text-sm text-zinc-400 max-w-xl font-medium">
+                          Giao Lưu Đam Mê • Vần Xổ Gà Đòn Trực Tiếp • Chất Lượng Hình Ảnh Siêu Nét
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3 pt-2">
                         <button
                           onClick={() => {
                             if (currentRoomInfo?.id || currentRoomInfo?.key) {
@@ -1898,120 +2009,123 @@ export default function App() {
                             setActiveNavTab('live');
                             window.scrollTo({ top: 0, behavior: 'smooth' });
                           }}
-                          className="bg-[#e80017] hover:bg-red-600 text-white text-xs sm:text-sm font-extrabold py-2.5 px-5 rounded-lg flex items-center gap-2 transition cursor-pointer"
+                          className="px-6 py-3 rounded-full bg-white hover:bg-zinc-200 text-black text-xs sm:text-sm font-extrabold flex items-center gap-2 transition-all cursor-pointer shadow-xl"
                         >
                           <Tv className="w-4 h-4" />
                           <span>VÀO PHÒNG LIVE</span>
                         </button>
+
+                        <a
+                          href="https://zalo.me/84946939999"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-5 py-3 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer"
+                        >
+                          <MessageSquare className="w-4 h-4 text-zinc-300" />
+                          <span>Nhắn Zalo Chủ Trại</span>
+                        </a>
                       </div>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Right: Active Live Channels Widget (4 cols) */}
-              <div className={`lg:col-span-4 rounded-2xl border p-4 flex flex-col justify-between shadow-xl ${
-                themeMode === 'light' ? 'bg-white border-slate-200' : 'bg-[#16171d] border-white/10'
-              }`}>
-                <div className={`flex items-center justify-between pb-3 border-b ${
-                  themeMode === 'light' ? 'border-slate-200' : 'border-white/10'
-                }`}>
-                  <div className="flex items-center gap-2">
-                    <span className={`w-2.5 h-2.5 rounded-full ${actualLiveRooms.length > 0 ? 'bg-rose-500 animate-pulse' : 'bg-gray-500'}`}></span>
-                    <h3 className={`text-xs sm:text-sm font-black uppercase tracking-wider ${
-                      themeMode === 'light' ? 'text-slate-900' : 'text-white'
-                    }`}>
-                      {actualLiveRooms.length > 0 ? 'Đang Xổ & Lên Sóng' : 'Danh Sách Kênh'}
-                    </h3>
+              {/* Right: Active Live Channels Widget (macOS Control Center 4 cols) */}
+              <div className="lg:col-span-4 rounded-3xl p-5 flex flex-col justify-between border border-white/10 shadow-2xl bg-[#111216]/85 backdrop-blur-2xl">
+                <div>
+                  <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
+                    <div className="flex items-center gap-2.5">
+                      <span className={`w-2.5 h-2.5 rounded-full ${actualLiveRooms.length > 0 ? 'bg-[#e63946] shadow-[0_0_8px_rgba(230,57,70,0.8)] animate-pulse' : 'bg-gray-500'}`}></span>
+                      <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-white">
+                        {actualLiveRooms.length > 0 ? 'Các Sới Đang Live' : 'Danh Sách Sới'}
+                      </h3>
+                    </div>
+                    <span
+                      onClick={() => { setActiveNavTab('live'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      className="text-xs font-bold cursor-pointer px-2.5 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/10 hover:border-white/25 transition"
+                    >
+                      {actualLiveRooms.length > 0 ? `${actualLiveRooms.length} Kênh Live` : 'Chờ lên sóng'}
+                    </span>
                   </div>
-                  <span
-                    onClick={() => { setActiveNavTab('live'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                    className={`text-xs font-bold cursor-pointer hover:underline ${
-                      actualLiveRooms.length > 0 ? 'text-rose-600' : 'text-gray-400'
-                    }`}
-                  >
-                    {actualLiveRooms.length > 0 ? `${actualLiveRooms.length} Kênh Live` : 'Chờ lên sóng'}
-                  </span>
-                </div>
 
-                {/* List of active channels */}
-                <div className="space-y-2.5 my-3 overflow-y-auto max-h-[260px] pr-1">
-                  {(() => {
-                    const sortedKeys = [...displayKeys].sort((a, b) => {
-                      const aKey = (a.key || a.id || '').trim().toLowerCase();
-                      const bKey = (b.key || b.id || '').trim().toLowerCase();
-                      const aLive = allLiveKeys.includes(aKey);
-                      const bLive = allLiveKeys.includes(bKey);
-                      if (aLive && !bLive) return -1;
-                      if (!aLive && bLive) return 1;
-                      return 0;
-                    });
+                  {/* List of active channels */}
+                  <div className="space-y-2.5 my-3 overflow-y-auto max-h-[280px] pr-1">
+                    {(() => {
+                      const sortedKeys = [...displayKeys].sort((a, b) => {
+                        const aKey = (a.key || a.id || '').trim().toLowerCase();
+                        const bKey = (b.key || b.id || '').trim().toLowerCase();
+                        const aLive = allLiveKeys.includes(aKey);
+                        const bLive = allLiveKeys.includes(bKey);
+                        if (aLive && !bLive) return -1;
+                        if (!aLive && bLive) return 1;
+                        return 0;
+                      });
 
-                    return sortedKeys.map((item) => {
-                      const itemKey = (item.key || item.id || '').trim().toLowerCase();
-                      const isItemLive = allLiveKeys.includes(itemKey);
-                      const isSelected = streamKey === (item.key || item.id);
+                      return sortedKeys.map((item) => {
+                        const itemKey = (item.key || item.id || '').trim().toLowerCase();
+                        const isItemLive = allLiveKeys.includes(itemKey);
+                        const isSelected = streamKey === (item.key || item.id);
 
-                      return (
-                        <div
-                          key={item.key || item.id}
-                          onClick={() => {
-                            setPreviewSelectedChannel(item.key || item.id);
-                            changeChannel(item.key || item.id, true);
-                          }}
-                          className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
-                            isItemLive
-                              ? (isSelected
-                                  ? (themeMode === 'light' ? 'bg-rose-50 border-rose-300 shadow-sm' : 'bg-rose-950/40 border-rose-500/60 shadow-md')
-                                  : (themeMode === 'light' ? 'bg-rose-50/50 hover:bg-rose-50 border-rose-200' : 'bg-rose-950/20 hover:bg-rose-950/30 border-rose-500/30'))
-                              : (isSelected
-                                  ? (themeMode === 'light' ? 'bg-slate-100 border-slate-300 shadow-sm' : 'bg-white/5 border-white/20 shadow-sm')
-                                  : (themeMode === 'light' ? 'bg-slate-50 hover:bg-slate-100 border-slate-200' : 'bg-[#111217] hover:bg-white/5 border-white/5'))
-                          }`}
-                        >
-                          <div className="flex items-center justify-between text-xs">
-                            <span className={`flex items-center gap-1.5 font-bold truncate max-w-[180px] ${
-                              themeMode === 'light' ? 'text-slate-900' : 'text-gray-200'
-                            }`}>
-                              🐓 {item.title || 'Phòng Live Trại Gà'}
-                            </span>
-                            <div className="flex items-center gap-2 shrink-0">
-                              {isItemLive ? (
-                                <span className="text-rose-600 font-bold flex items-center gap-1 text-[11px]">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
-                                  LIVE
-                                </span>
-                              ) : (
-                                <span className="text-gray-500 font-medium text-[10px]">
-                                  Chờ lên sóng
-                                </span>
-                              )}
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded transition ${
-                                isItemLive
-                                  ? (isSelected
-                                      ? 'bg-rose-600 text-white'
-                                      : 'bg-rose-500/20 text-rose-400 border border-rose-500/30')
-                                  : (isSelected
-                                      ? (themeMode === 'light' ? 'bg-slate-200 text-slate-800' : 'bg-white/20 text-white')
-                                      : (themeMode === 'light' ? 'bg-slate-100 text-slate-600' : 'bg-white/10 text-gray-300'))
-                              }`}>
-                                {isItemLive ? 'Xem luồng' : 'Vào kênh'}
+                        return (
+                          <div
+                            key={item.key || item.id}
+                            onClick={() => {
+                              setPreviewSelectedChannel(item.key || item.id);
+                              changeChannel(item.key || item.id, true);
+                            }}
+                            className={`p-3 rounded-2xl border cursor-pointer transition-all ${
+                              isItemLive
+                                ? (isSelected
+                                    ? 'bg-white/[0.12] border-white/30 shadow-lg'
+                                    : 'bg-white/[0.06] hover:bg-white/[0.1] border-white/15')
+                                : (isSelected
+                                    ? 'bg-white/10 border-white/20'
+                                    : 'bg-white/[0.02] hover:bg-white/[0.05] border-white/[0.05]')
+                            }`}
+                          >
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="flex items-center gap-1.5 font-bold truncate max-w-[170px] text-zinc-100">
+                                🐓 {item.title || 'Phòng Live Trại Gà'}
                               </span>
+                              <div className="flex items-center gap-2 shrink-0">
+                                {isItemLive ? (
+                                  <span className="text-[#e63946] font-bold flex items-center gap-1 text-[11px]">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#e63946] animate-pulse"></span>
+                                    LIVE
+                                  </span>
+                                ) : (
+                                  <span className="text-zinc-500 font-medium text-[10px]">
+                                    Chờ lên sóng
+                                  </span>
+                                )}
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition ${
+                                  isItemLive
+                                    ? (isSelected
+                                        ? 'bg-white text-black'
+                                        : 'bg-white/15 text-white border border-white/20')
+                                    : (isSelected
+                                        ? 'bg-white/20 text-white'
+                                        : 'bg-white/5 text-zinc-400')
+                                }`}>
+                                  {isItemLive ? 'Xem luồng' : 'Vào kênh'}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    });
-                  })()}
+                        );
+                      });
+                    })()}
+                  </div>
                 </div>
 
-                <div
-                  onClick={() => { setActiveNavTab('live'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                  className={`pt-2 text-center text-[11px] font-bold cursor-pointer border-t flex items-center justify-center gap-1 ${
-                    themeMode === 'light' ? 'border-slate-200 text-rose-600 hover:text-rose-700' : 'border-white/10 text-rose-400 hover:text-rose-300'
-                  }`}
-                >
-                  <span>📺 Vào Phòng Live Xổ Gà xem đầy đủ &gt;</span>
+                <div className="pt-3 border-t border-white/[0.08]">
+                  <button
+                    onClick={() => { setActiveNavTab('live'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    className="w-full py-2.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-xs font-bold text-zinc-300 hover:text-white transition flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Tv className="w-3.5 h-3.5 text-zinc-400" />
+                    <span>Xem Toàn Bộ Sới Trực Tiếp &gt;</span>
+                  </button>
                 </div>
               </div>
 
@@ -2019,6 +2133,38 @@ export default function App() {
 
             {/* ==================== XEM LẠI PHIÊN LIVE ĐÃ PHÁT (5 VIDEO) ==================== */}
             {renderReplaysSection(false)}
+
+            {/* ==================== APPLE FEATURED CALLOUT / BANNER ==================== */}
+            <section className="rounded-3xl bg-[#111216]/85 backdrop-blur-2xl p-6 sm:p-8 border border-white/10 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
+              <div className="space-y-1.5 text-center md:text-left z-10">
+                <span className="px-3 py-1 rounded-full text-[11px] font-black tracking-wider uppercase bg-white/10 text-zinc-300 border border-white/10">
+                  Giao Lưu &amp; Đúc Dòng Chuẩn
+                </span>
+                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  Tham Gia Cộng Đồng Đam Mê Gà Đòn Thành Trung
+                </h3>
+                <p className="text-xs sm:text-sm text-zinc-400 max-w-xl">
+                  Cập nhật lịch vần xổ trực tiếp mỗi ngày, trao đổi kỹ thuật nuôi dưỡng và kết nối trực tiếp với chủ trại qua Zalo.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0 z-10">
+                <a
+                  href="https://zalo.me/84946939999"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-5 py-2.5 rounded-full bg-white text-black font-extrabold text-xs sm:text-sm hover:bg-zinc-200 transition-all shadow-xl"
+                >
+                  Nhắn Zalo Chủ Trại
+                </a>
+                <a
+                  href="tel:0946939999"
+                  className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-white font-bold text-xs sm:text-sm transition-all"
+                >
+                  0946.939.999
+                </a>
+              </div>
+            </section>
 
             {/* ==================== DANH SÁCH GÀ ĐANG BÁN (CÓ ẢNH RÕ RÀNG, BẤM XEM CHI TIẾT) ==================== */}
             {/* Tạm ẩn danh sách gà mua bán/giao lưu trên trang chủ. */}
@@ -2258,9 +2404,25 @@ export default function App() {
                   {renderLiveUtilitiesSection('controls')}
 
                   {/* VIDEO PLAYER COMPONENT (HLS Stream) */}
-                  <div className="relative rounded-none overflow-hidden bg-[#13141b]">
-                    <div className="bg-black">
+                  <div className="relative w-full aspect-video rounded-3xl overflow-hidden bg-black border border-white/15 shadow-2xl flex items-center justify-center group min-h-[380px] sm:min-h-[460px] lg:min-h-[500px]">
+                    <div className="w-full h-full bg-black">
                       <LivePlayer streamKey={streamKey} />
+                    </div>
+                    {/* Top Left Floating Badges */}
+                    <div className="absolute top-4 left-4 z-20 flex items-center gap-2 pointer-events-none">
+                      <span className="px-3.5 py-1.5 rounded-full bg-[#ff3b30] text-white text-xs font-black tracking-wider flex items-center gap-2 shadow-xl">
+                        <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                        TRỰC TIẾP
+                      </span>
+                      <span className="px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-xs text-[#e6b744] font-bold flex items-center gap-1.5 shadow-xl">
+                        <span>{actualLiveRooms?.find(r => r.id === streamKey)?.viewers || 1428} đang xem</span>
+                      </span>
+                    </div>
+                    {/* Top Right Quality Badge */}
+                    <div className="absolute top-4 right-4 z-20 flex items-center gap-2 pointer-events-none">
+                      <span className="px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-xs font-mono text-zinc-300">
+                        1080p • 60 FPS
+                      </span>
                     </div>
 
 
@@ -2284,7 +2446,7 @@ export default function App() {
 
                 {/* Cột phải (Desktop 4 cols): Phòng bình luận trực tiếp */}
                 <div className="hidden lg:flex lg:col-span-4 flex-col gap-3">
-                  <div className="h-[560px] w-full rounded-2xl overflow-hidden border border-white/10 bg-[#16171d] shadow-xl">
+                  <div className="h-[560px] lg:h-[600px] w-full rounded-3xl overflow-hidden border border-white/10 bg-[#121318]/90 backdrop-blur-2xl shadow-2xl">
                     <LiveChat
                       streamKey={streamKey}
                       user={currentUser}

@@ -104,11 +104,12 @@ export default function LiveStudioModal({
   // Chế độ thu âm Micro: 'studio' (Âm mộc không méo tiếng) | 'speech' (Lọc tạp âm thông minh)
   const [audioMode, setAudioMode] = useState(() => {
     try {
-      return localStorage.getItem('traiga_audio_mode') || 'studio';
+      return localStorage.getItem('traiga_audio_mode') === 'speech' ? 'speech' : 'studio';
     } catch {
       return 'studio';
     }
   });
+  const [isUpdatingAudioMode, setIsUpdatingAudioMode] = useState(false);
 
   // Ghi hình sao lưu HD tại thiết bị (Local Backup Recording qua MediaRecorder)
   const [enableLocalBackup, setEnableLocalBackup] = useState(true);
@@ -799,15 +800,15 @@ export default function LiveStudioModal({
     };
   };
 
-  // Cấu hình Micro: 'studio' (Âm thanh mộc, ấm, 100% nguyên bản) hoặc 'speech' (Lọc tạp âm quạt/gió)
+  // Studio preserves music; speech mode intentionally filters background sound.
   const getAudioConstraints = (mode = audioMode) => {
     if (mode === 'studio') {
       return {
-        echoCancellation: false, // TẮT triệt âm vọng: Mở toang dải âm, KHÔNG bao giờ bị cản / nghẹt tiếng
-        noiseSuppression: false, // TẮT lọc ồn: Giữ trọn âm sắc thực, tiếng gà gáy, tiếng nói tự nhiên
-        autoGainControl: true, // BẬT AGC nhẹ: Tự động cân bằng gain, chống rè/dè (clipping) khi nói to
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
         sampleRate: 48000,
-        channelCount: 1 // Kênh Mono chuẩn: 100% băng thông tập trung vào giọng nói, triệt tiêu rè lệch pha
+        channelCount: 1
       };
     }
     return {
@@ -819,20 +820,30 @@ export default function LiveStudioModal({
     };
   };
 
-  const handleAudioModeChange = async (newMode) => {
-    setAudioMode(newMode);
-    try {
-      localStorage.setItem('traiga_audio_mode', newMode);
-    } catch { }
+  const setAudioContentHint = (track, mode = audioMode) => {
+    if (track && 'contentHint' in track) {
+      track.contentHint = mode === 'studio' ? 'music' : 'speech';
+    }
+  };
 
-    const audioTrack = mediaStreamRef.current?.getAudioTracks()[0];
-    if (audioTrack && audioTrack.readyState === 'live') {
-      try {
+  const handleAudioModeChange = async (newMode) => {
+    if (isUpdatingAudioMode) return;
+    setIsUpdatingAudioMode(true);
+    try {
+      const audioTrack = mediaStreamRef.current?.getAudioTracks()[0];
+      if (audioTrack && audioTrack.readyState === 'live') {
         await audioTrack.applyConstraints(getAudioConstraints(newMode));
-        console.log('[AUDIO] Đã đổi chế độ Micro mượt mà sang:', newMode);
-      } catch (err) {
-        console.warn('[AUDIO] applyConstraints không thành công:', err);
+        setAudioContentHint(audioTrack, newMode);
       }
+      setAudioMode(newMode);
+      try {
+        localStorage.setItem('traiga_audio_mode', newMode);
+      } catch { }
+    } catch (err) {
+      console.warn('[AUDIO] applyConstraints không thành công:', err);
+      setErrorMessage('Không thể đổi chế độ micro. Hãy dừng phát và mở lại camera rồi thử lại.');
+    } finally {
+      setIsUpdatingAudioMode(false);
     }
   };
 
@@ -937,6 +948,7 @@ export default function LiveStudioModal({
       }
 
       mediaStreamRef.current = stream;
+      stream.getAudioTracks().forEach((track) => setAudioContentHint(track));
       attachPreviewStream(stream);
       stream.getVideoTracks()[0]?.addEventListener('ended', () => {
         if (type === 'camera') recoverVideoTrack('track ended');
@@ -1038,6 +1050,7 @@ export default function LiveStudioModal({
         });
         const newTrack = newAudioStream.getAudioTracks()[0];
         if (newTrack) {
+          setAudioContentHint(newTrack);
           mediaStreamRef.current.addTrack(newTrack);
           setIsMicOn(true);
           setErrorMessage('');
@@ -1229,6 +1242,7 @@ export default function LiveStudioModal({
 
     const audioTrack = mediaStreamRef.current.getAudioTracks()[0];
     if (audioTrack) {
+      setAudioContentHint(audioTrack);
       audioTrack.enabled = isMicOn;
       pc.addTransceiver(audioTrack, { direction: 'sendonly', streams: [mediaStreamRef.current] });
     }
@@ -1320,6 +1334,7 @@ export default function LiveStudioModal({
           });
           const aTrack = aStream.getAudioTracks()[0];
           if (aTrack) {
+            setAudioContentHint(aTrack);
             mediaStreamRef.current.addTrack(aTrack);
             setIsMicOn(true);
             console.log('[WEBRTC] Đã tự động kích hoạt Micro chuẩn bị phát sóng');
@@ -1460,32 +1475,32 @@ export default function LiveStudioModal({
   }
 
   return (
-    <div className="min-h-[100dvh] w-full bg-[#0c0d11]">
-      <div className={`relative mx-auto w-full ${isCamMaximized ? 'max-w-[1800px]' : 'max-w-[1600px]'} bg-[#111218] border-0 sm:border-x border-white/10 shadow-2xl overflow-hidden flex flex-col min-h-[100dvh] transition-all duration-300`}>
+    <div className="min-h-[100dvh] w-full bg-[#000000] p-0 sm:p-3 md:p-6 flex items-center justify-center">
+      <div className={`relative mx-auto w-full ${isCamMaximized ? 'max-w-[1850px]' : 'max-w-[1800px]'} bg-[#0c0d12]/95 backdrop-blur-2xl border-0 sm:border border-white/15 sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col min-h-[100dvh] sm:min-h-[92vh] transition-all duration-300`}>
 
         {/* ================= HEADER MODAL ================= */}
-        <div className="flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3 border-b border-white/10 bg-[#161720]">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className={`p-1.5 sm:p-2 rounded-xl ${isLive ? 'bg-rose-600 text-white animate-pulse' : 'bg-rose-500/10 text-rose-500'}`}>
+        <div className="flex items-center justify-between px-4 sm:px-8 py-3.5 sm:py-4 border-b border-white/[0.08] bg-[#0c0d12]/90 backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center ${isLive ? 'bg-[#ff3b30] text-white shadow-lg shadow-[#ff3b30]/30 animate-pulse' : 'bg-white/[0.06] text-white/70 border border-white/10'}`}>
               <Radio className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-xs sm:text-base font-black text-white tracking-wide">
+              <div className="flex items-center gap-2 sm:gap-2.5">
+                <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">
                   Phát Trực Tiếp
                 </h2>
                 {isLive ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-600 text-[10px] font-black text-white uppercase tracking-wider animate-pulse">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#ff3b30] text-[10px] font-black text-white uppercase tracking-wider shadow-sm">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                     LIVE
                   </span>
                 ) : (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-gray-300 font-semibold">
+                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-white/[0.08] text-white/70 font-semibold border border-white/10">
                     Chuẩn bị
                   </span>
                 )}
               </div>
-              <p className="text-[10px] sm:text-[11px] text-gray-400 truncate max-w-[170px] sm:max-w-xs">
+              <p className="text-[11px] text-white/50 truncate max-w-[180px] sm:max-w-xs mt-0.5">
                 Trạng thái:{' '}
                 {isLive ? (
                   streamConnStatus === 'reconnecting' ? (
@@ -1493,10 +1508,10 @@ export default function LiveStudioModal({
                   ) : streamConnStatus === 'recovered' ? (
                     <span className="text-emerald-400 font-bold">✅ Đã khôi phục</span>
                   ) : (
-                    <span className="text-rose-400 font-bold">Đang phát sóng</span>
+                    <span className="text-[#ff3b30] font-bold">Đang phát sóng</span>
                   )
                 ) : (
-                  <span className="text-gray-400 font-bold">Sẵn sàng lên sóng</span>
+                  <span className="text-white/80 font-medium">Sẵn sàng lên sóng</span>
                 )}
               </p>
             </div>
@@ -1505,12 +1520,12 @@ export default function LiveStudioModal({
           <div className="flex items-center gap-2 sm:gap-3">
             {isLive && (
               <>
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/40 border border-white/10 text-xs font-mono text-rose-400">
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 text-xs font-mono text-[#ff3b30]">
                   <Clock className="w-3.5 h-3.5" />
                   <span>{formatTimer(streamDuration)}</span>
                 </div>
-                <div className="hidden xs:flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 font-bold">
-                  <Users className="w-3 h-3 text-amber-400" />
+                <div className="hidden xs:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e6b744]/15 border border-[#e6b744]/30 text-xs text-[#e6b744] font-semibold">
+                  <Users className="w-3.5 h-3.5 text-[#e6b744]" />
                   <span>{viewerCount} xem</span>
                 </div>
               </>
@@ -1518,17 +1533,17 @@ export default function LiveStudioModal({
 
             <button
               onClick={onClose}
-              className="p-1.5 sm:p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition"
+              className="w-9 h-9 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition active:scale-95 cursor-pointer"
               title="Đóng studio"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         {/* THÔNG BÁO LỖI NẾU CÓ */}
         {errorMessage && (
-          <div className="px-4 py-2 bg-rose-950/70 border-b border-rose-800/60 flex items-center gap-2 text-xs text-rose-200">
+          <div className="px-5 py-2.5 bg-rose-950/70 border-b border-rose-800/60 flex items-center gap-2.5 text-xs text-rose-200">
             <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
             <span className="line-clamp-2">{errorMessage}</span>
           </div>
@@ -1536,7 +1551,7 @@ export default function LiveStudioModal({
 
         {/* CẢNH BÁO NẾU ĐANG MỞ BẰNG TRÌNH DUYỆT NHÚNG ZALO / MESSENGER / FACEBOOK TRÊN MOBILE */}
         {typeof navigator !== 'undefined' && /FBAN|FBAV|Zalo|Line|Instagram|BytedanceWebview/i.test(navigator.userAgent || '') && (
-          <div className="px-4 py-2.5 bg-amber-950/80 border-b border-amber-600/50 flex items-center justify-between gap-2 text-xs text-amber-200">
+          <div className="px-5 py-2.5 bg-amber-950/80 border-b border-amber-600/50 flex items-center justify-between gap-2 text-xs text-amber-200">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
               <span>
@@ -1549,7 +1564,7 @@ export default function LiveStudioModal({
         {/* ================= BODY STUDIO ================= */}
         {/* Banner thông báo tải bản ghi HD sao lưu tại máy (Local Backup) khi kết thúc live */}
         {localBackupUrl && !isLive && (
-          <div className="mx-2 sm:mx-4 mt-2.5 p-3 bg-gradient-to-r from-emerald-950/90 to-teal-950/90 border border-emerald-500/50 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xl animate-fadeIn">
+          <div className="mx-3 sm:mx-6 mt-3 p-3.5 bg-emerald-950/80 border border-emerald-500/40 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xl animate-fadeIn backdrop-blur-xl">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
                 <Check className="w-5 h-5" />
@@ -1570,7 +1585,7 @@ export default function LiveStudioModal({
               <a
                 href={localBackupUrl}
                 download={`traiga_${selectedKey || 'live'}_${new Date().toISOString().slice(0, 10)}.${localBackupExt}`}
-                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 transition text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-950/50 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 transition text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-950/50 cursor-pointer"
               >
                 <Download className="w-4 h-4" />
                 <span>Tải Bản Ghi Về Máy (.{localBackupExt.toUpperCase()})</span>
@@ -1590,21 +1605,21 @@ export default function LiveStudioModal({
           </div>
         )}
 
-        {/* Hỗ trợ Responsive linh hoạt: Khi xoay ngang điện thoại (landscape) tự động chia 2 cột trái-phải */}
-        <div className="p-2 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 overflow-y-auto flex-1">
+        {/* Hỗ trợ Responsive linh hoạt: Widescreen Apple Titan layout */}
+        <div className="p-3 sm:p-5 lg:p-7 grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 overflow-y-auto flex-1">
 
-          {/* CỘT TRÁI: CAMERA VIEWPORT CHUẨN THẲNG MẶT & ĐIỀU KHIỂN */}
-          <div className={`${isCamMaximized ? 'lg:col-span-8' : 'lg:col-span-7'} flex flex-col gap-2.5 transition-all duration-300`}>
+          {/* CỘT TRÁI: CAMERA VIEWPORT CHUẨN GÓC RỘNG & ĐIỀU KHIỂN */}
+          <div className={`${isCamMaximized ? 'lg:col-span-9' : 'lg:col-span-8'} flex flex-col gap-4 transition-all duration-300`}>
 
-            {/* KHUNG CAMERA CHUẨN GÓC RỘNG - HỖ TRỢ XOAY DỌC 9:16, NGANG 16:9 VÀ VUÔNG 1:1 */}
+            {/* KHUNG CAMERA CHUẨN GÓC RỘNG - SQUIRCLE APPLE DESIGN */}
             <div ref={previewFrameRef} className={`relative w-full ${orientation === 'portrait'
-                ? 'max-w-[280px] mx-auto aspect-[9/16] h-[360px] sm:h-[430px]'
+                ? 'max-w-[320px] mx-auto aspect-[9/16] h-[400px] sm:h-[480px]'
                 : orientation === 'square'
-                  ? 'max-w-[340px] mx-auto aspect-square'
+                  ? 'max-w-[420px] mx-auto aspect-square'
                   : isCamMaximized
-                    ? 'h-[62vh] xs:h-[68vh] sm:h-[480px]'
-                    : 'aspect-video sm:h-[360px]'
-              } bg-black rounded-2xl overflow-hidden border border-white/15 shadow-2xl flex items-center justify-center transition-all duration-300 group keep-dark`}>
+                    ? 'h-[65vh] xs:h-[72vh] sm:h-[540px]'
+                    : 'aspect-video min-h-[340px] sm:min-h-[460px] lg:min-h-[520px]'
+              } bg-black rounded-3xl overflow-hidden border border-white/15 shadow-2xl flex items-center justify-center transition-all duration-300 group keep-dark`}>
 
               <video
                 ref={previewVideoRef}
@@ -1618,8 +1633,8 @@ export default function LiveStudioModal({
 
               {/* CẢNH BÁO MẤT KẾT NỐI VÀ TỰ ĐỘNG RECONNECT TRỰC TIẾP TRÊN CAMERA */}
               {isLive && streamConnStatus === 'reconnecting' && (
-                <div className="absolute inset-x-2.5 sm:inset-x-4 top-14 z-40 p-2.5 sm:p-3 rounded-xl bg-amber-950/95 border-2 border-amber-500 backdrop-blur-md shadow-2xl flex items-center justify-between gap-2.5 animate-pulse">
-                  <div className="flex items-center gap-2.5 min-w-0">
+                <div className="absolute inset-x-3 sm:inset-x-6 top-16 z-40 p-3 rounded-2xl bg-amber-950/95 border-2 border-amber-500 backdrop-blur-xl shadow-2xl flex items-center justify-between gap-3 animate-pulse">
+                  <div className="flex items-center gap-3 min-w-0">
                     <RefreshCw className="w-5 h-5 text-amber-400 shrink-0 animate-spin" />
                     <div className="text-left min-w-0">
                       <p className="text-xs sm:text-sm font-extrabold text-amber-200 flex items-center gap-1.5 truncate">
@@ -1632,7 +1647,7 @@ export default function LiveStudioModal({
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <span className="px-2.5 py-1 rounded-lg bg-black/75 font-mono text-xs sm:text-sm font-black text-amber-300 border border-amber-500/50 shadow-inner">
+                    <span className="px-3 py-1.5 rounded-xl bg-black/75 font-mono text-xs sm:text-sm font-black text-amber-300 border border-amber-500/50 shadow-inner">
                       {reconnectCountdown}s
                     </span>
                   </div>
@@ -1641,8 +1656,8 @@ export default function LiveStudioModal({
 
               {/* THÔNG BÁO KHÔI PHỤC KẾT NỐI THÀNH CÔNG */}
               {isLive && streamConnStatus === 'recovered' && (
-                <div className="absolute inset-x-2.5 sm:inset-x-4 top-14 z-40 p-2 sm:p-2.5 rounded-xl bg-emerald-950/95 border border-emerald-500/80 backdrop-blur-md shadow-2xl flex items-center gap-2.5">
-                  <Check className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 shrink-0" />
+                <div className="absolute inset-x-3 sm:inset-x-6 top-16 z-40 p-3 rounded-2xl bg-emerald-950/95 border border-emerald-500/80 backdrop-blur-xl shadow-2xl flex items-center gap-3">
+                  <Check className="w-5 h-5 text-emerald-400 shrink-0" />
                   <div className="text-left">
                     <p className="text-xs sm:text-sm font-bold text-emerald-200">
                       ✅ Đã khôi phục kết nối luồng phát sóng!
@@ -1655,26 +1670,26 @@ export default function LiveStudioModal({
               )}
 
               {/* FLOATING REACTION EMOJIS BAY LÊN KHI KHÁN GIẢ THẢ TIM */}
-              <div className="absolute inset-y-0 right-3 pointer-events-none flex flex-col justify-end pb-16 z-30 overflow-hidden">
+              <div className="absolute inset-y-0 right-4 pointer-events-none flex flex-col justify-end pb-20 z-30 overflow-hidden">
                 {floatingEmojis.map((item) => (
-                  <div key={item.id} className="animate-float-up text-2xl select-none mb-2">
+                  <div key={item.id} className="animate-float-up text-3xl select-none mb-2">
                     {item.emoji}
                   </div>
                 ))}
               </div>
 
-              {/* THANH ĐIỀU KHIỂN TRÊN CÙNG CỦA VIDEO - BỐ TRÍ KHÔNG BAO GIỜ BỊ CHỒNG CHÉO */}
-              <div className="absolute top-2.5 inset-x-2.5 z-30 flex items-center justify-between gap-1.5 pointer-events-none">
+              {/* THANH ĐIỀU KHIỂN TRÊN CÙNG CỦA VIDEO */}
+              <div className="absolute top-4 inset-x-4 z-30 flex items-center justify-between gap-2 pointer-events-none">
 
                 {/* Góc trái: Trạng thái xem trước hoặc Live */}
-                <div className="pointer-events-auto flex items-center gap-1.5">
-                  <span className={`px-2 py-1 rounded-full backdrop-blur-md text-[10px] font-black border flex items-center gap-1 shadow-md ${isLive
+                <div className="pointer-events-auto flex items-center gap-2">
+                  <span className={`px-3 py-1.5 rounded-full backdrop-blur-md text-[11px] font-bold border flex items-center gap-1.5 shadow-lg ${isLive
                       ? streamConnStatus === 'reconnecting'
                         ? 'bg-amber-600/90 text-white border-amber-400 animate-pulse'
-                        : 'bg-rose-600/90 text-white border-rose-400 animate-pulse'
-                      : 'bg-black/70 text-gray-300 border-white/20'
+                        : 'bg-[#ff3b30] text-white border-[#ff3b30]/60 animate-pulse'
+                      : 'bg-black/60 text-white/90 border-white/15'
                     }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${isLive
+                    <span className={`w-2 h-2 rounded-full ${isLive
                         ? streamConnStatus === 'reconnecting'
                           ? 'bg-amber-200 animate-ping'
                           : 'bg-white'
@@ -1685,22 +1700,22 @@ export default function LiveStudioModal({
                 </div>
 
                 {/* Góc phải: Nút Phóng to Cam + Nút Lật Cam + Nút Tỉ lệ */}
-                <div className="pointer-events-auto flex items-center gap-1.5">
+                <div className="pointer-events-auto flex items-center gap-2">
 
                   {/* NÚT PHÓNG TO / THU NHỎ CAMERA */}
                   <button
                     onClick={() => setIsCamMaximized(!isCamMaximized)}
-                    className="px-2.5 py-1 rounded-full bg-black/70 hover:bg-black/90 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold border border-white/20 shadow-md flex items-center gap-1 transition active:scale-95 cursor-pointer"
+                    className="px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-[11px] font-semibold border border-white/15 shadow-lg flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
                     title={isCamMaximized ? "Thu nhỏ camera về góc chuẩn" : "Phóng to camera xem rõ chi tiết"}
                   >
                     {isCamMaximized ? (
                       <>
-                        <Minimize2 className="w-3 h-3 text-amber-400" />
+                        <Minimize2 className="w-3.5 h-3.5 text-amber-400" />
                         <span>Thu nhỏ</span>
                       </>
                     ) : (
                       <>
-                        <Maximize2 className="w-3 h-3 text-cyan-400" />
+                        <Maximize2 className="w-3.5 h-3.5 text-white/90" />
                         <span>Phóng to</span>
                       </>
                     )}
@@ -1709,7 +1724,7 @@ export default function LiveStudioModal({
                   {/* NÚT ĐỔI TỈ LỆ (CHUẨN NGƯỜI XEM / LẤP ĐẦY) */}
                   <button
                     onClick={() => setVideoFit(prev => prev === 'contain' ? 'cover' : 'contain')}
-                    className="hidden xs:inline-flex px-2 py-1 rounded-full bg-black/70 hover:bg-black/90 backdrop-blur-md text-white text-[10px] font-bold border border-white/20 shadow-md transition cursor-pointer"
+                    className="hidden xs:inline-flex px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-[11px] font-semibold border border-white/15 shadow-lg transition active:scale-95 cursor-pointer"
                     title="Chuyển đổi góc rộng người xem hoặc lấp đầy"
                   >
                     {videoFit === 'contain' ? '📐 100%' : '🔍 Lấp đầy'}
@@ -1719,10 +1734,10 @@ export default function LiveStudioModal({
                   {sourceType === 'camera' && (
                     <button
                       onClick={toggleFacingMode}
-                      className="px-2.5 py-1 rounded-full bg-black/70 hover:bg-black/90 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold border border-white/20 shadow-md flex items-center gap-1 transition-transform active:scale-95 cursor-pointer"
+                      className="px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-[11px] font-semibold border border-white/15 shadow-lg flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
                       title="Lật đổi Camera Trước / Sau"
                     >
-                      <RefreshCw className="w-3 h-3 text-amber-400" />
+                      <RefreshCw className="w-3.5 h-3.5 text-[#e6b744]" />
                       <span>{facingMode === 'user' ? 'Cam sau' : 'Cam trước'}</span>
                     </button>
                   )}
@@ -1733,16 +1748,16 @@ export default function LiveStudioModal({
               {/* THÔNG BÁO NẾU CAMERA BỊ KHÓA HOẶC CHƯA CẤP QUYỀN */}
               {!hasStream && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-black/95 text-gray-400 z-30">
-                  <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 mb-3">
-                    <Camera className="w-6 h-6" />
+                  <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 mb-3.5">
+                    <Camera className="w-7 h-7" />
                   </div>
-                  <p className="text-xs font-bold text-white mb-1">Chưa nhận được tín hiệu Camera</p>
-                  <p className="text-[11px] text-gray-400 max-w-xs mb-3.5 leading-relaxed">
+                  <p className="text-sm font-bold text-white mb-1.5">Chưa nhận được tín hiệu Camera</p>
+                  <p className="text-xs text-gray-400 max-w-xs mb-4 leading-relaxed">
                     Vui lòng bấm <b>Cho phép</b> khi trình duyệt hỏi quyền truy cập Camera & Microphone.
                   </p>
                   <button
                     onClick={() => initMediaStream(sourceType, facingMode)}
-                    className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg transition active:scale-95 cursor-pointer"
+                    className="px-6 py-2.5 rounded-full bg-[#ff3b30] hover:bg-[#e63026] text-white text-xs font-bold shadow-lg transition active:scale-95 cursor-pointer"
                   >
                     Thử Lại Camera
                   </button>
@@ -1751,10 +1766,10 @@ export default function LiveStudioModal({
 
               {/* THANH ĐIỀU KHIỂN CAMERA & MIC NẰM NỔI BÊN DƯỚI VIDEO (CHỈ HIỆN KHI ĐÃ CÓ STREAM) */}
               {hasStream && (
-                <div className="absolute bottom-3 inset-x-0 flex items-center justify-center gap-3 z-20">
+                <div className="absolute bottom-4 inset-x-0 flex items-center justify-center gap-3.5 z-20">
                   <button
                     onClick={toggleMic}
-                    className={`px-3 py-2 sm:py-2.5 rounded-full transition shadow-lg backdrop-blur-md cursor-pointer flex items-center gap-2 ${isMicOn ? 'bg-black/75 text-white hover:bg-black/90 border border-white/20' : 'bg-rose-600 text-white border border-rose-400'
+                    className={`px-4 py-2.5 rounded-full transition shadow-xl backdrop-blur-xl cursor-pointer flex items-center gap-2.5 ${isMicOn ? 'bg-black/75 text-white hover:bg-black/90 border border-white/20' : 'bg-[#ff3b30] text-white border border-[#ff3b30]/60'
                       }`}
                     title={isMicOn ? `Micro đang bật (Âm lượng: ${micVolume}%)` : "Bật Micro"}
                   >
@@ -1763,15 +1778,15 @@ export default function LiveStudioModal({
                       <div className="flex items-center gap-0.5 h-3" title={`Âm lượng mic: ${micVolume}%`}>
                         <span className={`w-1 rounded-full transition-all duration-75 ${micVolume > 5 ? 'h-3 bg-emerald-400' : 'h-1 bg-white/30'}`} />
                         <span className={`w-1 rounded-full transition-all duration-75 ${micVolume > 25 ? 'h-3 bg-emerald-400' : 'h-1 bg-white/30'}`} />
-                        <span className={`w-1 rounded-full transition-all duration-75 ${micVolume > 50 ? 'h-3 bg-amber-400' : 'h-1 bg-white/30'}`} />
-                        <span className={`w-1 rounded-full transition-all duration-75 ${micVolume > 75 ? 'h-3 bg-rose-500' : 'h-1 bg-white/30'}`} />
+                        <span className={`w-1 rounded-full transition-all duration-75 ${micVolume > 50 ? 'h-3 bg-[#e6b744]' : 'h-1 bg-white/30'}`} />
+                        <span className={`w-1 rounded-full transition-all duration-75 ${micVolume > 75 ? 'h-3 bg-[#ff3b30]' : 'h-1 bg-white/30'}`} />
                       </div>
                     )}
                   </button>
 
                   <button
                     onClick={toggleCamera}
-                    className={`p-2.5 sm:p-3 rounded-full transition shadow-lg backdrop-blur-md cursor-pointer ${isCameraOn ? 'bg-black/60 text-white hover:bg-black/80 border border-white/20' : 'bg-rose-600 text-white border border-rose-400'
+                    className={`w-11 h-11 rounded-full transition shadow-xl backdrop-blur-xl cursor-pointer flex items-center justify-center ${isCameraOn ? 'bg-black/75 text-white hover:bg-black/90 border border-white/20' : 'bg-[#ff3b30] text-white border border-[#ff3b30]/60'
                       }`}
                     title={isCameraOn ? "Tắt Camera" : "Bật Camera"}
                   >
@@ -1781,7 +1796,7 @@ export default function LiveStudioModal({
                   {sourceType === 'camera' && (
                     <button
                       onClick={toggleFacingMode}
-                      className="p-2.5 sm:p-3 rounded-full bg-amber-500/80 hover:bg-amber-500 text-slate-950 font-bold transition shadow-lg backdrop-blur-md cursor-pointer border border-amber-300"
+                      className="w-11 h-11 rounded-full bg-[#e6b744] hover:bg-[#d4a838] text-black font-bold transition shadow-xl backdrop-blur-xl cursor-pointer border border-[#e6b744]/40 flex items-center justify-center active:scale-95"
                       title="Xoay Camera trước / sau"
                     >
                       <RefreshCw className="w-4 h-4" />
@@ -1792,13 +1807,13 @@ export default function LiveStudioModal({
 
             </div>
 
-            {/* NÚT BẮT ĐẦU / DỪNG PHÁT SÓNG NGAY DƯỚI CAMERA TRÊN ĐIỆN THOẠI (KHÔNG CẦN CUỘN XUỐNG DƯỚI) */}
+            {/* NÚT BẮT ĐẦU / DỪNG PHÁT SÓNG NGAY DƯỚI CAMERA TRÊN ĐIỆN THOẠI */}
             <div className="lg:hidden">
               {!isLive ? (
                 <button
                   onClick={startLivestream}
                   disabled={isPublishing}
-                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-[0.98] transition-all text-white font-black text-xs sm:text-sm shadow-xl shadow-rose-950/60 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                  className="w-full py-3.5 px-5 rounded-full bg-gradient-to-r from-[#ff3b30] to-[#e63026] hover:brightness-110 active:scale-[0.98] transition-all text-white font-bold text-sm shadow-xl shadow-[#ff3b30]/30 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                 >
                   <Play className="w-4 h-4 fill-white" />
                   <span>{isPublishing ? "ĐANG KẾT NỐI MÁY CHỦ..." : "BẮT ĐẦU PHÁT SÓNG NGAY"}</span>
@@ -1806,7 +1821,7 @@ export default function LiveStudioModal({
               ) : (
                 <button
                   onClick={stopLivestream}
-                  className="w-full py-3 px-4 rounded-xl bg-rose-700 hover:bg-rose-600 active:scale-[0.98] transition-all text-white font-black text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 cursor-pointer border border-rose-400/50"
+                  className="w-full py-3.5 px-5 rounded-full bg-[#ff3b30] hover:bg-[#e63026] active:scale-[0.98] transition-all text-white font-bold text-sm shadow-xl flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Square className="w-4 h-4 fill-white" />
                   <span>DỪNG PHÁT SÓNG (ĐANG LIVE)</span>
@@ -1814,45 +1829,53 @@ export default function LiveStudioModal({
               )}
             </div>
 
-            {/* CHỌN NGUỒN THU (WEBCAM / MÀN HÌNH - Ẩn Chia sẻ màn hình trên điện thoại) */}
-            <div className="hidden sm:grid grid-cols-2 gap-2">
+            {/* CHỌN NGUỒN THU (WEBCAM / MÀN HÌNH) */}
+            <div className="hidden sm:grid grid-cols-2 gap-3">
               <button
                 onClick={() => handleSwitchSource('camera')}
                 disabled={isLive}
-                className={`py-1.5 sm:py-2 px-3 rounded-xl border text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition ${sourceType === 'camera'
-                    ? 'bg-rose-600/20 border-rose-500/50 text-rose-300'
-                    : 'bg-[#161720] border-white/5 text-gray-400 hover:text-white'
-                  } disabled:opacity-50`}
+                className={`py-3 px-4 rounded-2xl border text-xs font-semibold flex items-center justify-center gap-2 transition ${sourceType === 'camera'
+                    ? 'bg-[#ff3b30]/15 border-[#ff3b30]/40 text-[#ff3b30]'
+                    : 'bg-white/[0.04] border-white/10 text-white/70 hover:text-white hover:bg-white/[0.08]'
+                  } disabled:opacity-50 cursor-pointer`}
               >
-                <Camera className="w-3.5 h-3.5" />
+                <Camera className="w-4 h-4" />
                 <span>Camera Điện Thoại / Webcam</span>
               </button>
 
               <button
                 onClick={() => handleSwitchSource('screen')}
                 disabled={isLive}
-                className={`py-1.5 sm:py-2 px-3 rounded-xl border text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition ${sourceType === 'screen'
-                    ? 'bg-rose-600/20 border-rose-500/50 text-rose-300'
-                    : 'bg-[#161720] border-white/5 text-gray-400 hover:text-white'
-                  } disabled:opacity-50`}
+                className={`py-3 px-4 rounded-2xl border text-xs font-semibold flex items-center justify-center gap-2 transition ${sourceType === 'screen'
+                    ? 'bg-[#ff3b30]/15 border-[#ff3b30]/40 text-[#ff3b30]'
+                    : 'bg-white/[0.04] border-white/10 text-white/70 hover:text-white hover:bg-white/[0.08]'
+                  } disabled:opacity-50 cursor-pointer`}
               >
-                <Monitor className="w-3.5 h-3.5" />
+                <Monitor className="w-4 h-4" />
                 <span>Chia sẻ màn hình</span>
               </button>
+            </div>
+
+            {/* CHIP THÔNG TIN CAMERA & ĐỘ PHÂN GIẢI */}
+            <div className="flex items-center justify-center">
+              <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] text-white/60">
+                <span className={`w-2 h-2 rounded-full ${isCameraOn ? 'bg-emerald-400' : 'bg-gray-500'}`} />
+                <span>{isCameraOn ? 'Camera on' : 'Camera off'} • Độ phân giải chuẩn {resolution.toUpperCase()}</span>
+              </span>
             </div>
 
           </div>
 
           {/* CỘT PHẢI: KHUNG ĐỌC BÌNH LUẬN TRỰC TIẾP & BẢNG ĐIỀU KHIỂN */}
-          <div className={`${isCamMaximized ? 'lg:col-span-4' : 'lg:col-span-5'} flex flex-col justify-between bg-[#161720] border border-white/10 rounded-2xl p-3 sm:p-4 min-h-[300px] sm:min-h-[360px] shadow-xl transition-all duration-300`}>
+          <div className={`${isCamMaximized ? 'lg:col-span-3' : 'lg:col-span-4'} flex flex-col justify-between bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-3xl p-5 sm:p-6 shadow-2xl transition-all duration-300 min-h-[360px]`}>
 
             {/* THANH CHUYỂN TAB: BÌNH LUẬN TRỰC TIẾP <-> KỊCH BẢN LIVE <-> CẤU HÌNH PHÒNG */}
-            <div className="flex items-center p-1 rounded-xl bg-black/40 border border-white/10 mb-2 sm:mb-3 gap-1">
+            <div className="flex items-center p-1.5 rounded-2xl bg-black/40 border border-white/10 mb-4 gap-1.5">
               <button
                 onClick={() => setActiveTab('chat')}
-                className={`flex-1 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1.5 ${activeTab === 'chat'
-                    ? 'bg-rose-600 text-white shadow-md'
-                    : 'text-gray-400 hover:text-white'
+                className={`flex-1 py-2 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer ${activeTab === 'chat'
+                    ? 'bg-[#ff3b30] text-white shadow-md'
+                    : 'text-white/60 hover:text-white'
                   }`}
               >
                 <span className={`w-2 h-2 rounded-full ${isChatConnected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`} />
@@ -1862,20 +1885,20 @@ export default function LiveStudioModal({
 
               <button
                 onClick={() => setActiveTab('script')}
-                className={`flex-1 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1.5 ${activeTab === 'script'
-                    ? 'bg-amber-600 text-white shadow-md'
-                    : 'text-gray-400 hover:text-white'
+                className={`flex-1 py-2 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer ${activeTab === 'script'
+                    ? 'bg-[#e6b744] text-black shadow-md font-bold'
+                    : 'text-white/60 hover:text-white'
                   }`}
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>📜 Kịch bản</span>
+                <span>Kịch bản</span>
               </button>
 
               <button
                 onClick={() => setActiveTab('config')}
-                className={`flex-1 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1.5 ${activeTab === 'config'
-                    ? 'bg-white/15 text-white shadow-md'
-                    : 'text-gray-400 hover:text-white'
+                className={`flex-1 py-2 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer ${activeTab === 'config'
+                    ? 'bg-white/20 text-white shadow-md'
+                    : 'text-white/60 hover:text-white'
                   }`}
               >
                 <Settings className="w-3.5 h-3.5" />
@@ -1885,35 +1908,37 @@ export default function LiveStudioModal({
 
             {/* TAB 1: KHUNG ĐỌC BÌNH LUẬN TRỰC TIẾP CHO STREAMER */}
             {activeTab === 'chat' && (
-              <div className="flex-1 flex flex-col justify-between min-h-[220px]">
+              <div className="flex-1 flex flex-col justify-between min-h-[260px]">
 
                 {/* Trạng thái phòng chat trực tiếp */}
-                <div className="flex items-center justify-between px-2.5 py-1 mb-2 bg-black/40 rounded-lg border border-white/5 text-[11px] text-gray-400">
-                  <div className="flex items-center gap-1.5">
+                <div className="flex items-center justify-between px-3 py-1.5 mb-3 bg-white/[0.04] rounded-xl border border-white/10 text-xs text-white/60">
+                  <div className="flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full ${isChatConnected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`} />
-                    <span>Kênh: <strong className="text-gray-200 font-mono">{selectedKey}</strong></span>
+                    <span>Kênh: <strong className="text-white font-mono">{selectedKey}</strong></span>
                   </div>
                   {!isChatConnected ? (
                     <button
                       type="button"
                       onClick={() => connectChat()}
-                      className="text-rose-400 hover:text-rose-300 font-semibold flex items-center gap-1 transition cursor-pointer"
+                      className="text-[#ff3b30] hover:underline font-semibold flex items-center gap-1 transition cursor-pointer"
                     >
                       <RefreshCw className="w-3 h-3 animate-spin" />
                       <span>Kết nối lại</span>
                     </button>
                   ) : (
-                    <span className="text-emerald-400 font-medium text-[10px]">● Trực tuyến</span>
+                    <span className="text-emerald-400 font-semibold text-[11px]">Trực tuyến</span>
                   )}
                 </div>
 
                 {/* Danh sách bình luận cuộn mượt mà */}
-                <div className="flex-1 overflow-y-auto space-y-2 pr-1 max-h-[220px] sm:max-h-[280px]">
+                <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 max-h-[300px] sm:max-h-[380px]">
                   {studioMessages.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-center p-4 text-gray-500 text-xs">
-                      <MessageSquare className="w-8 h-8 stroke-1 text-gray-600 mb-2" />
-                      <p className="font-semibold text-gray-400">Chưa có bình luận nào</p>
-                      <p className="text-[11px] text-gray-500 mt-0.5 max-w-[260px]">
+                    <div className="h-full flex flex-col items-center justify-center text-center p-6 text-white/40 text-xs">
+                      <div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-white/30 mb-3">
+                        <MessageSquare className="w-6 h-6 stroke-1" />
+                      </div>
+                      <p className="font-semibold text-white/70">Chưa có bình luận nào</p>
+                      <p className="text-[11px] text-white/40 mt-1 max-w-[260px] leading-relaxed">
                         {isChatConnected
                           ? `Đã kết nối phòng "${selectedKey}". Bình luận từ khán giả sẽ hiện ngay tại đây!`
                           : `Đang kết nối vào phòng trò chuyện kênh "${selectedKey}"...`}
@@ -1922,7 +1947,7 @@ export default function LiveStudioModal({
                         <button
                           type="button"
                           onClick={() => connectChat()}
-                          className="mt-3 px-3 py-1.5 bg-white/10 hover:bg-white/20 active:scale-95 text-white rounded-lg text-[11px] font-semibold transition flex items-center gap-1.5 cursor-pointer border border-white/10"
+                          className="mt-3 px-3.5 py-1.5 bg-white/10 hover:bg-white/20 active:scale-95 text-white rounded-full text-[11px] font-semibold transition flex items-center gap-1.5 cursor-pointer border border-white/10"
                         >
                           <RefreshCw className="w-3 h-3" />
                           <span>Thử kết nối lại ngay</span>
@@ -1936,26 +1961,26 @@ export default function LiveStudioModal({
                       const isStreamer = msg.role === 'admin' || msg.role === 'streamer' || sender.toLowerCase().includes('chủ');
                       const isSysAdmin = msg.role === 'systemadmin';
                       return (
-                        <div key={msg.id || idx} className="bg-black/50 border border-white/10 rounded-xl p-2.5 text-xs shadow-sm">
+                        <div key={msg.id || idx} className="bg-white/[0.04] border border-white/10 rounded-2xl p-3 text-xs shadow-sm">
                           <div className="flex items-center justify-between text-[11px] mb-1">
                             <div className="flex items-center gap-1.5">
                               {isSysAdmin ? (
-                                <span className="bg-purple-600/30 text-purple-300 font-bold px-1.5 py-0.5 rounded text-[9px] border border-purple-500/30">SYS</span>
+                                <span className="bg-purple-600/30 text-purple-300 font-bold px-1.5 py-0.5 rounded-full text-[9px] border border-purple-500/30">SYS</span>
                               ) : isStreamer ? (
-                                <span className="bg-amber-500/30 text-amber-300 font-bold px-1.5 py-0.5 rounded text-[9px] border border-amber-500/30">CHỦ TRẠI</span>
+                                <span className="bg-[#e6b744]/20 text-[#e6b744] font-bold px-1.5 py-0.5 rounded-full text-[9px] border border-[#e6b744]/30">CHỦ TRẠI</span>
                               ) : (
-                                <span className="bg-rose-500/20 text-rose-300 font-bold px-1.5 py-0.5 rounded text-[9px] border border-rose-500/30">KHÁCH</span>
+                                <span className="bg-[#ff3b30]/20 text-[#ff3b30] font-bold px-1.5 py-0.5 rounded-full text-[9px] border border-[#ff3b30]/30">KHÁCH</span>
                               )}
-                              <span className={`font-bold truncate max-w-[140px] ${isSysAdmin ? 'text-purple-400' : isStreamer ? 'text-amber-400' : 'text-rose-400'
+                              <span className={`font-bold truncate max-w-[140px] ${isSysAdmin ? 'text-purple-400' : isStreamer ? 'text-[#e6b744]' : 'text-white'
                                 }`}>
                                 {sender}
                               </span>
                             </div>
-                            <span className="text-gray-500 text-[10px]">
+                            <span className="text-white/40 text-[10px]">
                               {msg.created_at ? new Date(msg.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ''}
                             </span>
                           </div>
-                          <p className="text-gray-100 font-medium break-words leading-relaxed pl-1">
+                          <p className="text-white/90 font-medium break-words leading-relaxed pl-1">
                             {content}
                           </p>
                         </div>
@@ -1968,7 +1993,7 @@ export default function LiveStudioModal({
                 {/* Form gõ phản hồi nhanh cho khán giả */}
                 <form
                   onSubmit={handleSendStudioChat}
-                  className="flex items-center gap-1.5 pt-2 border-t border-white/10 mt-2 relative z-20"
+                  className="flex items-center gap-2 pt-3 border-t border-white/10 mt-3 relative z-20"
                 >
                   <input
                     type="text"
@@ -1981,19 +2006,19 @@ export default function LiveStudioModal({
                       }
                     }}
                     placeholder={isChatConnected ? "Gõ trả lời khán giả..." : "Đang xác thực/kết nối phòng chat..."}
-                    className="flex-1 bg-black/50 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-rose-500"
+                    className="flex-1 bg-white/[0.04] border border-white/15 rounded-full px-4 py-2.5 text-xs text-white placeholder-white/40 focus:outline-none focus:border-white/40 transition"
                   />
                   <button
                     type="submit"
                     disabled={!studioChatInput.trim() || !isChatConnected || isSendingStudioChat}
-                    className="p-2 rounded-xl bg-rose-600 hover:bg-rose-500 active:scale-95 text-white disabled:opacity-40 transition cursor-pointer shrink-0"
+                    className="w-9 h-9 rounded-full bg-[#ff3b30] hover:bg-[#e63026] active:scale-95 text-white disabled:opacity-40 transition cursor-pointer flex items-center justify-center shrink-0 shadow-lg shadow-[#ff3b30]/20"
                     title={isSendingStudioChat ? 'Đang chờ máy chủ xác nhận' : 'Gửi phản hồi'}
                   >
                     {isSendingStudioChat ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                   </button>
                 </form>
                 {studioChatError && (
-                  <p className="pt-1 text-[10px] text-amber-300" role="status">{studioChatError}</p>
+                  <p className="pt-1.5 text-[10px] text-amber-300" role="status">{studioChatError}</p>
                 )}
 
               </div>
@@ -2001,10 +2026,10 @@ export default function LiveStudioModal({
 
             {/* TAB 2: CẤU HÌNH PHÒNG & THÔNG SỐ */}
             {activeTab === 'config' && (
-              <div className="flex-1 space-y-3.5 overflow-y-auto max-h-[320px] pr-1 text-xs">
+              <div className="flex-1 space-y-3.5 overflow-y-auto max-h-[340px] pr-1 text-xs">
                 {/* 1. CHỌN KÊNH PHÁT */}
                 <div>
-                  <label className="text-gray-400 mb-1.5 block font-semibold text-[11px] flex items-center justify-between">
+                  <label className="text-white/60 mb-1.5 block font-semibold text-[11px] flex items-center justify-between">
                     <span>Kênh phát sóng:</span>
                     {isLive && <span className="text-emerald-400 text-[10px] font-mono">● Đang phát</span>}
                   </label>
@@ -2012,21 +2037,21 @@ export default function LiveStudioModal({
                     value={selectedKey}
                     onChange={(e) => setSelectedKey(e.target.value)}
                     disabled={isLive}
-                    className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 disabled:opacity-50"
+                    className="w-full bg-white/[0.04] border border-white/15 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none focus:border-white/40 disabled:opacity-50"
                   >
                     {streamKeys.map((k, idx) => (
-                      <option key={k.key} value={k.key}>
+                      <option key={k.key} value={k.key} className="bg-[#12131a] text-white">
                         {k.title || k.streamer || `Kênh phát sóng #${idx + 1}`}
                       </option>
                     ))}
-                    {streamKeys.length === 0 && <option value="">Chưa có kênh phát sóng</option>}
+                    {streamKeys.length === 0 && <option value="" className="bg-[#12131a] text-white">Chưa có kênh phát sóng</option>}
                   </select>
                 </div>
 
                 {/* 2. HƯỚNG QUAY / KHUNG HÌNH (DỌC / NGANG / VUÔNG) */}
                 <div>
-                  <label className="text-gray-400 mb-1.5 block font-semibold text-[11px] flex items-center gap-1.5">
-                    <Smartphone className="w-3.5 h-3.5 text-rose-400" />
+                  <label className="text-white/60 mb-1.5 block font-semibold text-[11px] flex items-center gap-1.5">
+                    <Smartphone className="w-3.5 h-3.5 text-[#ff3b30]" />
                     <span>Khung hình / Hướng quay:</span>
                   </label>
                   <div className="grid grid-cols-3 gap-1.5">
@@ -2034,8 +2059,8 @@ export default function LiveStudioModal({
                       type="button"
                       onClick={() => handleOrientationChange('landscape')}
                       className={`py-2 px-2 rounded-xl text-center font-bold text-[11px] transition border cursor-pointer flex flex-col items-center gap-1 ${orientation === 'landscape'
-                          ? 'bg-rose-500/20 text-rose-300 border-rose-500 shadow-sm shadow-rose-950/40'
-                          : 'bg-black/40 text-gray-400 border-white/5 hover:text-white hover:border-white/20'
+                          ? 'bg-[#ff3b30]/15 text-[#ff3b30] border-[#ff3b30]/50 shadow-sm'
+                          : 'bg-white/[0.04] text-white/60 border-white/10 hover:text-white hover:border-white/20'
                         }`}
                     >
                       <Monitor className="w-4 h-4" />
@@ -2045,8 +2070,8 @@ export default function LiveStudioModal({
                       type="button"
                       onClick={() => handleOrientationChange('portrait')}
                       className={`py-2 px-2 rounded-xl text-center font-bold text-[11px] transition border cursor-pointer flex flex-col items-center gap-1 ${orientation === 'portrait'
-                          ? 'bg-rose-500/20 text-rose-300 border-rose-500 shadow-sm shadow-rose-950/40'
-                          : 'bg-black/40 text-gray-400 border-white/5 hover:text-white hover:border-white/20'
+                          ? 'bg-[#ff3b30]/15 text-[#ff3b30] border-[#ff3b30]/50 shadow-sm'
+                          : 'bg-white/[0.04] text-white/60 border-white/10 hover:text-white hover:border-white/20'
                         }`}
                     >
                       <Smartphone className="w-4 h-4" />
@@ -2056,8 +2081,8 @@ export default function LiveStudioModal({
                       type="button"
                       onClick={() => handleOrientationChange('square')}
                       className={`py-2 px-2 rounded-xl text-center font-bold text-[11px] transition border cursor-pointer flex flex-col items-center gap-1 ${orientation === 'square'
-                          ? 'bg-rose-500/20 text-rose-300 border-rose-500 shadow-sm shadow-rose-950/40'
-                          : 'bg-black/40 text-gray-400 border-white/5 hover:text-white hover:border-white/20'
+                          ? 'bg-[#ff3b30]/15 text-[#ff3b30] border-[#ff3b30]/50 shadow-sm'
+                          : 'bg-white/[0.04] text-white/60 border-white/10 hover:text-white hover:border-white/20'
                         }`}
                     >
                       <Square className="w-4 h-4" />
@@ -2068,7 +2093,7 @@ export default function LiveStudioModal({
 
                 {/* 3. ĐỘ PHÂN GIẢI (RESOLUTION) */}
                 <div>
-                  <label className="text-gray-400 mb-1.5 block font-semibold text-[11px] flex items-center justify-between">
+                  <label className="text-white/60 mb-1.5 block font-semibold text-[11px] flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
                       <Sliders className="w-3.5 h-3.5 text-cyan-400" />
                       <span>Độ phân giải video:</span>
@@ -2087,8 +2112,8 @@ export default function LiveStudioModal({
                         type="button"
                         onClick={() => handleResolutionChange(item.key)}
                         className={`py-1.5 px-1.5 rounded-xl text-center font-bold transition border cursor-pointer flex flex-col items-center ${resolution === item.key
-                            ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500 shadow-sm shadow-cyan-950/40'
-                            : 'bg-black/40 text-gray-400 border-white/5 hover:text-white hover:border-white/20'
+                            ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500 shadow-sm'
+                            : 'bg-white/[0.04] text-white/60 border-white/10 hover:text-white hover:border-white/20'
                           }`}
                       >
                         <span className="text-xs font-mono">{item.label}</span>
@@ -2100,55 +2125,57 @@ export default function LiveStudioModal({
 
                 {/* 4. CHẾ ĐỘ MICROPHONE */}
                 <div>
-                  <label className="text-gray-400 mb-1.5 block font-semibold text-[11px] flex items-center justify-between">
+                  <label className="text-white/60 mb-1.5 block font-semibold text-[11px] flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
                       <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
                       <span>Chất lượng âm thanh Micro:</span>
                     </span>
-                    <span className="text-[10px] text-emerald-400/90 font-mono">48 kHz • Không trễ</span>
+                    <span className="text-[10px] text-emerald-400/90">{isUpdatingAudioMode ? 'Đang đổi chế độ…' : 'Micro thu âm'}</span>
                   </label>
                   <div className="grid grid-cols-2 gap-1.5">
                     <button
                       type="button"
                       onClick={() => handleAudioModeChange('studio')}
+                      disabled={isUpdatingAudioMode}
                       className={`py-2 px-2.5 rounded-xl text-left font-bold transition border cursor-pointer flex flex-col gap-0.5 ${
                         audioMode === 'studio'
-                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500 shadow-sm shadow-emerald-950/40'
-                          : 'bg-black/40 text-gray-400 border-white/5 hover:text-white hover:border-white/20'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500 shadow-sm'
+                          : 'bg-white/[0.04] text-white/60 border-white/10 hover:text-white hover:border-white/20'
                       }`}
                     >
                       <div className="flex items-center gap-1.5 text-[11px]">
                         <Mic className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Âm thanh Studio (Trong trẻo)</span>
+                        <span>Studio • Âm thanh thực</span>
                       </div>
-                      <span className="text-[9px] opacity-75 font-normal">Mở toang dải âm, không cản tiếng, chống rè vỡ giọng</span>
+                      <span className="text-[9px] opacity-75 font-normal">Giữ trọn tiếng gáy, tiếng chim, nhạc nền chân thật</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => handleAudioModeChange('speech')}
+                      disabled={isUpdatingAudioMode}
                       className={`py-2 px-2.5 rounded-xl text-left font-bold transition border cursor-pointer flex flex-col gap-0.5 ${
                         audioMode === 'speech'
-                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500 shadow-sm shadow-emerald-950/40'
-                          : 'bg-black/40 text-gray-400 border-white/5 hover:text-white hover:border-white/20'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500 shadow-sm'
+                          : 'bg-white/[0.04] text-white/60 border-white/10 hover:text-white hover:border-white/20'
                       }`}
                     >
                       <div className="flex items-center gap-1.5 text-[11px]">
-                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        <Sparkles className="w-3.5 h-3.5 text-[#e6b744]" />
                         <span>Chống dội & Lọc ồn</span>
                       </div>
-                      <span className="text-[9px] opacity-75 font-normal">Dùng khi bật loa ngoài to hoặc có tiếng quạt gió</span>
+                      <span className="text-[9px] opacity-75 font-normal">Ưu tiên tiếng nói, loại bỏ tạp âm môi trường</span>
                     </button>
                   </div>
                 </div>
 
                 {/* 5. GHI HÌNH DỰ PHÒNG CỤC BỘ (LOCAL BACKUP) */}
-                <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between gap-2">
+                <div className="p-3 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-between gap-2">
                   <div className="space-y-0.5">
-                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-200">
-                      <Download className="w-3.5 h-3.5 text-rose-400" />
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-white">
+                      <Download className="w-3.5 h-3.5 text-[#ff3b30]" />
                       <span>Ghi hình dự phòng HD tại máy</span>
                     </div>
-                    <p className="text-[10px] text-gray-400 leading-relaxed">
+                    <p className="text-[10px] text-white/50 leading-relaxed">
                       Lưu song song bản HD vào máy để tải về ngay sau khi live, chống mất video khi đứt mạng.
                     </p>
                   </div>
@@ -2156,8 +2183,8 @@ export default function LiveStudioModal({
                     type="button"
                     onClick={() => setEnableLocalBackup(!enableLocalBackup)}
                     disabled={isLive}
-                    className={`w-10 h-6 rounded-full transition-colors p-0.5 flex items-center cursor-pointer shrink-0 ${
-                      enableLocalBackup ? 'bg-rose-600 justify-end' : 'bg-gray-700 justify-start'
+                    className={`w-11 h-6 rounded-full transition-colors p-0.5 flex items-center cursor-pointer shrink-0 ${
+                      enableLocalBackup ? 'bg-[#ff3b30] justify-end' : 'bg-white/20 justify-start'
                     } disabled:opacity-50`}
                     title={enableLocalBackup ? "Đang bật sao lưu HD" : "Đã tắt sao lưu"}
                   >
@@ -2166,10 +2193,10 @@ export default function LiveStudioModal({
                 </div>
 
                 {/* 6. THÔNG SỐ TÓM TẮT REALTIME */}
-                <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 space-y-1.5 font-mono text-[11px] text-gray-400">
+                <div className="p-3 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1.5 font-mono text-[11px] text-white/50">
                   <div className="flex justify-between">
-                    <span>Giao thức phát:</span>
-                    <span className="text-cyan-400 font-bold">HLS • delay khoảng 5 giây</span>
+                    <span>Giao thức:</span>
+                    <span className="text-cyan-400 font-bold">HLS • delay ~5s</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Âm thanh & Sao lưu:</span>
@@ -2179,13 +2206,13 @@ export default function LiveStudioModal({
                   </div>
                   <div className="flex justify-between">
                     <span>Khung hình / Cam:</span>
-                    <span className="text-amber-300 font-bold">
+                    <span className="text-[#e6b744] font-bold">
                       {orientation === 'portrait' ? 'Màn Dọc 9:16' : orientation === 'square' ? 'Màn Vuông 1:1' : 'Màn Ngang 16:9'} • {facingMode === 'user' ? 'Cam Trước' : 'Cam Sau'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Chất lượng video:</span>
-                    <span className="text-gray-200">
+                    <span className="text-white/90">
                       {actualVideoSettings
                         ? `${actualVideoSettings.width}×${actualVideoSettings.height}${actualVideoSettings.frameRate ? ` @ ${Math.round(actualVideoSettings.frameRate)} FPS` : ''}`
                         : `${resolution.toUpperCase()} yêu cầu • tối đa 60 FPS`}
@@ -2198,15 +2225,15 @@ export default function LiveStudioModal({
             {/* TAB 3: KỊCH BẢN LIVE TRỰC TIẾP (TELEPROMPTER ĐỌC KHÔNG CẦN ALT+TAB) */}
             {activeTab === 'script' && (
               <div className="flex-1 flex flex-col justify-between space-y-2 max-h-[340px]">
-                <div className="flex items-center justify-between text-[11px] text-gray-400 pb-1.5 border-b border-white/10">
-                  <span className="font-bold text-amber-300 flex items-center gap-1">
+                <div className="flex items-center justify-between text-[11px] text-white/60 pb-2 border-b border-white/10">
+                  <span className="font-bold text-[#e6b744] flex items-center gap-1.5">
                     <FileText className="w-3.5 h-3.5" /> Kịch bản / Ghi chú live
                   </span>
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() => setScriptFontSize((prev) => Math.max(12, prev - 2))}
-                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white font-mono text-[10px] cursor-pointer"
+                      className="px-2 py-0.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-mono text-[10px] cursor-pointer"
                       title="Thu nhỏ chữ"
                     >
                       A-
@@ -2214,7 +2241,7 @@ export default function LiveStudioModal({
                     <button
                       type="button"
                       onClick={() => setScriptFontSize((prev) => Math.min(24, prev + 2))}
-                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white font-mono text-[10px] cursor-pointer"
+                      className="px-2 py-0.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-mono text-[10px] cursor-pointer"
                       title="Phóng to chữ"
                     >
                       A+
@@ -2229,7 +2256,7 @@ export default function LiveStudioModal({
                           } catch { }
                         }
                       }}
-                      className="px-2 py-0.5 rounded bg-rose-600/20 text-rose-300 hover:bg-rose-600 hover:text-white text-[10px] transition cursor-pointer"
+                      className="px-2.5 py-0.5 rounded-full bg-[#ff3b30]/20 text-[#ff3b30] hover:bg-[#ff3b30] hover:text-white text-[10px] transition cursor-pointer"
                     >
                       Xóa
                     </button>
@@ -2246,22 +2273,22 @@ export default function LiveStudioModal({
                   }}
                   style={{ fontSize: `${scriptFontSize}px` }}
                   placeholder="Dán hoặc gõ kịch bản, lời chào, giá bán, thông số cặp đấu vào đây để đọc trực tiếp khi live mà KHÔNG CẦN Alt+Tab..."
-                  className="flex-1 w-full bg-black/60 border border-white/10 rounded-xl p-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-amber-500/60 resize-none font-sans leading-relaxed min-h-[220px]"
+                  className="flex-1 w-full bg-black/40 border border-white/10 rounded-2xl p-3 text-gray-100 placeholder-white/40 focus:outline-none focus:border-white/30 resize-none font-sans leading-relaxed min-h-[220px]"
                 />
 
-                <p className="text-[10px] text-amber-300/80 italic">
+                <p className="text-[10px] text-[#e6b744]/80 italic">
                   💡 Kịch bản tự lưu trên máy. Bạn có thể đọc trực tiếp cạnh camera mà không lo đứt mạng!
                 </p>
               </div>
             )}
 
             {/* NÚT BẮT ĐẦU / DỪNG PHÁT SÓNG TO & RÕ RÀNG (TRÊN MÁY TÍNH) */}
-            <div className="hidden lg:block pt-3 border-t border-white/10 mt-3">
+            <div className="hidden lg:block pt-4 border-t border-white/10 mt-4">
               {!isLive ? (
                 <button
                   onClick={startLivestream}
                   disabled={isPublishing}
-                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-[0.98] transition-all text-white font-black text-xs sm:text-sm shadow-xl shadow-rose-950/60 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                  className="w-full py-3.5 px-6 rounded-full bg-gradient-to-r from-[#ff3b30] to-[#e63026] hover:brightness-110 active:scale-[0.98] transition-all text-white font-bold text-sm shadow-xl shadow-[#ff3b30]/30 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                 >
                   <Play className="w-4 h-4 fill-white" />
                   <span>{isPublishing ? "ĐANG KẾT NỐI MÁY CHỦ..." : "BẮT ĐẦU PHÁT SÓNG"}</span>
@@ -2269,9 +2296,9 @@ export default function LiveStudioModal({
               ) : (
                 <button
                   onClick={stopLivestream}
-                  className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-rose-600 active:scale-[0.98] transition-all text-white font-black text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 cursor-pointer border border-rose-500/40 group"
+                  className="w-full py-3.5 px-6 rounded-full bg-white/[0.08] hover:bg-[#ff3b30] active:scale-[0.98] transition-all text-white font-bold text-sm shadow-xl flex items-center justify-center gap-2 cursor-pointer border border-white/15 hover:border-transparent group"
                 >
-                  <Square className="w-4 h-4 fill-rose-500 group-hover:fill-white transition-colors" />
+                  <Square className="w-4 h-4 fill-[#ff3b30] group-hover:fill-white transition-colors" />
                   <span>DỪNG PHÁT SÓNG (ĐANG LIVE)</span>
                 </button>
               )}
