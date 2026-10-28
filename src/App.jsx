@@ -670,13 +670,9 @@ export default function App() {
     setTimeout(() => setToastMessage(''), 2500);
   };
 
-  // Xử lý sao chép thông tin tài khoản ngân hàng (để trống theo yêu cầu khách)
+  // Xử lý sao chép thông tin tài khoản ngân hàng chính thức của Trại Gà Thành Trung
   const handleCopyBankInfo = () => {
-    const bankAccount = ''; // Để trống theo yêu cầu người dùng
-    if (!bankAccount) {
-      alert('Thông tin Số Tài Khoản Ngân Hàng đang cập nhật. Vui lòng liên hệ Hotline/Zalo: 0946 939 999!');
-      return;
-    }
+    const bankAccount = '0946939999';
     navigator.clipboard.writeText(bankAccount).then(() => {
       setIsCopiedBank(true);
       setTimeout(() => setIsCopiedBank(false), 2000);
@@ -783,15 +779,15 @@ export default function App() {
               <div className="text-xs space-y-1.5 text-gray-300">
                 <p>
                   <span className="text-gray-400">Tên người nhận:</span>{' '}
-                  <strong className="text-white"></strong>
+                  <strong className="text-white">NGUYEN THANH TRUNG</strong>
                 </p>
                 <p>
                   <span className="text-gray-400">Số tài khoản:</span>{' '}
-                  <strong className="text-white font-mono text-sm"></strong>
+                  <strong className="text-[#edb929] font-mono text-sm tracking-wider">0946 939 999</strong>
                 </p>
                 <p>
                   <span className="text-gray-400">Ngân hàng:</span>{' '}
-                  <strong className="text-white"></strong>
+                  <strong className="text-white">MB Bank (Ngân Hàng Quân Đội)</strong>
                 </p>
               </div>
             </div>
@@ -2397,9 +2393,6 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Quy định và thông tin chuyển khoản nằm sau khu vực chat trên mobile. */}
-                    {renderLiveUtilitiesSection('details')}
-
                   </div>
 
                   {/* Cột phải (Desktop 4 cols): Phòng bình luận trực tiếp */}
@@ -2414,6 +2407,9 @@ export default function App() {
                   </div>
 
                 </div>
+
+                {/* HÀNG DƯỚI DÀN ĐỀU 12 CỘT: QUY ĐỊNH + THÔNG TIN CHUYỂN KHOẢN + HOTLINE */}
+                {renderLiveUtilitiesSection('details')}
 
               </section>
             )}
