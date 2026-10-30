@@ -1545,6 +1545,10 @@ export default function App() {
               setStreamKey(startedKey);
               setInputKey(startedKey);
             }}
+            onReplayUploaded={() => {
+              fetchReplays();
+              fetchSessions();
+            }}
           />
         )}
       </main>

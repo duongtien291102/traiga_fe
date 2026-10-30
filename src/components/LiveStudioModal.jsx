@@ -29,6 +29,7 @@ import {
   Sliders,
   FileText,
   Download,
+  Upload,
   Volume2,
 } from 'lucide-react';
 import { getApiBaseUrl, getWsUrl, NGROK_HLS_URL, SRS_VPS_HOST, isVercel } from '../config';
@@ -63,7 +64,8 @@ export default function LiveStudioModal({
   publishSecrets = {},
   onStreamStarted,
   user,
-  sessions = []
+  sessions = [],
+  onReplayUploaded
 }) {
   const [selectedKey, setSelectedKey] = useState(currentStreamKey);
   const [sourceType, setSourceType] = useState('camera'); // 'camera' | 'screen'
@@ -117,6 +119,9 @@ export default function LiveStudioModal({
   const [localBackupUrl, setLocalBackupUrl] = useState('');
   const [localBackupSize, setLocalBackupSize] = useState(0);
   const [localBackupExt, setLocalBackupExt] = useState('mp4');
+  const [isUploadingBackup, setIsUploadingBackup] = useState(false);
+  const [backupUploadProgress, setBackupUploadProgress] = useState(0);
+  const [backupUploadStatus, setBackupUploadStatus] = useState(null); // { type: 'success' | 'error', message: string }
   const mediaRecorderRef = useRef(null);
   const recordedChunksRef = useRef([]);
 
@@ -1467,6 +1472,78 @@ export default function LiveStudioModal({
     return `${m}:${s}`;
   };
 
+  // Tải bản ghi nguyên bản thu tại máy tính lên làm Video Xem Lại chính thức (chống lệch tiếng 100%)
+  const uploadLocalBackupAsReplay = () => {
+    if (!localBackupBlob || isUploadingBackup) return;
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
+    if (!token) {
+      setBackupUploadStatus({ type: 'error', message: 'Vui lòng đăng nhập tài khoản Quản trị viên để tải video.' });
+      return;
+    }
+
+    setIsUploadingBackup(true);
+    setBackupUploadProgress(0);
+    setBackupUploadStatus(null);
+
+    const ext = localBackupExt || 'mp4';
+    const fileName = `TraiGa_${selectedKey || 'live'}_${new Date().toISOString().slice(0, 10)}.${ext}`;
+    const file = new File([localBackupBlob], fileName, {
+      type: localBackupBlob.type || (ext === 'mp4' ? 'video/mp4' : 'video/webm')
+    });
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('stream_key', selectedKey || currentStreamKey || '');
+
+    const recentSession = Array.isArray(sessions)
+      ? sessions.find((s) => s.stream_key === selectedKey)
+      : null;
+    const sessionId = recentSession ? String(recentSession.id || recentSession._id || '') : '';
+    if (sessionId) {
+      formData.append('session_id', sessionId);
+    }
+    formData.append('title', recentSession?.title || `Phiên Live: ${selectedKey || 'Trực Tiếp'}`);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${getApiBaseUrl()}/api/sessions/upload`, true);
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percent = Math.round((event.loaded / event.total) * 100);
+        setBackupUploadProgress(percent);
+      }
+    };
+
+    xhr.onload = () => {
+      setIsUploadingBackup(false);
+      try {
+        const data = JSON.parse(xhr.responseText);
+        if (xhr.status >= 200 && xhr.status < 300) {
+          setBackupUploadStatus({
+            type: 'success',
+            message: 'Đã lưu bản ghi gốc làm Video Xem Lại thành công (100% chuẩn tiếng)! Khán giả có thể vào xem lại ngay.'
+          });
+          onReplayUploaded && onReplayUploaded();
+        } else {
+          setBackupUploadStatus({
+            type: 'error',
+            message: data.error || 'Lỗi khi tải video lên máy chủ.'
+          });
+        }
+      } catch {
+        setBackupUploadStatus({ type: 'error', message: 'Lỗi phản hồi từ máy chủ khi lưu video.' });
+      }
+    };
+
+    xhr.onerror = () => {
+      setIsUploadingBackup(false);
+      setBackupUploadStatus({ type: 'error', message: 'Không thể kết nối đến máy chủ để tải video.' });
+    };
+
+    xhr.send(formData);
+  };
+
   if (!isOpen) return null;
 
   if (!user || user.role !== 'admin') {
@@ -1581,44 +1658,84 @@ export default function LiveStudioModal({
         {/* ================= BODY STUDIO ================= */}
         {/* Banner thông báo tải bản ghi HD sao lưu tại máy (Local Backup) khi kết thúc live */}
         {localBackupUrl && !isLive && (
-          <div className="mx-3 sm:mx-6 mt-3 p-3.5 bg-emerald-950/80 border border-emerald-500/40 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xl animate-fadeIn backdrop-blur-xl">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
-                <Check className="w-5 h-5" />
+          <div className="mx-3 sm:mx-6 mt-3 p-3.5 bg-emerald-950/80 border border-emerald-500/40 rounded-2xl flex flex-col gap-3 shadow-2xl animate-fadeIn backdrop-blur-xl">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
+                  <Check className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-white text-xs sm:text-sm flex items-center gap-2">
+                    <span>Bản ghi HD thu trực tiếp tại máy sẵn sàng!</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/30 text-emerald-200 border border-emerald-400/40">
+                      {(localBackupSize / 1024 / 1024).toFixed(1)} MB
+                    </span>
+                  </p>
+                  <p className="text-[11px] text-emerald-300/80">
+                    Thu trực tiếp từ camera & micro máy tính (100% không qua mạng, âm thanh & hình ảnh khớp tuyệt đối).
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="font-bold text-white text-xs sm:text-sm flex items-center gap-2">
-                  <span>Bản ghi HD dự phòng sẵn sàng!</span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/30 text-emerald-200 border border-emerald-400/40">
-                    {(localBackupSize / 1024 / 1024).toFixed(1)} MB
-                  </span>
-                </p>
-                <p className="text-[11px] text-emerald-300/80">
-                  Đã ghi song song trực tiếp từ máy của bạn. Không sợ mất video kể cả khi mạng 4G/Wifi bị lag hay đứt!
-                </p>
+
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+                {backupUploadStatus?.type === 'success' ? (
+                  <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-bold">
+                    <Check className="w-4 h-4 text-emerald-400" />
+                    <span>Đã Gán Làm Video Xem Lại!</span>
+                  </div>
+                ) : isUploadingBackup ? (
+                  <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-200 text-xs font-bold">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                    <span>Đang tải lên {backupUploadProgress}%...</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={uploadLocalBackupAsReplay}
+                    disabled={isUploadingBackup}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-95 transition text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-950/50 cursor-pointer"
+                    title="Đẩy video gốc siêu nét từ máy lên thay thế bản ghi VPS, chống lệch tiếng 100%"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>Đẩy Lên Làm Video Xem Lại</span>
+                  </button>
+                )}
+
+                <a
+                  href={localBackupUrl}
+                  download={`traiga_${selectedKey || 'live'}_${new Date().toISOString().slice(0, 10)}.${localBackupExt}`}
+                  className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition text-white font-bold text-xs flex items-center gap-2 border border-white/15 cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Tải Về Máy</span>
+                </a>
+
+                <button
+                  onClick={() => {
+                    if (localBackupUrl) URL.revokeObjectURL(localBackupUrl);
+                    setLocalBackupUrl('');
+                    setLocalBackupBlob(null);
+                    setBackupUploadStatus(null);
+                  }}
+                  className="p-2 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition cursor-pointer"
+                  title="Đóng thông báo"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
             </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-              <a
-                href={localBackupUrl}
-                download={`traiga_${selectedKey || 'live'}_${new Date().toISOString().slice(0, 10)}.${localBackupExt}`}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 transition text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-950/50 cursor-pointer"
-              >
-                <Download className="w-4 h-4" />
-                <span>Tải Bản Ghi Về Máy (.{localBackupExt.toUpperCase()})</span>
-              </a>
-              <button
-                onClick={() => {
-                  if (localBackupUrl) URL.revokeObjectURL(localBackupUrl);
-                  setLocalBackupUrl('');
-                  setLocalBackupBlob(null);
-                }}
-                className="p-2 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition cursor-pointer"
-                title="Đóng thông báo"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+
+            {backupUploadStatus?.type === 'error' && (
+              <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{backupUploadStatus.message}</span>
+              </div>
+            )}
+            {backupUploadStatus?.type === 'success' && (
+              <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{backupUploadStatus.message}</span>
+              </div>
+            )}
           </div>
         )}
 
