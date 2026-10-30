@@ -147,6 +147,7 @@ export default function LiveStudioModal({
   const videoRecoveryTimerRef = useRef(null);
   const isRecoveringVideoRef = useRef(false);
   const audioCtxRef = useRef(null);
+  const audioSourceNodeRef = useRef(null);
 
   // Giám sát kết nối WebRTC & Tự động kết nối lại (Auto-Reconnect)
   const [streamConnStatus, setStreamConnStatus] = useState('connected'); // 'connected' | 'reconnecting' | 'recovered'
@@ -269,7 +270,16 @@ export default function LiveStudioModal({
         audioCtx.resume?.().catch(() => { });
       }
 
-      const source = audioCtx.createMediaStreamSource(new MediaStream([audioTrack]));
+      if (audioSourceNodeRef.current) {
+        try {
+          audioSourceNodeRef.current.disconnect();
+        } catch { }
+        audioSourceNodeRef.current = null;
+      }
+
+      // Giữ tham chiếu lâu dài (ref) vào AudioSourceNode để Chromium V8 không Garbage Collect gây ngắt/mute micro ngầm sau ~30s
+      const source = audioCtx.createMediaStreamSource(mediaStreamRef.current);
+      audioSourceNodeRef.current = source;
       analyser = audioCtx.createAnalyser();
       analyser.fftSize = 64;
       analyser.smoothingTimeConstant = 0.5;
@@ -298,6 +308,12 @@ export default function LiveStudioModal({
 
     return () => {
       if (animId) cancelAnimationFrame(animId);
+      if (audioSourceNodeRef.current) {
+        try {
+          audioSourceNodeRef.current.disconnect();
+        } catch { }
+        audioSourceNodeRef.current = null;
+      }
       // Tuyệt đối không gọi audioCtx.close() ở đây vì Chromium sẽ mute luôn audioTrack vật lý
     };
   }, [isOpen, isMicOn, hasStream]);
@@ -1220,7 +1236,15 @@ export default function LiveStudioModal({
       }
     };
 
-    // Ưu tiên đàm phán Video Transceiver trước để SRS khóa Keyframe ngay m-line 0
+    // Chuẩn SRS WebRTC: Đàm phán Audio Transceiver trước (m-line 0: audio, m-line 1: video)
+    // để SRS rtc_to_rtmp ánh xạ đúng track index và đồng bộ RTCP Sender Report chuẩn
+    const audioTrack = mediaStreamRef.current.getAudioTracks()[0];
+    if (audioTrack) {
+      setAudioContentHint(audioTrack);
+      audioTrack.enabled = isMicOn;
+      pc.addTransceiver(audioTrack, { direction: 'sendonly', streams: [mediaStreamRef.current] });
+    }
+
     if (videoTrack) {
       videoTrack.enabled = isCameraOn;
       if ('contentHint' in videoTrack) {
@@ -1238,13 +1262,6 @@ export default function LiveStudioModal({
       } catch (paramErr) {
         console.warn('[WEBRTC] Không thể đặt degradationPreference:', paramErr);
       }
-    }
-
-    const audioTrack = mediaStreamRef.current.getAudioTracks()[0];
-    if (audioTrack) {
-      setAudioContentHint(audioTrack);
-      audioTrack.enabled = isMicOn;
-      pc.addTransceiver(audioTrack, { direction: 'sendonly', streams: [mediaStreamRef.current] });
     }
 
     const offer = await pc.createOffer();
