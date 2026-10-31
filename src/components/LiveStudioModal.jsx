@@ -1522,7 +1522,7 @@ export default function LiveStudioModal({
         if (xhr.status >= 200 && xhr.status < 300) {
           setBackupUploadStatus({
             type: 'success',
-            message: 'Đã lưu bản ghi gốc làm Video Xem Lại thành công (100% chuẩn tiếng)! Khán giả có thể vào xem lại ngay.'
+            message: 'Đã lưu bản ghi dự phòng lên Google Drive. Khán giả có thể vào xem lại ngay.'
           });
           onReplayUploaded && onReplayUploaded();
         } else {

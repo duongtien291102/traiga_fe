@@ -2,11 +2,7 @@
 
 ## Production DVR replay
 
-The `/record` rewrite in `vercel.json` currently uses the public SRS HTTP endpoint
-(`http://103.82.26.60:8080/record/$1`). If the SRS host changes, update this rewrite.
-The backend separately reads completed recordings using its `SRS_HTTP_URL` environment
-variable; its deployment workflow defaults to the same endpoint and can be overridden
-with a GitHub Actions variable.
+Public replay listings use browser MediaRecorder backups uploaded directly to Google Drive. After a live session ends, an admin uses **Đẩy Lên Làm Video Xem Lại** in the studio. The live WebRTC/HLS path remains enabled. Legacy SRS DVR files and `/record` access may remain on the VPS until its recording configuration is updated.
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
