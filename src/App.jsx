@@ -400,7 +400,13 @@ export default function App() {
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
-          setReplays(data);
+          const apiBaseUrl = getApiBaseUrl().replace(/\/$/, '');
+          setReplays(data.map((replay) => ({
+            ...replay,
+            replay_url: replay.replay_url?.startsWith('/api/replay-file')
+              ? `${apiBaseUrl}${replay.replay_url}`
+              : replay.replay_url
+          })));
         }
       })
       .catch(() => {});

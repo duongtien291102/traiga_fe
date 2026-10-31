@@ -2,7 +2,7 @@
 
 ## Production DVR replay
 
-Public replay listings use browser MediaRecorder backups uploaded directly to Google Drive. After a live session ends, an admin uses **Đẩy Lên Làm Video Xem Lại** in the studio. The live WebRTC/HLS path remains enabled. Legacy SRS DVR files and `/record` access may remain on the VPS until its recording configuration is updated.
+Public replay listings include Google Drive videos and retained SRS DVR files. SRS DVR files are temporary and are removed from the VPS after seven days; the backend streams them through its HTTPS API so they work from the Vercel frontend. After a live session ends, an admin can still use **Đẩy Lên Làm Video Xem Lại** in the studio to upload a browser backup to Google Drive when Drive is available.
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
