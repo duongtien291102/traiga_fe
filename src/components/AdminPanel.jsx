@@ -340,6 +340,37 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
     }
   };
 
+  const handleRegenerateKey = async (key, id) => {
+    if (!confirm(`Bạn có chắc chắn muốn TẠO MỚI mã ngẫu nhiên cho Stream Key '${key}' không?\n\n⚠️ Lưu ý: Sau khi đổi, mã cũ sẽ bị vô hiệu hóa. Bạn cần cập nhật mã mới vào OBS.`)) return;
+    try {
+      const res = await fetch(`${getApiBaseUrl()}/api/keys/regenerate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ key, id })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMsg(`✅ Đã tạo mới mã Stream Key ngẫu nhiên thành công! (Mã mới: ${data.key})`);
+        setTimeout(() => setMsg(''), 5000);
+        loadData();
+      } else {
+        alert(data.error || 'Lỗi khi tạo mới mã');
+      }
+    } catch (err) {
+      alert('Lỗi tạo mới mã Stream Key');
+    }
+  };
+
+  const generateRandomKeyInput = () => {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    setNewKey(hex);
+  };
+
   const handleCreateKey = async (e) => {
     e.preventDefault();
     if (!newKey.trim()) return;
@@ -479,8 +510,18 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
             <div className="space-y-6">
               {/* Form thêm Stream Key mới */}
               <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4 sm:p-5">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
-                  <Plus className="w-4 h-4 text-rose-500" /> Cấp Stream Key mới (Đặc quyền Admin)
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Plus className="w-4 h-4 text-rose-500" /> Cấp Stream Key mới (Đặc quyền Admin)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={generateRandomKeyInput}
+                    className="text-[11px] text-rose-400 hover:text-rose-300 font-semibold flex items-center gap-1 cursor-pointer normal-case"
+                    title="Tự động sinh mã ngẫu nhiên 32 ký tự hex"
+                  >
+                    <RefreshCw className="w-3 h-3" /> Sinh mã ngẫu nhiên
+                  </button>
                 </h3>
                 <form onSubmit={handleCreateKey} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                   <input
@@ -579,6 +620,13 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
                             </td>
                             <td className="py-3.5 text-right font-sans">
                               <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => handleRegenerateKey(k.key, k.id)}
+                                  className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition"
+                                  title="Tạo lại mã ngẫu nhiên bảo mật cao (Regenerate Key)"
+                                >
+                                  <RefreshCw className="w-4 h-4" />
+                                </button>
                                 <button
                                   onClick={() => handleToggleKey(k.key, k.is_active)}
                                   className={`p-2 rounded-xl transition ${

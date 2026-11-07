@@ -15,15 +15,18 @@ import {
   Loader2,
   ArrowLeft,
   Eye,
-  EyeOff
+  EyeOff,
+  RefreshCw,
+  ShieldCheck
 } from 'lucide-react';
-import { getApiBaseUrl } from '../config';
+import { getApiBaseUrl, getRtmpBaseUrl } from '../config';
 
 export default function UserProfilePage({
   currentUser,
   authToken,
   myStreamKey,
   onProfileUpdated,
+  onStreamKeyRegenerated,
   onBack
 }) {
   const [fullName, setFullName] = useState('');
@@ -41,7 +44,9 @@ export default function UserProfilePage({
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [copiedKey, setCopiedKey] = useState(false);
+  const [copiedObs, setCopiedObs] = useState(false);
   const [showStreamKey, setShowStreamKey] = useState(false);
+  const [regeneratingKey, setRegeneratingKey] = useState(false);
 
   const fileInputRef = useRef(null);
 
@@ -131,6 +136,64 @@ export default function UserProfilePage({
     navigator.clipboard.writeText(keyToCopy);
     setCopiedKey(true);
     setTimeout(() => setCopiedKey(false), 2000);
+  };
+
+  // Sao chép trọn bộ thông số cấu hình OBS
+  const handleCopyObsConfig = () => {
+    const keyToCopy = myStreamKey;
+    if (!keyToCopy) return;
+    const rtmpUrl = getRtmpBaseUrl();
+    const obsText = `RTMP Server: ${rtmpUrl}\nStream Key: ${keyToCopy}`;
+    navigator.clipboard.writeText(obsText);
+    setCopiedObs(true);
+    setTimeout(() => setCopiedObs(false), 2000);
+  };
+
+  // Làm mới / Tự sinh Stream Key ngẫu nhiên bảo mật cao
+  const handleRegenerateStreamKey = async () => {
+    if (!window.confirm("Bạn có chắc chắn muốn TẠO MỚI mã Stream Key ngẫu nhiên không?\n\n⚠️ Lưu ý: Sau khi tạo, mã cũ sẽ bị vô hiệu hóa. Bạn cần copy mã mới này vào phần mềm OBS hoặc thiết bị phát sóng để tiếp tục live.")) {
+      return;
+    }
+    setRegeneratingKey(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      const res = await fetch(`${getApiBaseUrl()}/api/keys/regenerate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ key: myStreamKey || '' })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Không thể tạo mới mã Stream Key');
+      }
+
+      if (data.key) {
+        localStorage.setItem('my_stream_key', data.key);
+        if (data.publish_secret) {
+          try {
+            const raw = localStorage.getItem('my_publish_secrets');
+            const secrets = raw ? JSON.parse(raw) : {};
+            secrets[data.key] = data.publish_secret;
+            localStorage.setItem('my_publish_secrets', JSON.stringify(secrets));
+          } catch (_) {}
+        }
+        if (typeof onStreamKeyRegenerated === 'function') {
+          onStreamKeyRegenerated(data.key, data.publish_secret);
+        }
+        setShowStreamKey(true);
+        setSuccessMsg('✅ Đã tạo mới mã Stream Key ngẫu nhiên bảo mật cao thành công! Hãy sao chép mã mới vào OBS.');
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'Lỗi khi tạo mới mã Stream Key');
+    } finally {
+      setRegeneratingKey(false);
+    }
   };
 
   // Lưu thông tin người dùng
@@ -371,17 +434,26 @@ export default function UserProfilePage({
         {/* Khung 3: Stream Key (cho Admin) */}
         {currentUser.role === 'admin' && (
           <div className="p-5 sm:p-6 rounded-2xl bg-[#14151c] border border-white/10 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h2 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
-                  Mã Stream Key
+                <h2 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-2 flex-wrap">
+                  <span>Mã Stream Key</span>
+                  {rawKey && rawKey.length >= 32 ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-normal normal-case">
+                      <ShieldCheck className="w-3 h-3" /> Đã mã hóa bảo mật (64 ký tự)
+                    </span>
+                  ) : rawKey ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-normal normal-case">
+                      <AlertCircle className="w-3 h-3" /> Mã cũ chưa ngẫu nhiên hóa
+                    </span>
+                  ) : null}
                 </h2>
                 <p className="text-[11px] text-zinc-500 mt-0.5">
                   Mã bí mật dùng để phát trực tiếp. Không chia sẻ mã này cho người khác.
                 </p>
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <button
                   type="button"
                   onClick={() => setShowStreamKey(!showStreamKey)}
@@ -396,17 +468,51 @@ export default function UserProfilePage({
                   type="button"
                   onClick={handleCopyStreamKey}
                   disabled={!rawKey}
-                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                  title="Sao chép chỉ mã Stream Key"
                 >
                   {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copiedKey ? 'Đã chép' : 'Sao chép'}</span>
                 </button>
+
+                <button
+                  type="button"
+                  onClick={handleCopyObsConfig}
+                  disabled={!rawKey}
+                  className="px-3 py-1.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 hover:text-cyan-200 border border-cyan-500/30 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                  title="Sao chép toàn bộ Server RTMP và Stream Key cho OBS Studio"
+                >
+                  {copiedObs ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-cyan-400" />}
+                  <span>{copiedObs ? 'Đã chép OBS' : 'Chép thông số OBS'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleRegenerateStreamKey}
+                  disabled={regeneratingKey}
+                  className="px-3 py-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 hover:text-rose-200 border border-rose-500/30 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                  title="Tự động sinh mã ngẫu nhiên bảo mật cao (64 ký tự)"
+                >
+                  {regeneratingKey ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-400" />
+                  ) : (
+                    <RefreshCw className="w-3.5 h-3.5 text-rose-400" />
+                  )}
+                  <span>{regeneratingKey ? 'Đang tạo...' : 'Tạo mã mới'}</span>
+                </button>
               </div>
             </div>
 
-            <div className="font-mono text-xs text-zinc-300 bg-zinc-950 px-3.5 py-2.5 rounded-xl border border-white/10 select-all tracking-wider">
+            <div className="font-mono text-xs text-zinc-300 bg-zinc-950 px-3.5 py-2.5 rounded-xl border border-white/10 select-all tracking-wider break-all">
               {showStreamKey ? (rawKey || 'Chưa được cấp mã') : '••••••••••••••••••••'}
             </div>
+
+            {rawKey && rawKey.length < 32 && (
+              <p className="text-[11px] text-amber-400/90 flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>Mã hiện tại <strong>{rawKey}</strong> là tên định danh cũ. Bấm <strong>"Tạo mã mới"</strong> để hệ thống tự động sinh chuỗi mã hóa ngẫu nhiên 64 ký tự an toàn hơn.</span>
+              </p>
+            )}
           </div>
         )}
 

@@ -1,14 +1,23 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import LivePlayer from './components/LivePlayer';
 import ReplayPlayer from './components/ReplayPlayer';
 import LiveChat from './components/LiveChat';
 import AuthModal from './components/AuthModal';
-import AdminPanel from './components/AdminPanel';
-import LiveStudioModal from './components/LiveStudioModal';
-import SystemAdminDashboard from './components/SystemAdminDashboard';
-import PostChickenModal from './components/PostChickenModal';
-import ChickenDetailModal from './components/ChickenDetailModal';
-import UserProfilePage from './components/UserProfilePage';
+
+// Code Splitting (Lazy Loading) các component quản trị & modal để tối ưu tốc độ tải trang ban đầu
+const AdminPanel = lazy(() => import('./components/AdminPanel'));
+const LiveStudioModal = lazy(() => import('./components/LiveStudioModal'));
+const SystemAdminDashboard = lazy(() => import('./components/SystemAdminDashboard'));
+const PostChickenModal = lazy(() => import('./components/PostChickenModal'));
+const ChickenDetailModal = lazy(() => import('./components/ChickenDetailModal'));
+const UserProfilePage = lazy(() => import('./components/UserProfilePage'));
+
+const ModalFallbackLoader = () => (
+  <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center gap-3">
+    <div className="w-9 h-9 border-3 border-rose-500/20 border-t-rose-500 rounded-full animate-spin" />
+    <span className="text-xs text-zinc-400 font-semibold">Đang tải giao diện...</span>
+  </div>
+);
 import {
   Radio,
   Search,
@@ -90,6 +99,35 @@ export const decodeRoomKey = (token) => {
     if (/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(decoded)) return decoded;
   } catch {}
   return clean;
+};
+
+const TAB_PATH_MAP = {
+  home: '/',
+  live: '/truc-tiep',
+  replays: '/xem-lai',
+  market: '/cho-ga',
+  profile: '/ho-so',
+};
+
+const PATH_TAB_MAP = {
+  '/': 'home',
+  '/trang-chu': 'home',
+  '/home': 'home',
+  '/truc-tiep': 'live',
+  '/live': 'live',
+  '/xem-lai': 'replays',
+  '/replays': 'replays',
+  '/cho-ga': 'market',
+  '/market': 'market',
+  '/ho-so': 'profile',
+  '/profile': 'profile',
+};
+
+const getInitialTabFromUrl = () => {
+  if (typeof window === 'undefined') return 'home';
+  const rawPath = window.location.pathname.toLowerCase();
+  const path = rawPath.replace(/\/$/, '') || '/';
+  return PATH_TAB_MAP[path] || 'home';
 };
 
 export default function App() {
@@ -203,7 +241,7 @@ export default function App() {
   const [replayPage, setReplayPage] = useState(1);
 
   // Điều hướng trang chính vs Phòng Live xổ gà
-  const [activeNavTab, setActiveNavTab] = useState('home'); // home | live | replays | market | profile
+  const [activeNavTab, setActiveNavTab] = useState(getInitialTabFromUrl); // home | live | replays | market | profile
 
   // Ref cho trình phát video để tự cuộn lên khi chọn gà
   const playerSectionRef = useRef(null);
@@ -230,16 +268,91 @@ export default function App() {
 
   useEffect(() => {
     const handleHistoryChange = () => {
-      const studioIsOpen = window.location.pathname === '/studio';
+      const rawPath = window.location.pathname.toLowerCase();
+      const path = rawPath.replace(/\/$/, '') || '/';
+
+      const studioIsOpen = path === '/studio';
       setIsLiveStudioPage(studioIsOpen);
       setIsLiveStudioOpen(studioIsOpen);
-      const systemAdminIsOpen = window.location.pathname === '/system-admin';
+
+      const systemAdminIsOpen = path === '/system-admin';
       setIsSystemAdminPage(systemAdminIsOpen);
       setIsSystemAdminOpen(systemAdminIsOpen);
+
+      if (!studioIsOpen && !systemAdminIsOpen && PATH_TAB_MAP[path]) {
+        setActiveNavTab(PATH_TAB_MAP[path]);
+      }
     };
     window.addEventListener('popstate', handleHistoryChange);
     return () => window.removeEventListener('popstate', handleHistoryChange);
   }, []);
+
+  // Đồng bộ URL trình duyệt (HTML5 History API) theo tab và tham số đang xem
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const rawPath = window.location.pathname.toLowerCase();
+    const currentPath = rawPath.replace(/\/$/, '') || '/';
+
+    // Không can thiệp nếu đang mở modal trang riêng /studio hoặc /system-admin
+    if (currentPath === '/studio' || currentPath === '/system-admin' || isLiveStudioOpen || isSystemAdminOpen) {
+      return;
+    }
+
+    let targetPath = TAB_PATH_MAP[activeNavTab] || '/';
+    if (activeNavTab === 'live' && streamKey) {
+      targetPath = `${targetPath}?room=${encodeURIComponent(streamKey)}`;
+    } else if (activeNavTab === 'replays' && selectedReplay) {
+      const vidId = selectedReplay.id || selectedReplay._id;
+      if (vidId) {
+        targetPath = `${targetPath}?video=${encodeURIComponent(vidId)}`;
+      }
+    }
+
+    const currentFull = currentPath + (window.location.search || '');
+    if (currentFull !== targetPath) {
+      window.history.pushState({ navTab: activeNavTab, streamKey, replayId: selectedReplay?.id }, '', targetPath);
+    }
+  }, [activeNavTab, streamKey, selectedReplay, isLiveStudioOpen, isSystemAdminOpen]);
+
+  // Đọc query param (?room=... hoặc ?video=...) khi truy cập link trực tiếp
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const roomParam = params.get('room') || params.get('channel') || params.get('key');
+    if (roomParam) {
+      const clean = roomParam.trim();
+      setStreamKey(clean);
+      setInputKey(clean);
+      setPreviewSelectedChannel(clean);
+    }
+    const replayParam = params.get('video') || params.get('replay') || params.get('id');
+    if (replayParam && replays.length > 0) {
+      const found = replays.find((r) => String(r.id || r._id) === String(replayParam));
+      if (found) {
+        setSelectedReplay(found);
+      }
+    }
+  }, [replays]);
+
+  // Cập nhật tiêu đề trang động theo tab và video
+  useEffect(() => {
+    if (activeNavTab === 'replays' && selectedReplay) {
+      document.title = `🎬 ${selectedReplay.title || 'Video Xem Lại'} - Trại Gà Thành Trung`;
+      return;
+    }
+    if (activeNavTab === 'live' && streamKey) {
+      document.title = `🔴 Trực Tiếp (${streamKey}) - Trại Gà Thành Trung`;
+      return;
+    }
+    const titles = {
+      home: 'Trại Gà Thành Trung Long Biên - Trực Tiếp & Giao Lưu Chiến Kê',
+      live: '🔴 Trực Tiếp Xổ Đòn - Trại Gà Thành Trung',
+      replays: '🎬 Kho Video Xem Lại - Trại Gà Thành Trung',
+      market: '🐓 Chợ Chiến Kê Tuyển Chọn - Trại Gà Thành Trung',
+      profile: '👤 Hồ Sơ Cá Nhân - Trại Gà Thành Trung',
+    };
+    document.title = titles[activeNavTab] || titles.home;
+  }, [activeNavTab, streamKey, selectedReplay]);
 
   const openLiveStudioPage = () => {
     if (window.location.pathname !== '/studio') {
@@ -258,7 +371,7 @@ export default function App() {
     if (window.history.state?.liveStudio) {
       window.history.back();
     } else {
-      window.history.replaceState({}, '', '/');
+      window.history.replaceState({}, '', TAB_PATH_MAP[activeNavTab] || '/');
       setIsLiveStudioPage(false);
     }
   };
@@ -280,7 +393,7 @@ export default function App() {
     if (window.history.state?.systemAdmin) {
       window.history.back();
     } else {
-      window.history.replaceState({}, '', '/');
+      window.history.replaceState({}, '', TAB_PATH_MAP[activeNavTab] || '/');
       setIsSystemAdminPage(false);
       setIsSystemAdminOpen(false);
     }
@@ -1539,23 +1652,25 @@ export default function App() {
             Đang tải Live Studio...
           </div>
         ) : (
-          <LiveStudioModal
-            isOpen={isLiveStudioOpen}
-            onClose={closeLiveStudioPage}
-            streamKeys={displayKeys}
-            currentStreamKey={streamKey}
-            publishSecrets={publishSecrets}
-            user={currentUser}
-            sessions={sessions}
-            onStreamStarted={(startedKey) => {
-              setStreamKey(startedKey);
-              setInputKey(startedKey);
-            }}
-            onReplayUploaded={() => {
-              fetchReplays();
-              fetchSessions();
-            }}
-          />
+          <Suspense fallback={<ModalFallbackLoader />}>
+            <LiveStudioModal
+              isOpen={isLiveStudioOpen}
+              onClose={closeLiveStudioPage}
+              streamKeys={displayKeys}
+              currentStreamKey={streamKey}
+              publishSecrets={publishSecrets}
+              user={currentUser}
+              sessions={sessions}
+              onStreamStarted={(startedKey) => {
+                setStreamKey(startedKey);
+                setInputKey(startedKey);
+              }}
+              onReplayUploaded={() => {
+                fetchReplays();
+                fetchSessions();
+              }}
+            />
+          </Suspense>
         )}
       </main>
     );
@@ -1569,13 +1684,15 @@ export default function App() {
             Đang tải bảng quản trị...
           </div>
         ) : currentUser?.role === 'systemadmin' ? (
-          <SystemAdminDashboard
-            isOpen={isSystemAdminOpen}
-            isFullPage
-            onClose={closeSystemAdminPage}
-            token={authToken}
-            currentUser={currentUser}
-          />
+          <Suspense fallback={<ModalFallbackLoader />}>
+            <SystemAdminDashboard
+              isOpen={isSystemAdminOpen}
+              isFullPage
+              onClose={closeSystemAdminPage}
+              token={authToken}
+              currentUser={currentUser}
+            />
+          </Suspense>
         ) : (
           <div className="min-h-[100dvh] flex flex-col items-center justify-center gap-3 px-4 text-center">
             <Shield className="w-10 h-10 text-purple-400" />
@@ -2596,24 +2713,40 @@ export default function App() {
         {/* VIEW 4: TRANG HỒ SƠ & TÀI KHOẢN CÁ NHÂN (FULL PAGE)      */}
         {/* ======================================================== */}
         {activeNavTab === 'profile' && (
-          <UserProfilePage
-            currentUser={currentUser}
-            authToken={authToken}
-            myStreamKey={myStreamKey}
-            onProfileUpdated={(updatedUser) => {
-              handleProfileUpdated(updatedUser);
-              fetchKeysAndSessions();
-            }}
-            onBack={() => {
-              setActiveNavTab('home');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            onNavigateTab={(tab) => {
-              setSelectedMarketChicken(null);
-              setActiveNavTab(tab);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          />
+          <Suspense fallback={<ModalFallbackLoader />}>
+            <UserProfilePage
+              currentUser={currentUser}
+              authToken={authToken}
+              myStreamKey={myStreamKey}
+              onStreamKeyRegenerated={(newKey, newPublishSecret) => {
+                setMyStreamKey(newKey);
+                setStreamKey(newKey);
+                setInputKey(newKey);
+                localStorage.setItem('my_stream_key', newKey);
+                if (newPublishSecret) {
+                  setPublishSecrets((prev) => {
+                    const next = { ...prev, [newKey]: newPublishSecret };
+                    localStorage.setItem('my_publish_secrets', JSON.stringify(next));
+                    return next;
+                  });
+                }
+                fetchKeysAndSessions();
+              }}
+              onProfileUpdated={(updatedUser) => {
+                handleProfileUpdated(updatedUser);
+                fetchKeysAndSessions();
+              }}
+              onBack={() => {
+                setActiveNavTab('home');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onNavigateTab={(tab) => {
+                setSelectedMarketChicken(null);
+                setActiveNavTab(tab);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
+          </Suspense>
         )}
 
       </main>
@@ -2919,27 +3052,33 @@ export default function App() {
         onAuthSuccess={handleAuthSuccess}
       />
 
-      <AdminPanel
-        isOpen={isAdminPanelOpen}
-        onClose={() => {
-          setIsAdminPanelOpen(false);
-          fetchKeysAndSessions();
-          fetchReplays();
-        }}
-        token={authToken}
-        currentUser={currentUser}
-        currentStreamKey={streamKey}
-      />
-
-
+      {isAdminPanelOpen && (
+        <Suspense fallback={<ModalFallbackLoader />}>
+          <AdminPanel
+            isOpen={isAdminPanelOpen}
+            onClose={() => {
+              setIsAdminPanelOpen(false);
+              fetchKeysAndSessions();
+              fetchReplays();
+            }}
+            token={authToken}
+            currentUser={currentUser}
+            currentStreamKey={streamKey}
+          />
+        </Suspense>
+      )}
 
       {/* ==================== MARKETPLACE MODALS ==================== */}
-      <PostChickenModal
-        isOpen={isPostChickenModalOpen}
-        onClose={() => setIsPostChickenModalOpen(false)}
-        onAddChicken={handleAddChicken}
-        currentUser={currentUser}
-      />
+      {isPostChickenModalOpen && (
+        <Suspense fallback={<ModalFallbackLoader />}>
+          <PostChickenModal
+            isOpen={isPostChickenModalOpen}
+            onClose={() => setIsPostChickenModalOpen(false)}
+            onAddChicken={handleAddChicken}
+            currentUser={currentUser}
+          />
+        </Suspense>
+      )}
 
     </div>
   );
