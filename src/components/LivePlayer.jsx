@@ -114,15 +114,10 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
     setSelectedQuality('auto');
     nativeQualityUrlsRef.current = [];
     let playbackUrl = streamUrl;
-    for (let attempt = 0; attempt < 10 && playbackUrl === streamUrl; attempt += 1) {
-      try {
-        const masterResponse = await fetch(masterUrl, { method: 'HEAD', cache: 'no-store' });
-        if (masterResponse.ok) playbackUrl = masterUrl;
-      } catch {}
-      if (playbackUrl === streamUrl && attempt < 9) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
-    }
+    try {
+      const masterResponse = await fetch(masterUrl, { method: 'HEAD', cache: 'no-store' });
+      if (masterResponse.ok) playbackUrl = masterUrl;
+    } catch {}
 
     if (hlsRef.current) {
       hlsRef.current.destroy();
@@ -160,11 +155,12 @@ export default function LivePlayer({ streamKey = 'thanhtrung01' }) {
         lowLatencyMode: false,
         // Always join the current live window, a few seconds behind its edge.
         startPosition: -1,
-        liveSyncDuration: 3,
-        liveMaxLatencyDuration: 6,
+        liveSyncDuration: 2,
+        liveMaxLatencyDuration: 4,
+        maxLiveSyncPlaybackRate: 1.15,
         liveBackBufferLength: 30,
-        maxBufferLength: 30,
-        maxMaxBufferLength: 60,
+        maxBufferLength: 15,
+        maxMaxBufferLength: 30,
         maxBufferHole: 0.5,
         nudgeOffset: 0.2,
         nudgeMaxRetry: 5,

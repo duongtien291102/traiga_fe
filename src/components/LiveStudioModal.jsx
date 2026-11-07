@@ -35,7 +35,7 @@ import {
 import { getApiBaseUrl, getWsUrl, NGROK_HLS_URL, SRS_VPS_HOST, isVercel } from '../config';
 import { mergeChatMessages } from '../chatUtils';
 
-const waitForIceGatheringComplete = (peerConnection, timeoutMs = 8000) => new Promise((resolve) => {
+const waitForIceGatheringComplete = (peerConnection, timeoutMs = 200) => new Promise((resolve) => {
   if (peerConnection.iceGatheringState === 'complete') {
     resolve();
     return;
@@ -1255,7 +1255,11 @@ export default function LiveStudioModal({
       if ('contentHint' in videoTrack) {
         videoTrack.contentHint = 'motion';
       }
-      const videoTransceiver = pc.addTransceiver(videoTrack, { direction: 'sendonly', streams: [mediaStreamRef.current] });
+      const videoTransceiver = pc.addTransceiver(videoTrack, {
+        direction: 'sendonly',
+        streams: [mediaStreamRef.current],
+        sendEncodings: [{ maxBitrate: 2500000, scaleResolutionDownBy: 1.0 }]
+      });
       try {
         const sender = videoTransceiver.sender;
         const params = sender.getParameters();
@@ -1310,6 +1314,20 @@ export default function LiveStudioModal({
     await pc.setRemoteDescription(
       new RTCSessionDescription({ type: 'answer', sdp: data.sdp })
     );
+
+    try {
+      const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === 'video');
+      if (videoSender) {
+        const params = videoSender.getParameters();
+        params.degradationPreference = 'maintain-resolution';
+        if (params.encodings && params.encodings.length > 0) {
+          params.encodings[0].scaleResolutionDownBy = 1.0;
+        }
+        await videoSender.setParameters(params).catch(() => { });
+      }
+    } catch (paramErr) {
+      console.warn('[WEBRTC] Không thể khóa độ phân giải sau SDP answer:', paramErr);
+    }
 
     return pc;
   };
