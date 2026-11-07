@@ -74,10 +74,11 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
     }
     try {
       const publishSecret = await requestPublishSecret(key.id);
-      setRevealedKeys((prev) => ({ ...prev, [key.id]: publishSecret }));
+      const fullStreamToken = `${key.key}?publish_secret=${publishSecret}`;
+      setRevealedKeys((prev) => ({ ...prev, [key.id]: fullStreamToken }));
       setTimeout(() => {
         setRevealedKeys((prev) => {
-          if (prev[key.id] !== publishSecret) return prev;
+          if (prev[key.id] !== fullStreamToken) return prev;
           const next = { ...prev };
           delete next[key.id];
           return next;
@@ -92,7 +93,8 @@ export default function AdminPanel({ isOpen, onClose, token, currentUser, curren
   const handleCopyKey = async (key) => {
     try {
       const publishSecret = await requestPublishSecret(key.id);
-      await navigator.clipboard.writeText(publishSecret);
+      const fullStreamToken = `${key.key}?publish_secret=${publishSecret}`;
+      await navigator.clipboard.writeText(fullStreamToken);
       setCopiedKeyId(key.id);
       setTimeout(() => setCopiedKeyId(null), 2000);
     } catch (err) {
